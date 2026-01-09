@@ -251,6 +251,20 @@ raindrop-mcp/
 └── README.md
 ```
 
+## Deployment
+
+This section covers various deployment options for the Raindrop MCP server.
+
+### Deployment Overview
+
+The Raindrop MCP server is designed to run as a STDIO-based process, using standard input/output for communication with MCP clients like Claude Desktop. This architecture supports several deployment strategies:
+
+- **NPM Package Distribution** - Publish to npm registry for easy installation
+- **Docker Containers** - Containerized deployment for consistent environments
+- **CI/CD Automation** - Automated testing and release pipelines
+- **System Services** - Long-running background processes on Linux servers
+- **Binary Compilation** - Standalone executables for simplified distribution
+
 ## Usage Examples
 
 Here are some practical examples of what you can do with Claude:
