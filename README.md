@@ -366,6 +366,100 @@ Or add it to Claude Desktop config:
 }
 ```
 
+### Docker Deployment
+
+Docker provides a consistent, portable environment for running the MCP server across different platforms.
+
+#### Building the Docker Image
+
+1. Build the image:
+```bash
+docker build -t raindrop-mcp:latest .
+```
+
+2. Tag for a registry (optional):
+```bash
+docker tag raindrop-mcp:latest username/raindrop-mcp:latest
+```
+
+#### Running with Docker
+
+Run the container with your API token:
+
+```bash
+docker run -it --rm \
+  -e RAINDROP_ACCESS_TOKEN=your_token_here \
+  raindrop-mcp:latest
+```
+
+#### Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  raindrop-mcp:
+    build: .
+    environment:
+      - RAINDROP_ACCESS_TOKEN=${RAINDROP_ACCESS_TOKEN}
+      - NODE_ENV=production
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+```
+
+Run with:
+
+```bash
+RAINDROP_ACCESS_TOKEN=your_token docker-compose up
+```
+
+#### Publishing to Docker Hub
+
+1. Login to Docker Hub:
+```bash
+docker login
+```
+
+2. Push the image:
+```bash
+docker push username/raindrop-mcp:latest
+```
+
+#### Multi-architecture Builds
+
+Build for multiple platforms:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t username/raindrop-mcp:latest \
+  --push .
+```
+
+#### Using with Claude Desktop
+
+You can configure Claude Desktop to use the Docker container:
+
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "RAINDROP_ACCESS_TOKEN=your_token_here",
+        "raindrop-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
 ## Usage Examples
 
 Here are some practical examples of what you can do with Claude:
