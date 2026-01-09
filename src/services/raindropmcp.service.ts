@@ -80,10 +80,15 @@ export class RaindropMCPService {
   private server: McpServer;
   private raindropService: RaindropService;
 
-  constructor() {
+  /**
+   * Create a new Raindrop MCP service
+   * @param token Optional Raindrop.io access token for multi-tenant support
+   */
+  constructor(token?: string) {
     logger.info('Initializing Raindrop MCP service');
     
-    this.raindropService = new RaindropService();
+    // Create Raindrop service with optional token for multi-tenant support
+    this.raindropService = new RaindropService(token);
     this.server = new McpServer({
       name: 'raindrop-mcp',
       version: SERVER_VERSION,
