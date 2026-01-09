@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "name": "raindrop-mcp",
+  "builds": [
+    {
+      "src": "src/adapters/vercel.ts",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 300,
+        "memory": 1024
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/src/adapters/vercel.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3000"
+  },
+  "functions": {
+    "src/adapters/vercel.ts": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "runtime": "nodejs20.x"
+    }
+  },
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/sse",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Connection",
+          "value": "keep-alive"
+        },
+        {
+          "key": "X-Accel-Buffering",
+          "value": "no"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}
