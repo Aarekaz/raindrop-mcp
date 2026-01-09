@@ -89,3 +89,38 @@ export const TagInputSchema = z.object({
   operation: z.enum(['list']),
   collectionId: z.number().optional(),
 });
+
+// ==================== Highlight Schemas ====================
+
+export const HighlightOutputSchema = z.object({
+  _id: z.string(),
+  text: z.string(),
+  note: z.string().optional(),
+  color: z.string().optional(),
+  created: z.string().optional(),
+  lastUpdate: z.string().optional(),
+});
+
+export const HighlightInputSchema = z.object({
+  bookmarkId: z.number().optional(),
+  text: z.string().optional(),
+  note: z.string().optional(),
+  color: z.enum(['yellow', 'blue', 'green', 'red', 'purple']).optional(),
+  id: z.string().optional(),
+});
+
+export const HighlightManageInputSchema = HighlightInputSchema.extend({
+  operation: z.enum(['create', 'update', 'delete', 'list']),
+});
+
+// ==================== Bulk Edit Schemas ====================
+
+export const BulkEditInputSchema = z.object({
+  collectionId: z.number().describe('Collection to update bookmarks in'),
+  ids: z.array(z.number()).optional().describe('Array of bookmark IDs to update. If omitted, all bookmarks in collection are updated'),
+  important: z.boolean().optional().describe('Mark as favorite (true/false)'),
+  tags: z.array(z.string()).optional().describe('Tags to set. Empty array removes all tags'),
+  media: z.array(z.string()).optional().describe('Media URLs to set. Empty array removes all media'),
+  cover: z.string().optional().describe('Cover URL. Use <screenshot> for auto screenshot'),
+  moveToCollection: z.number().optional().describe('Move bookmarks to another collection by ID'),
+});

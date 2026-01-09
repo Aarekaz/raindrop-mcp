@@ -16,6 +16,8 @@ import {
   CollectionManageInputSchema,
   CollectionOutputSchema,
   TagInputSchema,
+  HighlightManageInputSchema,
+  BulkEditInputSchema,
 } from '../types/raindrop-zod.schemas.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -315,7 +317,110 @@ export class RaindropMCPService {
       }
     );
 
-    logger.info('Registered 5 MCP tools');
+    // Highlight Manage Tool
+    this.server.registerTool(
+      'highlight_manage',
+      {
+        title: 'Highlight Manage',
+        description: 'Create, update, delete, or list highlights for bookmarks. Use operation parameter to specify action.',
+        inputSchema: HighlightManageInputSchema.shape,
+      },
+      async (args: z.infer<typeof HighlightManageInputSchema>) => {
+        try {
+          switch (args.operation) {
+            case 'list':
+              if (!args.bookmarkId) throw new Error('bookmarkId is required for list operation');
+              const highlights = await this.raindropService.getHighlights(args.bookmarkId);
+              const highlightList = highlights
+                .map((h) => `[${h.color || 'yellow'}] ${h.text.substring(0, 50)}...`)
+                .join('\n');
+              return {
+                content: [
+                  textContent(`Found ${highlights.length} highlights`),
+                  textContent(highlightList || 'No highlights found'),
+                ],
+              };
+
+            case 'create':
+              if (!args.bookmarkId || !args.text) {
+                throw new Error('bookmarkId and text are required for create operation');
+              }
+              const created = await this.raindropService.createHighlight(args.bookmarkId, {
+                text: args.text,
+                note: args.note,
+                color: args.color,
+              });
+              return {
+                content: [textContent(`Created highlight: ${created.text.substring(0, 50)}...`)],
+              };
+
+            case 'update':
+              if (!args.id) throw new Error('id is required for update operation');
+              const updates: Record<string, unknown> = {};
+              setIfDefined(updates, 'text', args.text);
+              setIfDefined(updates, 'note', args.note);
+              setIfDefined(updates, 'color', args.color);
+              const updated = await this.raindropService.updateHighlight(args.id, updates);
+              return {
+                content: [textContent(`Updated highlight ${args.id}`)],
+              };
+
+            case 'delete':
+              if (!args.id) throw new Error('id is required for delete operation');
+              await this.raindropService.deleteHighlight(args.id);
+              return {
+                content: [textContent(`Deleted highlight ${args.id}`)],
+              };
+
+            default:
+              throw new Error(`Unknown operation: ${args.operation}`);
+          }
+        } catch (error) {
+          logger.error('Error managing highlight:', error);
+          throw error;
+        }
+      }
+    );
+
+    // Bulk Edit Tool
+    this.server.registerTool(
+      'bulk_edit_bookmarks',
+      {
+        title: 'Bulk Edit Bookmarks',
+        description: 'Bulk update tags, favorite status, media, cover, or move bookmarks to another collection.',
+        inputSchema: BulkEditInputSchema.shape,
+      },
+      async (args: z.infer<typeof BulkEditInputSchema>) => {
+        try {
+          const updates: Record<string, unknown> = {};
+          setIfDefined(updates, 'ids', args.ids);
+          setIfDefined(updates, 'important', args.important);
+          setIfDefined(updates, 'tags', args.tags);
+          setIfDefined(updates, 'media', args.media);
+          setIfDefined(updates, 'cover', args.cover);
+          
+          if (args.moveToCollection) {
+            updates.collection = { $id: args.moveToCollection };
+          }
+
+          const result = await this.raindropService.bulkUpdateBookmarks(
+            args.collectionId,
+            updates
+          );
+
+          return {
+            content: [
+              textContent(`Bulk edit successful. Modified ${result.modified} bookmarks`),
+            ],
+          };
+        } catch (error) {
+          logger.error('Error bulk editing bookmarks:', error);
+          throw error;
+        }
+      }
+    );
+
+    logger.info('Registered 7 MCP tools');
   }
 
   /**

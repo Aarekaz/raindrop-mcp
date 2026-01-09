@@ -13,6 +13,7 @@ type Bookmark = components['schemas']['Bookmark'];
 type Collection = components['schemas']['Collection'];
 type User = components['schemas']['User'];
 type Tag = components['schemas']['Tag'];
+type Highlight = components['schemas']['Highlight'];
 
 const logger = createLogger('raindrop-service');
 
@@ -21,6 +22,8 @@ const logger = createLogger('raindrop-service');
  */
 export class RaindropService {
   private client;
+  private baseUrl = 'https://api.raindrop.io/rest/v1';
+  private accessToken: string;
 
   constructor(token?: string) {
     const accessToken = token || process.env.RAINDROP_ACCESS_TOKEN;
@@ -32,8 +35,9 @@ export class RaindropService {
       );
     }
 
+    this.accessToken = accessToken;
     this.client = createClient<paths>({
-      baseUrl: 'https://api.raindrop.io/rest/v1',
+      baseUrl: this.baseUrl,
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -265,6 +269,55 @@ export class RaindropService {
     logger.info(`Deleted bookmark ${id}`);
   }
 
+  /**
+   * Bulk update bookmarks in a collection
+   */
+  async bulkUpdateBookmarks(collectionId: number, updates: {
+    ids?: number[];
+    important?: boolean;
+    tags?: string[];
+    media?: string[];
+    cover?: string;
+    collection?: { $id: number };
+  }): Promise<{ modified: number }> {
+    const url = `${this.baseUrl}/raindrops/${collectionId}`;
+    const body: Record<string, any> = {};
+    
+    if (updates.ids) body.ids = updates.ids;
+    if (updates.important !== undefined) body.important = updates.important;
+    if (updates.tags !== undefined) body.tags = updates.tags;
+    if (updates.media !== undefined) body.media = updates.media;
+    if (updates.cover) body.cover = updates.cover;
+    if (updates.collection) body.collection = updates.collection;
+
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Bulk update failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json() as { result: boolean; modified?: number };
+      
+      if (!result.result) {
+        throw new Error('Bulk update operation failed');
+      }
+
+      logger.info(`Bulk updated ${result.modified || 0} bookmarks`);
+      return { modified: result.modified || 0 };
+    } catch (error) {
+      logger.error('Bulk update error:', error);
+      throw error;
+    }
+  }
+
   // ==================== Tags ====================
 
   /**
@@ -283,6 +336,145 @@ export class RaindropService {
     }
     
     return data?.items || [];
+  }
+
+  // ==================== Highlights ====================
+
+  /**
+   * Fetch highlights for a specific bookmark
+   */
+  async getHighlights(bookmarkId: number): Promise<Highlight[]> {
+    const url = `${this.baseUrl}/raindrop/${bookmarkId}/highlights`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch highlights: ${response.status}`);
+      }
+
+      const result = await response.json() as { items: Highlight[] };
+      return result.items || [];
+    } catch (error) {
+      logger.error(`Error fetching highlights for bookmark ${bookmarkId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new highlight for a bookmark
+   */
+  async createHighlight(
+    bookmarkId: number,
+    highlight: {
+      text: string;
+      note?: string;
+      color?: string;
+    }
+  ): Promise<Highlight> {
+    const url = `${this.baseUrl}/highlights`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify({
+          text: highlight.text,
+          note: highlight.note,
+          color: highlight.color || 'yellow',
+          raindrop: { $id: bookmarkId },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create highlight: ${response.status}`);
+      }
+
+      const result = await response.json() as { item: Highlight };
+      
+      if (!result.item) {
+        throw new Error('Failed to create highlight');
+      }
+
+      logger.info(`Created highlight for bookmark ${bookmarkId}`);
+      return result.item;
+    } catch (error) {
+      logger.error('Error creating highlight:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing highlight
+   */
+  async updateHighlight(
+    id: string,
+    updates: {
+      text?: string;
+      note?: string;
+      color?: string;
+    }
+  ): Promise<Highlight> {
+    const url = `${this.baseUrl}/highlights/${id}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update highlight: ${response.status}`);
+      }
+
+      const result = await response.json() as { item: Highlight };
+      
+      if (!result.item) {
+        throw new Error('Failed to update highlight');
+      }
+
+      logger.info(`Updated highlight ${id}`);
+      return result.item;
+    } catch (error) {
+      logger.error('Error updating highlight:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a highlight
+   */
+  async deleteHighlight(id: string): Promise<void> {
+    const url = `${this.baseUrl}/highlights/${id}`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete highlight: ${response.status}`);
+      }
+
+      logger.info(`Deleted highlight ${id}`);
+    } catch (error) {
+      logger.error('Error deleting highlight:', error);
+      throw error;
+    }
   }
 
   // ==================== User ====================
