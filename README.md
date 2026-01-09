@@ -663,6 +663,73 @@ gh release create v0.2.0 \
   raindrop-mcp.exe
 ```
 
+### Why Not Serverless Platforms?
+
+This MCP server is **not compatible** with serverless platforms like Vercel, Cloudflare Workers, or AWS Lambda without significant architectural changes. Here's why:
+
+#### STDIO Transport Architecture
+
+The server uses STDIO (standard input/output) transport for communication:
+
+- **Current Design**: Communicates via stdin/stdout streams
+- **Process-based**: Runs as a long-lived process managed by MCP clients
+- **Bi-directional**: Maintains persistent connection for request/response cycles
+
+#### Serverless Platform Requirements
+
+Serverless platforms expect different architectures:
+
+- **HTTP/HTTPS**: Request-response via HTTP endpoints
+- **Stateless Functions**: Short-lived, ephemeral execution contexts
+- **Event-driven**: Triggered by HTTP requests, not process I/O
+
+#### What Would Be Required
+
+To deploy on serverless platforms, you would need to:
+
+1. **Replace STDIO Transport** with HTTP or SSE transport:
+```typescript
+// Current approach (STDIO)
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+const transport = new StdioServerTransport();
+
+// Would need HTTP-based approach
+// Create HTTP endpoints for each MCP tool
+app.post('/api/mcp/collection_list', async (req, res) => { ... });
+```
+
+2. **Restructure as REST API**:
+- Convert MCP tools to HTTP endpoints
+- Implement request/response handling
+- Add authentication/authorization layer
+
+3. **Handle State Management**:
+- MCP protocol maintains connection state
+- Serverless functions are stateless
+- Would need external state management (Redis, DynamoDB, etc.)
+
+#### Recommended Alternatives
+
+For cloud deployment of STDIO-based MCP servers:
+
+- **Container Platforms**: AWS ECS, Google Cloud Run, Azure Container Instances
+- **Kubernetes**: Any managed K8s service (EKS, GKE, AKS)
+- **VPS/VM Hosting**: DigitalOcean, Linode, Vultr, AWS EC2
+- **Platform-as-a-Service**: Heroku, Fly.io, Railway (with persistent processes)
+
+These platforms support long-running processes that can maintain STDIO connections.
+
+#### Future Considerations
+
+If you want to expose Raindrop functionality via HTTP for web applications:
+
+- Create a separate REST API wrapper
+- Use the existing services as a library
+- Deploy the API layer to serverless platforms
+- Keep the MCP server for local/desktop use
+
+This separation maintains the MCP server's design while enabling serverless deployment for HTTP-based use cases.
+
 ## Usage Examples
 
 Here are some practical examples of what you can do with Claude:
