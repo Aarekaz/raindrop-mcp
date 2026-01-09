@@ -265,6 +265,107 @@ The Raindrop MCP server is designed to run as a STDIO-based process, using stand
 - **System Services** - Long-running background processes on Linux servers
 - **Binary Compilation** - Standalone executables for simplified distribution
 
+### Publishing to NPM
+
+Publishing to npm allows users to install and run the server using `npx` without cloning the repository.
+
+#### Prerequisites
+
+- An npm account (sign up at https://www.npmjs.com)
+- npm CLI installed and authenticated (`npm login`)
+
+#### Pre-publish Checklist
+
+1. Update version in `package.json`:
+```bash
+npm version patch  # or minor, major
+```
+
+2. Ensure all tests pass:
+```bash
+bun test
+```
+
+3. Build the project:
+```bash
+bun run build
+```
+
+4. Verify package contents:
+```bash
+npm pack --dry-run
+```
+
+This will show which files will be included (specified in the `files` field of package.json).
+
+#### Publishing Steps
+
+1. Login to npm (if not already logged in):
+```bash
+npm login
+```
+
+2. Publish the package:
+```bash
+npm publish --access public
+```
+
+For scoped packages like `@aarekaz/raindrop-mcp`, the `--access public` flag is required for the first publish.
+
+#### Updating the Package
+
+For subsequent releases:
+
+```bash
+# Make your changes
+git add .
+git commit -m "feat: add new feature"
+
+# Update version
+npm version patch  # or minor, major
+
+# Build and test
+bun run build
+bun test
+
+# Publish
+npm publish
+
+# Push tags to GitHub
+git push && git push --tags
+```
+
+#### Version Guidelines
+
+Follow semantic versioning (semver):
+- **Patch** (0.1.x): Bug fixes and minor changes
+- **Minor** (0.x.0): New features, backwards compatible
+- **Major** (x.0.0): Breaking changes
+
+#### After Publishing
+
+Users can now install and use the server via npx:
+
+```bash
+npx @aarekaz/raindrop-mcp
+```
+
+Or add it to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "npx",
+      "args": ["@aarekaz/raindrop-mcp"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
+```
+
 ## Usage Examples
 
 Here are some practical examples of what you can do with Claude:
