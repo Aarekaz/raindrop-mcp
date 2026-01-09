@@ -14,17 +14,22 @@
   "scripts": {
     "dev": "bun run build && bun --watch src/index.ts",
     "dev:http": "bun run build:http && bun --watch src/http-server.ts",
+    "dev:cloudflare": "wrangler dev",
     "type-check": "tsc --noEmit",
     "test": "bun test",
     "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts",
     "build:http": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/http-server.ts",
-    "build:all": "bun run build && bun run build:http",
+    "build:cloudflare": "bun build --target=browser --format=esm --bundle --sourcemap --outdir=build ./src/adapters/cloudflare-worker.ts && mv build/cloudflare-worker.js build/cloudflare-worker.js",
+    "build:all": "bun run build && bun run build:http && bun run build:cloudflare",
     "start": "bun run build/index.js",
     "start:http": "node build/http-server.js",
     "start:stdio": "bun run build/index.js",
     "clean": "rm -rf build",
     "deploy:vercel": "vercel deploy --prod",
-    "deploy:lambda": "serverless deploy"
+    "deploy:lambda": "serverless deploy",
+    "deploy:cloudflare": "wrangler deploy",
+    "deploy:cloudflare:staging": "wrangler deploy --env staging",
+    "deploy:cloudflare:production": "wrangler deploy --env production"
   },
   "keywords": [
     "mcp",
@@ -36,7 +41,9 @@
     "ai-assistant",
     "typescript",
     "http-transport",
-    "serverless"
+    "serverless",
+    "cloudflare-workers",
+    "edge-computing"
   ],
   "author": "Anurag Dhungana",
   "license": "MIT",
@@ -59,6 +66,7 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
     "@types/bun": "^1.2.22",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -66,7 +74,8 @@
     "@vercel/node": "^3.0.21",
     "typescript": "^5.9.2",
     "vercel": "^33.5.5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^3.85.0"
   },
   "engines": {
     "node": ">=18.0.0",
