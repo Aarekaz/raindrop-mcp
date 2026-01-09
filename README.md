@@ -460,6 +460,209 @@ You can configure Claude Desktop to use the Docker container:
 }
 ```
 
+### CI/CD with GitHub Actions
+
+Automate testing and publishing using GitHub Actions workflows.
+
+#### Continuous Integration
+
+The CI workflow (`.github/workflows/ci.yml`) runs on every push and pull request:
+
+- Runs tests across multiple Node.js versions
+- Performs type checking
+- Builds the project
+- Validates code quality
+
+#### Automated Publishing
+
+The publish workflow (`.github/workflows/publish.yml`) automatically publishes to npm when you create a GitHub release:
+
+1. Create a new release on GitHub
+2. The workflow automatically builds and publishes to npm
+3. Users can immediately install the new version
+
+#### Required Secrets
+
+Add these secrets to your GitHub repository (Settings > Secrets and variables > Actions):
+
+- `NPM_TOKEN`: Your npm access token (create at https://www.npmjs.com/settings/tokens)
+- `RAINDROP_ACCESS_TOKEN`: Your Raindrop.io API token (for running tests)
+
+#### Creating a Release
+
+```bash
+# Update version
+npm version minor
+
+# Push with tags
+git push && git push --tags
+
+# Create release on GitHub
+# Go to https://github.com/Aarekaz/raindrop-mcp/releases/new
+# Or use GitHub CLI:
+gh release create v0.2.0 --title "Version 0.2.0" --notes "Release notes here"
+```
+
+### Systemd Service (Linux)
+
+Run the MCP server as a system service on Linux servers for persistent operation.
+
+#### Service Configuration
+
+Create `/etc/systemd/system/raindrop-mcp.service`:
+
+```ini
+[Unit]
+Description=Raindrop MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/opt/raindrop-mcp
+Environment="RAINDROP_ACCESS_TOKEN=your_token_here"
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/bun run /opt/raindrop-mcp/build/index.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=raindrop-mcp
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Installation Steps
+
+1. Clone and build the project:
+```bash
+sudo mkdir -p /opt/raindrop-mcp
+sudo chown $USER:$USER /opt/raindrop-mcp
+cd /opt/raindrop-mcp
+git clone https://github.com/Aarekaz/raindrop-mcp.git .
+bun install
+bun run build
+```
+
+2. Create the service file:
+```bash
+sudo nano /etc/systemd/system/raindrop-mcp.service
+# Paste the service configuration above
+```
+
+3. Enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable raindrop-mcp
+sudo systemctl start raindrop-mcp
+```
+
+#### Service Management
+
+```bash
+# Check status
+sudo systemctl status raindrop-mcp
+
+# View logs
+sudo journalctl -u raindrop-mcp -f
+
+# Restart service
+sudo systemctl restart raindrop-mcp
+
+# Stop service
+sudo systemctl stop raindrop-mcp
+
+# Disable service
+sudo systemctl disable raindrop-mcp
+```
+
+#### Updating the Service
+
+```bash
+# Stop the service
+sudo systemctl stop raindrop-mcp
+
+# Update code
+cd /opt/raindrop-mcp
+git pull
+bun install
+bun run build
+
+# Restart service
+sudo systemctl start raindrop-mcp
+```
+
+### Binary Compilation with Bun
+
+Compile the server into a standalone executable for easy distribution.
+
+#### Building a Binary
+
+```bash
+# Compile for current platform
+bun build --compile --minify --sourcemap ./src/index.ts --outfile raindrop-mcp
+
+# The result is a single executable file
+./raindrop-mcp
+```
+
+#### Cross-platform Builds
+
+Bun supports building for different platforms:
+
+```bash
+# Build for Linux
+bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile raindrop-mcp-linux
+
+# Build for macOS
+bun build --compile --target=bun-darwin-x64 ./src/index.ts --outfile raindrop-mcp-macos
+
+# Build for Windows
+bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile raindrop-mcp.exe
+```
+
+#### Using the Binary
+
+Users can run the compiled binary directly:
+
+```bash
+# Set environment variable
+export RAINDROP_ACCESS_TOKEN=your_token_here
+
+# Run the binary
+./raindrop-mcp
+```
+
+Or configure with Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "/path/to/raindrop-mcp",
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
+```
+
+#### Distribution
+
+Attach compiled binaries to GitHub releases:
+
+```bash
+# Create release with binaries
+gh release create v0.2.0 \
+  --title "Version 0.2.0" \
+  --notes "Release notes" \
+  raindrop-mcp-linux \
+  raindrop-mcp-macos \
+  raindrop-mcp.exe
+```
+
 ## Usage Examples
 
 Here are some practical examples of what you can do with Claude:
