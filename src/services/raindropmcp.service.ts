@@ -18,6 +18,10 @@ import {
   TagInputSchema,
   HighlightManageInputSchema,
   BulkEditInputSchema,
+  SuggestionInputSchema,
+  SuggestionOutputSchema,
+  FilterStatsInputSchema,
+  FilterStatsOutputSchema,
 } from '../types/raindrop-zod.schemas.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -100,8 +104,9 @@ export class RaindropMCPService {
     });
 
     this.registerTools();
-    this.registerResourceHandlers();
-    
+    // TODO: Update resource handlers to use new MCP SDK API
+    // this.registerResourceHandlers();
+
     logger.info('Raindrop MCP service initialized');
   }
 
@@ -207,7 +212,24 @@ export class RaindropMCPService {
       'bookmark_search',
       {
         title: 'Bookmark Search',
-        description: 'Search and filter Raindrop.io bookmarks with advanced options. Returns resource links to matching bookmarks.',
+        description: `Search and filter Raindrop.io bookmarks with advanced options. Returns resource links to matching bookmarks.
+
+Search supports powerful operators:
+- Status: #important, #broken, #duplicate, #notag
+- Types: type:article, type:image, type:video, type:document
+- Tags: tag:tagname (or use tags parameter)
+- Date: created:YYYY-MM-DD (e.g., created:2024-01-15)
+
+System Collections:
+- -1 = Unsorted bookmarks
+- -99 = Trash
+- 0 = All bookmarks (default)
+
+Examples:
+- "javascript #important" - Important JS bookmarks
+- "type:article tag:react" - React articles
+- "#broken" - Find broken links
+- "#notag" - Untagged bookmarks for cleanup`,
         inputSchema: BookmarkSearchInputSchema.shape,
       },
       async (args: z.infer<typeof BookmarkSearchInputSchema>) => {
@@ -240,7 +262,7 @@ export class RaindropMCPService {
       'bookmark_manage',
       {
         title: 'Bookmark Manage',
-        description: 'Create, update, or delete a Raindrop.io bookmark. Use operation parameter to specify action.',
+        description: 'Create, update, delete, or get suggestions for a Raindrop.io bookmark. Use operation parameter to specify action.',
         inputSchema: BookmarkManageInputSchema.shape,
       },
       async (args: z.infer<typeof BookmarkManageInputSchema>) => {
@@ -285,6 +307,24 @@ export class RaindropMCPService {
               await this.raindropService.deleteBookmark(args.id);
               return {
                 content: [textContent(`Deleted bookmark ${args.id}`)],
+              };
+
+            case 'suggest':
+              if (!args.url) throw new Error('url is required for suggest operation');
+              const suggestions = await this.raindropService.getSuggestions(args.url);
+
+              const suggestText = [
+                `Suggestions for ${args.url}:`,
+                suggestions.collections?.length
+                  ? `Collections: ${suggestions.collections.map(c => c.$id).join(', ')}`
+                  : 'No collection suggestions',
+                suggestions.tags?.length
+                  ? `Tags: ${suggestions.tags.join(', ')}`
+                  : 'No tag suggestions',
+              ].join('\n');
+
+              return {
+                content: [textContent(suggestText)],
               };
 
             default:
@@ -425,7 +465,71 @@ export class RaindropMCPService {
       }
     );
 
-    logger.info('Registered 7 MCP tools');
+    // Bookmark Statistics Tool
+    this.server.registerTool(
+      'bookmark_statistics',
+      {
+        title: 'Bookmark Statistics',
+        description: 'Get statistics and filter counts for bookmarks in a collection. Returns counts for broken links, duplicates, important bookmarks, untagged items, tags with usage counts, and content types (article/image/video/document). Perfect for AI-driven analysis and cleanup suggestions.',
+        inputSchema: FilterStatsInputSchema.shape,
+      },
+      async (args: z.infer<typeof FilterStatsInputSchema>) => {
+        try {
+          const stats = await this.raindropService.getFilters(
+            args.collectionId,
+            {
+              tagsSort: args.tagsSort,
+              search: args.search,
+            }
+          );
+
+          const statsLines: string[] = [
+            `Statistics for collection ${args.collectionId}:`,
+            '',
+            '=== Health Metrics ===',
+          ];
+
+          if (stats.broken !== undefined) {
+            statsLines.push(`Broken links: ${stats.broken}`);
+          }
+          if (stats.duplicates !== undefined) {
+            statsLines.push(`Duplicates: ${stats.duplicates}`);
+          }
+          if (stats.important !== undefined) {
+            statsLines.push(`Important/Favorites: ${stats.important}`);
+          }
+          if (stats.notag !== undefined) {
+            statsLines.push(`Untagged: ${stats.notag}`);
+          }
+
+          if (stats.types && stats.types.length > 0) {
+            statsLines.push('', '=== Content Types ===');
+            stats.types.forEach(type => {
+              statsLines.push(`${type._id}: ${type.count}`);
+            });
+          }
+
+          if (stats.tags && stats.tags.length > 0) {
+            statsLines.push('', '=== Top Tags ===');
+            stats.tags.slice(0, 20).forEach(tag => {
+              statsLines.push(`${tag._id}: ${tag.count}`);
+            });
+            if (stats.tags.length > 20) {
+              statsLines.push(`... and ${stats.tags.length - 20} more tags`);
+            }
+          }
+
+          return {
+            content: [textContent(statsLines.join('\n'))],
+          };
+        } catch (error) {
+          logger.error('Error fetching bookmark statistics:', error);
+          throw error;
+        }
+      }
+    );
+
+    logger.info('Registered 8 MCP tools');
   }
 
   /**

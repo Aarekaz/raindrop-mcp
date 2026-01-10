@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "bookmark_manage",
+    "arguments": {
+      "operation": "suggest",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+    }
+  },
+  "id": 1
+}

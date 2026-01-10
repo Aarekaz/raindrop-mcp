@@ -238,6 +238,23 @@ export class RaindropService {
   }
 
   /**
+   * Get AI-powered suggestions for collections and tags for a URL
+   * Perfect for auto-categorization before creating a bookmark
+   */
+  async getSuggestions(link: string): Promise<{ collections?: Array<{ $id: number }>; tags?: string[] }> {
+    const { data, error } = await this.client.POST('/raindrop/suggest', {
+      body: { link },
+    });
+
+    if (error || !data?.item) {
+      throw new Error(`Failed to get suggestions: ${error}`);
+    }
+
+    logger.info(`Got suggestions for ${link}`);
+    return data.item;
+  }
+
+  /**
    * Update an existing bookmark
    */
   async updateBookmark(id: number, updates: Partial<Bookmark>): Promise<Bookmark> {
@@ -336,6 +353,51 @@ export class RaindropService {
     }
     
     return data?.items || [];
+  }
+
+  /**
+   * Get filter statistics and counts for a collection
+   * Useful for bookmark analysis, cleanup suggestions, and insights
+   */
+  async getFilters(
+    collectionId: number,
+    options: {
+      tagsSort?: '-count' | '_id';
+      search?: string;
+    } = {}
+  ): Promise<{
+    broken?: number;
+    duplicates?: number;
+    important?: number;
+    notag?: number;
+    tags?: Array<{ _id: string; count: number }>;
+    types?: Array<{ _id: string; count: number }>;
+  }> {
+    const query: Record<string, string> = {};
+    if (options.tagsSort) query.tagsSort = options.tagsSort;
+    if (options.search) query.search = options.search;
+
+    const endpoint = '/filters/{collectionId}';
+    const { data, error } = await this.client.GET(endpoint, {
+      params: {
+        path: { collectionId },
+        query: query as any,
+      },
+    });
+
+    if (error) {
+      throw new Error(`Failed to fetch filters: ${error}`);
+    }
+
+    logger.info(`Fetched filter statistics for collection ${collectionId}`);
+    return {
+      broken: data?.broken,
+      duplicates: data?.duplicates,
+      important: data?.important,
+      notag: data?.notag,
+      tags: data?.tags,
+      types: data?.types,
+    };
   }
 
   // ==================== Highlights ====================
