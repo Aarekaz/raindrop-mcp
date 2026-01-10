@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "node",
+      "args": ["/Users/aarekaz/Development/raindrop-mcp/build/index.js"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "5c03cd48-cd89-4d0b-a448-cc6e0550b003"
+      }
+    }
+  }
+}
