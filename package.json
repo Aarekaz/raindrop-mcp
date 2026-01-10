@@ -57,17 +57,21 @@
   "homepage": "https://github.com/Aarekaz/raindrop-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
+    "@vercel/kv": "^2.0.0",
     "axios": "^1.12.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "openapi-fetch": "^0.14.0",
+    "pkce-challenge": "^5.0.1",
     "zod": "^4.1.9"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/bun": "^1.2.22",
+    "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^24.5.1",

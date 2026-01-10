@@ -9,10 +9,17 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { config } from 'dotenv';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { RaindropMCPService } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
+import { OAuthService } from './oauth/oauth.service.js';
+import { TokenStorage } from './oauth/token-storage.js';
+import { OAuthConfig } from './oauth/oauth.types.js';
+import { createOAuthRoutes } from './oauth/oauth.routes.js';
+import { createWellKnownRoutes } from './oauth/well-known.routes.js';
+import { createSessionMiddleware, AuthenticatedRequest } from './oauth/session.middleware.js';
 
 // Load environment variables
 config();
@@ -24,6 +31,24 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const API_KEY = process.env.API_KEY; // Optional: for authentication
+
+// OAuth configuration
+let oauthService: OAuthService | null = null;
+if (process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET && process.env.OAUTH_REDIRECT_URI) {
+  const oauthConfig: OAuthConfig = {
+    clientId: process.env.OAUTH_CLIENT_ID,
+    clientSecret: process.env.OAUTH_CLIENT_SECRET,
+    redirectUri: process.env.OAUTH_REDIRECT_URI,
+    authorizationEndpoint: 'https://raindrop.io/oauth/authorize',
+    tokenEndpoint: 'https://raindrop.io/oauth/access_token',
+  };
+
+  const tokenStorage = new TokenStorage();
+  oauthService = new OAuthService(oauthConfig, tokenStorage);
+  logger.info('OAuth authentication enabled');
+} else {
+  logger.warn('OAuth not configured - using legacy token authentication only');
+}
 
 /**
  * Custom error class for HTTP errors
@@ -125,6 +150,9 @@ function createApp(): express.Application {
     crossOriginEmbedderPolicy: false,
   }));
 
+  // Cookie parser for OAuth sessions
+  app.use(cookieParser());
+
   // CORS configuration
   app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
@@ -165,18 +193,39 @@ function createApp(): express.Application {
         health: '/health',
         sse: '/sse',
         messages: '/messages',
+        auth: oauthService ? {
+          init: '/auth/init',
+          callback: '/auth/callback',
+          status: '/auth/status',
+          logout: '/auth/logout',
+          refresh: '/auth/refresh',
+        } : undefined,
       },
       documentation: 'https://github.com/Aarekaz/raindrop-mcp',
+      authenticationMethods: oauthService
+        ? ['OAuth 2.0', 'X-Raindrop-Token header', 'Environment token']
+        : ['X-Raindrop-Token header', 'Environment token'],
     });
   });
 
+  // OAuth routes (if configured)
+  if (oauthService) {
+    app.use(createOAuthRoutes(oauthService));
+    app.use(createWellKnownRoutes());
+    logger.info('OAuth routes registered');
+  }
+
   // SSE endpoint for MCP communication
-  app.get('/sse', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const sseMiddleware = oauthService
+    ? [authMiddleware, createSessionMiddleware(oauthService)]
+    : [authMiddleware];
+
+  app.get('/sse', ...sseMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       logger.info('New SSE connection established');
 
-      // Validate Raindrop token
-      const raindropToken = validateToken(req);
+      // Get Raindrop token from session middleware or legacy method
+      const raindropToken = req.raindropToken || validateToken(req);
 
       // Set SSE headers
       res.setHeader('Content-Type', 'text/event-stream');
@@ -212,12 +261,18 @@ function createApp(): express.Application {
   });
 
   // POST endpoint for client messages
-  app.post('/messages', authMiddleware, express.text({ type: 'text/plain' }), async (req: Request, res: Response, next: NextFunction) => {
+  const messagesMiddleware = oauthService
+    ? [authMiddleware, createSessionMiddleware(oauthService), express.text({ type: 'text/plain' })]
+    : [authMiddleware, express.text({ type: 'text/plain' })];
+
+  app.post('/messages', ...messagesMiddleware, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       logger.debug('Received message from client');
 
-      // Validate Raindrop token
-      validateToken(req);
+      // Validate Raindrop token (already validated by middleware if OAuth enabled)
+      if (!req.raindropToken) {
+        validateToken(req);
+      }
 
       // The SSE transport handles message processing
       // This endpoint acknowledges receipt
