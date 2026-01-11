@@ -1,53 +1,28 @@
 {
-  "version": 2,
-  "name": "raindrop-mcp",
-  "builds": [
+  "rewrites": [
     {
-      "src": "src/adapters/vercel.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 300,
-        "memory": 1024
-      }
+      "source": "/mcp",
+      "destination": "/api/raindrop"
+    },
+    {
+      "source": "/(.+)",
+      "destination": "/api/raindrop"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/src/adapters/vercel.ts"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000",
-    "OAUTH_CLIENT_ID": "@oauth-client-id",
-    "OAUTH_CLIENT_SECRET": "@oauth-client-secret",
-    "TOKEN_ENCRYPTION_KEY": "@token-encryption-key",
-    "RAINDROP_ACCESS_TOKEN": "@raindrop-access-token"
-  },
   "functions": {
-    "src/adapters/vercel.ts": {
+    "api/**/*.ts": {
       "maxDuration": 300,
-      "memory": 1024,
-      "runtime": "nodejs20.x"
+      "memory": 1024
     }
   },
   "regions": ["iad1"],
   "headers": [
     {
-      "source": "/sse",
+      "source": "/api/raindrop",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Connection",
-          "value": "keep-alive"
-        },
-        {
-          "key": "X-Accel-Buffering",
-          "value": "no"
         }
       ]
     },
