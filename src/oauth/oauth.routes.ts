@@ -9,6 +9,64 @@ import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('oauth-routes');
 
+/**
+ * Validate redirect URI against allowlist
+ * Prevents open redirect attacks by only allowing pre-configured URLs
+ *
+ * @param redirectUri - The redirect URI to validate
+ * @returns Object with validation result and error message if invalid
+ */
+function validateRedirectUri(redirectUri: string): { valid: boolean; error?: string } {
+  // Get allowlist from environment (comma-separated)
+  const allowedUris = process.env.OAUTH_ALLOWED_REDIRECT_URIS?.split(',').map(uri => uri.trim()) || [];
+
+  // If no allowlist configured, only allow relative URLs
+  if (allowedUris.length === 0) {
+    if (redirectUri.startsWith('/') && !redirectUri.startsWith('//')) {
+      return { valid: true };
+    }
+    return {
+      valid: false,
+      error: 'No allowed redirect URIs configured. Set OAUTH_ALLOWED_REDIRECT_URIS environment variable.'
+    };
+  }
+
+  // Allow relative URLs (must start with / but not //)
+  if (redirectUri.startsWith('/') && !redirectUri.startsWith('//')) {
+    return { valid: true };
+  }
+
+  // For absolute URLs, validate against allowlist
+  try {
+    const url = new URL(redirectUri);
+    const fullUrl = url.origin + url.pathname; // Normalize (exclude query/fragment)
+
+    // Check if URL is in allowlist (exact match on origin + pathname)
+    const isAllowed = allowedUris.some(allowedUri => {
+      try {
+        const allowed = new URL(allowedUri);
+        return url.origin === allowed.origin && url.pathname === allowed.pathname;
+      } catch {
+        return false;
+      }
+    });
+
+    if (isAllowed) {
+      return { valid: true };
+    }
+
+    return {
+      valid: false,
+      error: 'Redirect URI not in allowlist. Check OAUTH_ALLOWED_REDIRECT_URIS configuration.'
+    };
+  } catch (err) {
+    return {
+      valid: false,
+      error: 'Invalid redirect URI format. Must be a valid URL or relative path.'
+    };
+  }
+}
+
 export function createOAuthRoutes(oauthService: OAuthService): Router {
   const router = Router();
 
@@ -20,7 +78,21 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
     try {
       const redirectUri = req.query.redirect_uri as string;
       if (!redirectUri) {
-        return res.status(400).json({ error: 'redirect_uri parameter is required' });
+        return res.status(400).json({
+          error: 'redirect_uri parameter is required',
+          hint: 'Provide ?redirect_uri=/dashboard or full URL from allowlist'
+        });
+      }
+
+      // SECURITY: Validate redirect_uri against allowlist
+      const validation = validateRedirectUri(redirectUri);
+      if (!validation.valid) {
+        logger.warn('Invalid redirect_uri rejected', { redirectUri, error: validation.error });
+        return res.status(400).json({
+          error: 'invalid_redirect_uri',
+          message: validation.error,
+          hint: 'Redirect URI must be in OAUTH_ALLOWED_REDIRECT_URIS allowlist or a relative path'
+        });
       }
 
       const { authUrl, state } = await oauthService.initFlow(redirectUri);
@@ -75,9 +147,14 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
       // Clear OAuth state cookie
       res.clearCookie('oauth_state');
 
-      // Redirect to original URI with session info
-      const redirectUri = req.query.redirect_uri as string || '/';
-      res.redirect(redirectUri + `?session_id=${session.sessionId}`);
+      // SECURITY FIX 1: Retrieve redirect_uri from stored OAuthState (not query param)
+      // This prevents attackers from changing the redirect target
+      const storedState = await oauthService['storage'].getOAuthState(state as string);
+      const redirectUri = storedState?.redirectUri || '/';
+
+      // SECURITY FIX 2: Remove session_id from URL (already in httpOnly cookie)
+      // Session ID in URL leaks credentials via browser history, logs, and Referer headers
+      res.redirect(redirectUri);
     } catch (error) {
       logger.error('OAuth callback error', error);
       res.status(500).json({ error: 'OAuth callback failed' });
