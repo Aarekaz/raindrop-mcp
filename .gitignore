@@ -10,6 +10,8 @@ dist/
 *.d.ts
 *.d.ts.map
 
+.claude/
+
 # Environment variables
 .env
 .env.local
@@ -41,3 +43,5 @@ coverage/
 
 # OS
 Thumbs.db
+.vercel
+.env*.local
