@@ -15,7 +15,10 @@ A Model Context Protocol (MCP) server for interacting with [Raindrop.io](https:/
 - 🛡️ **Type Safe** - Full TypeScript implementation with Zod validation
 - 🌐 **HTTP Transport** - Remote access via Server-Sent Events (SSE)
 - ☁️ **Serverless Ready** - Deploy to Vercel or Cloudflare Workers
-- 🔐 **Multi-Tenant** - Support multiple users with per-request authentication
+- 🔐 **OAuth 2.0 Authentication** - Secure multi-user access with PKCE flow
+- 👥 **Multi-Tenant** - Support multiple users with per-request authentication
+- 🔄 **Token Refresh** - Automatic token renewal without re-authentication
+- 🔒 **Encrypted Storage** - AES-256-GCM encryption for tokens at rest
 - 🌍 **Edge Computing** - Global low-latency access with Cloudflare Workers
 
 ## Transport Modes
@@ -29,11 +32,217 @@ The server supports multiple transport mechanisms:
 | **Vercel** | Serverless, Node.js apps | Medium ⭐⭐ |
 | **Cloudflare Workers** | Edge computing, global access | Medium ⭐⭐ |
 
+## Architecture
+
+### System Overview
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Claude[Claude Desktop]
+        Browser[Web Browser]
+        MCPClient[MCP Client SDK]
+    end
+
+    subgraph "Transport Layer"
+        STDIO[STDIO Transport<br/>index.ts]
+        HTTP[HTTP/SSE Transport<br/>http-server.ts]
+        Vercel[Vercel Functions<br/>api/raindrop.ts]
+        Cloudflare[Cloudflare Worker<br/>cloudflare-worker.ts]
+    end
+
+    subgraph "Authentication Layer"
+        OAuth[OAuth Service<br/>PKCE Flow]
+        TokenStorage[Token Storage<br/>AES-256 Encrypted]
+        VercelKV[(Vercel KV<br/>Redis)]
+
+        OAuth --> TokenStorage
+        TokenStorage --> VercelKV
+    end
+
+    subgraph "MCP Protocol Layer"
+        MCPService[RaindropMCPService<br/>MCP Protocol Implementation]
+
+        subgraph "MCP Tools"
+            CollectionTool[collection_list<br/>collection_manage]
+            BookmarkTool[bookmark_search<br/>bookmark_manage]
+            TagTool[tag_list]
+            HighlightTool[highlight_manage]
+            BulkTool[bulk_edit_bookmarks]
+        end
+
+        MCPService --> CollectionTool
+        MCPService --> BookmarkTool
+        MCPService --> TagTool
+        MCPService --> HighlightTool
+        MCPService --> BulkTool
+    end
+
+    subgraph "Service Layer"
+        RaindropService[RaindropService<br/>API Client<br/>Type-Safe with openapi-fetch]
+    end
+
+    subgraph "External Services"
+        RaindropAPI[Raindrop.io API<br/>REST API]
+    end
+
+    %% Client connections
+    Claude -->|STDIO| STDIO
+    Browser -->|HTTPS| HTTP
+    Browser -->|HTTPS| Vercel
+    MCPClient -->|HTTPS| Cloudflare
+
+    %% Transport to MCP Service
+    STDIO -->|Direct| MCPService
+    HTTP -->|Session/Token| OAuth
+    Vercel -->|mcp-handler<br/>withMcpAuth| OAuth
+    Cloudflare -->|Session/Token| OAuth
+
+    OAuth -->|Validated Token| MCPService
+
+    %% MCP Service to Raindrop Service
+    MCPService -->|Per-User Token| RaindropService
+
+    %% Service to API
+    RaindropService -->|HTTP Requests| RaindropAPI
+
+    style OAuth fill:#e1f5ff
+    style TokenStorage fill:#e1f5ff
+    style MCPService fill:#fff4e1
+    style RaindropService fill:#e8f5e9
+    style RaindropAPI fill:#fce4ec
+```
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client as Client App
+    participant Vercel as Vercel Function
+    participant OAuth as OAuth Service
+    participant KV as Vercel KV
+    participant Raindrop as Raindrop.io
+
+    User->>Client: Click "Connect Raindrop"
+    Client->>Vercel: GET /auth/init?redirect_uri=/dashboard
+    Vercel->>OAuth: initFlow()
+    OAuth->>OAuth: Generate state + PKCE challenge
+    OAuth->>KV: Store state & code_verifier
+    OAuth->>Vercel: Return auth URL
+    Vercel->>Client: Redirect to Raindrop OAuth
+    Client->>Raindrop: Authorization request
+    Raindrop->>User: Show authorization page
+    User->>Raindrop: Approve access
+    Raindrop->>Vercel: GET /auth/callback?code=XXX&state=YYY
+    Vercel->>OAuth: handleCallback(code, state)
+    OAuth->>KV: Verify state
+    OAuth->>Raindrop: POST /oauth/access_token<br/>(code + code_verifier)
+    Raindrop->>OAuth: access_token + refresh_token
+    OAuth->>Raindrop: GET /user (fetch user info)
+    Raindrop->>OAuth: User details
+    OAuth->>OAuth: Encrypt tokens (AES-256-GCM)
+    OAuth->>KV: Store encrypted session
+    OAuth->>Vercel: Return session ID
+    Vercel->>Client: Set-Cookie: mcp_session=XXX<br/>Redirect to /dashboard
+    Client->>User: Authenticated!
+
+    Note over User,Raindrop: Subsequent MCP Requests
+    User->>Client: Use MCP tool
+    Client->>Vercel: POST /mcp<br/>Cookie: mcp_session=XXX
+    Vercel->>OAuth: verifyToken(session_id)
+    OAuth->>KV: Get encrypted session
+    KV->>OAuth: Encrypted tokens
+    OAuth->>OAuth: Decrypt tokens
+    OAuth->>OAuth: Check expiry
+    alt Token expired
+        OAuth->>Raindrop: Refresh token
+        Raindrop->>OAuth: New access_token
+        OAuth->>KV: Update session
+    end
+    OAuth->>Vercel: Valid access_token
+    Vercel->>Raindrop: MCP operation with token
+    Raindrop->>Vercel: Response
+    Vercel->>Client: MCP result
+```
+
+### Multi-Tenant Architecture
+
+```mermaid
+graph LR
+    subgraph "Shared Server Instance"
+        Endpoint[MCP Endpoint<br/>/mcp]
+        Auth[Auth Layer]
+
+        subgraph "Request-Scoped Services"
+            Service1[RaindropService<br/>User 1 Token]
+            Service2[RaindropService<br/>User 2 Token]
+            Service3[RaindropService<br/>User 3 Token]
+        end
+    end
+
+    subgraph "Users"
+        User1[👤 User 1<br/>Session/Token]
+        User2[👤 User 2<br/>Session/Token]
+        User3[👤 User 3<br/>Session/Token]
+    end
+
+    subgraph "Storage"
+        KV[(Vercel KV<br/>Encrypted Sessions)]
+    end
+
+    User1 -->|Cookie: mcp_session=A| Endpoint
+    User2 -->|X-Raindrop-Token: B| Endpoint
+    User3 -->|Cookie: mcp_session=C| Endpoint
+
+    Endpoint --> Auth
+    Auth --> KV
+
+    Auth -->|Token A| Service1
+    Auth -->|Token B| Service2
+    Auth -->|Token C| Service3
+
+    Service1 -->|User 1 Data| API[Raindrop.io API]
+    Service2 -->|User 2 Data| API
+    Service3 -->|User 3 Data| API
+
+    style Auth fill:#e1f5ff
+    style KV fill:#fff4e1
+    style API fill:#fce4ec
+```
+
+## Authentication Methods
+
+Choose the authentication method that fits your use case:
+
+| Method | Best For | Security | Multi-User | Setup |
+|--------|----------|----------|------------|-------|
+| **OAuth 2.0** | Production deployments | ⭐⭐⭐⭐⭐ | ✅ Yes | [OAuth Guide](docs/OAUTH.md) |
+| **Direct Token** | Personal use, development | ⭐⭐⭐ | ❌ No | Quick (just token) |
+| **Environment Token** | Local development only | ⭐⭐ | ❌ No | Easiest |
+
+**OAuth 2.0** provides:
+- Secure multi-user access without sharing tokens
+- Automatic token refresh (no re-authentication needed)
+- Encrypted token storage with AES-256-GCM
+- PKCE flow for enhanced security
+
+**Direct Token** is simpler for:
+- Single-user personal deployments
+- Quick development and testing
+- When you don't need multi-tenant support
+
+**Environment Token** is only recommended for:
+- Local development with STDIO transport
+- Testing on your local machine
+
 ## Prerequisites
 
 - Node.js v18+ or Bun runtime
 - A Raindrop.io account
-- A Raindrop.io API Access Token ([Get one here](https://app.raindrop.io/settings/integrations))
+- **Authentication credentials** (choose one):
+  - **OAuth**: OAuth app from [Raindrop Developer Console](https://raindrop.io/dev/apps) + Vercel KV
+  - **Direct Token**: API token from [Raindrop Settings](https://app.raindrop.io/settings/integrations)
 
 ## Quick Start
 
@@ -102,7 +311,7 @@ curl http://localhost:3000/health
 
 ### Option 3: Deploy to Vercel
 
-Deploy to Vercel's serverless platform.
+Deploy to Vercel's serverless platform with OAuth support.
 
 ```bash
 # Install Vercel CLI
@@ -113,11 +322,33 @@ vercel login
 npm run deploy:vercel
 ```
 
-**Set environment variables in Vercel dashboard:**
+**Choose authentication method:**
+
+#### Option A: OAuth 2.0 (Recommended for Production)
+
+1. Create OAuth app at [Raindrop Developer Console](https://raindrop.io/dev/apps)
+2. Create Vercel KV database (Storage → Create Database → KV)
+3. Link KV to your project
+4. Set environment variables in Vercel dashboard:
+   - `OAUTH_CLIENT_ID`
+   - `OAUTH_CLIENT_SECRET`
+   - `OAUTH_REDIRECT_URI` (e.g., `https://your-app.vercel.app/auth/callback`)
+   - `OAUTH_ALLOWED_REDIRECT_URIS` (e.g., `https://your-app.com/dashboard,/dashboard`)
+   - `TOKEN_ENCRYPTION_KEY` (generate with `openssl rand -hex 32`)
+   - `KV_REST_API_URL` (auto-set when KV linked)
+   - `KV_REST_API_TOKEN` (auto-set when KV linked)
+
+Users authenticate via: `https://your-app.vercel.app/auth/init?redirect_uri=/dashboard`
+
+📖 **Complete OAuth Setup**: [docs/OAUTH.md](docs/OAUTH.md)
+
+#### Option B: Direct Token (Simple, Single-User)
+
+Set environment variables in Vercel dashboard:
 - `RAINDROP_ACCESS_TOKEN` (required)
 - `API_KEY` (optional)
 
-📖 **Full Guide**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+📖 **Full Deployment Guide**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ### Option 4: Deploy to Cloudflare Workers
 
@@ -149,40 +380,91 @@ Your worker will be live at: `https://raindrop-mcp.your-subdomain.workers.dev`
 
 When running as HTTP server:
 
-- `GET /` - Server information
+**MCP Endpoints:**
+- `GET /mcp` or `POST /mcp` - MCP protocol endpoint (authenticated)
 - `GET /health` - Health check (no auth required)
-- `GET /sse` - SSE connection for MCP communication (authenticated)
-- `POST /messages` - Client messages endpoint (authenticated)
+
+**OAuth Endpoints:**
+- `GET /auth/init?redirect_uri=/dashboard` - Start OAuth flow
+- `GET /auth/callback` - OAuth callback (handles Raindrop redirect)
+- `GET /.well-known/oauth-protected-resource` - OAuth metadata
 
 ### Authentication
 
-Two-layer authentication system:
+The server supports three authentication methods simultaneously:
 
-#### Layer 1: API Key (Optional)
-Protects the server endpoint:
+#### Method 1: OAuth 2.0 Session (Recommended)
 
+**Best for**: Production, multi-user applications
+
+Users authenticate via browser:
 ```bash
-curl http://localhost:3000/sse \
-  -H "X-API-Key: your_api_key"
+# Step 1: User visits in browser
+https://your-server.vercel.app/auth/init?redirect_uri=/dashboard
+
+# Step 2: After Raindrop authorization, session cookie is set
+# Cookie: mcp_session=xxx (httpOnly, secure)
+
+# Step 3: Client includes cookie in requests
+curl https://your-server.vercel.app/mcp \
+  -H "Cookie: mcp_session=session_id_here" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
-Set via environment variable: `API_KEY=your_secret_key`
+**Security features:**
+- PKCE flow (prevents code interception)
+- State parameter (CSRF protection)
+- Redirect URI allowlist (prevents open redirects)
+- Encrypted token storage (AES-256-GCM)
+- HttpOnly cookies (XSS protection)
+- Automatic token refresh
 
-#### Layer 2: Raindrop Token (Required)
+📖 **Setup Guide**: [docs/OAUTH.md](docs/OAUTH.md)
 
-**Option A: Server-wide token** (single user)
+#### Method 2: Direct Raindrop Token (Per-Request)
+
+**Best for**: Personal use, development, API integrations
+
+```bash
+curl https://your-server.vercel.app/mcp \
+  -H "X-API-Key: server_api_key" \
+  -H "X-Raindrop-Token: user_raindrop_token" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+```
+
+Each user provides their own Raindrop token. No session storage required.
+
+#### Method 3: Environment Token (Fallback)
+
+**Best for**: Local development only
+
 ```env
 RAINDROP_ACCESS_TOKEN=your_raindrop_token
 ```
 
-**Option B: Per-user tokens** (multi-tenant)
-```bash
-curl http://localhost:3000/sse \
-  -H "X-API-Key: server_api_key" \
-  -H "X-Raindrop-Token: user_raindrop_token"
+Token from environment used when:
+- No session cookie provided
+- No `X-Raindrop-Token` header
+- `NODE_ENV` is not `production`
+
+⚠️ **Not recommended for production** - single-user only.
+
+### Server Protection (Optional)
+
+Add API key protection to your server:
+
+```env
+API_KEY=your_secret_server_key
 ```
 
-This allows multiple users to use the same server with their own Raindrop accounts.
+All requests must include:
+```bash
+-H "X-API-Key: your_secret_server_key"
+```
+
+Recommended for production deployments to prevent unauthorized access.
 
 ### MCP Client Configuration
 
@@ -204,24 +486,48 @@ const transport = new SSEClientTransport(
 
 ## Environment Variables
 
-### All Platforms
+### Authentication Variables
+
+**OAuth 2.0 (Recommended for Production)**
+
+| Variable | Description | Required | How to Get |
+|----------|-------------|----------|------------|
+| `OAUTH_CLIENT_ID` | OAuth app client ID | For OAuth | [Create OAuth app](https://raindrop.io/dev/apps) |
+| `OAUTH_CLIENT_SECRET` | OAuth app client secret | For OAuth | From OAuth app settings |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | For OAuth | `https://your-app.vercel.app/auth/callback` |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | Comma-separated allowed redirect URIs | For OAuth | `https://app.com/dashboard,/dashboard` |
+| `TOKEN_ENCRYPTION_KEY` | 64-char hex encryption key | For OAuth | `openssl rand -hex 32` |
+| `KV_REST_API_URL` | Vercel KV endpoint | For OAuth | Auto-set when KV linked |
+| `KV_REST_API_TOKEN` | Vercel KV token | For OAuth | Auto-set when KV linked |
+
+**Direct Token (Simple/Development)**
+
+| Variable | Description | Required | How to Get |
+|----------|-------------|----------|------------|
+| `RAINDROP_ACCESS_TOKEN` | Raindrop.io API token | Without OAuth | [Get token](https://app.raindrop.io/settings/integrations) |
+
+### Server Configuration
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `RAINDROP_ACCESS_TOKEN` | Raindrop.io API token (fallback) | - | Yes* |
-| `API_KEY` | Server API key for authentication | - | No** |
+| `API_KEY` | Server API key for endpoint protection | - | Recommended for production |
 | `PORT` | HTTP server port | 3000 | No |
+| `HOST` | HTTP server host | 0.0.0.0 | No |
 | `NODE_ENV` | Environment mode | development | No |
 | `CORS_ORIGIN` | Allowed CORS origins | * | No |
 
-\* Required unless using per-user tokens via headers  
-\*\* Recommended for production HTTP deployments
+### Platform-Specific Setup
 
-### Platform-Specific
+**Vercel**:
+- Set environment variables in dashboard: Project → Settings → Environment Variables
+- Link Vercel KV for OAuth: Storage → Connect Store
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN` are auto-set when KV linked
 
-**Vercel**: Set in dashboard under Project → Settings → Environment Variables
+**Cloudflare Workers**:
+- Use `wrangler secret put` for sensitive values
+- Configure `wrangler.toml` for non-secret settings
 
-**Cloudflare Workers**: Use `wrangler secret put` for sensitive values
+**📖 Complete Setup Guide**: See [OAuth Guide](docs/OAUTH.md) for step-by-step instructions
 
 ## Available MCP Tools
 
@@ -568,8 +874,9 @@ wrangler tail --env production
 
 ## Documentation
 
-- 📖 [HTTP Transport Guide](docs/HTTP-TRANSPORT.md) - Detailed HTTP transport documentation
-- 📖 [Deployment Guide](docs/DEPLOYMENT.md) - Vercel and local deployment
+- 📖 [OAuth Guide](docs/OAUTH.md) - **NEW!** Complete OAuth 2.0 setup and troubleshooting
+- 📖 [Deployment Guide](docs/DEPLOYMENT.md) - Vercel deployment with OAuth and direct token
+- 📖 [HTTP Transport Guide](docs/HTTP-TRANSPORT.md) - HTTP transport and authentication details
 - 📖 [Cloudflare Workers Guide](docs/CLOUDFLARE-WORKERS.md) - Edge deployment guide
 
 ## Performance

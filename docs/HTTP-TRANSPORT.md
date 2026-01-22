@@ -56,14 +56,35 @@ npm install
 
 Create a `.env` file:
 
-```env
-# Required
-RAINDROP_ACCESS_TOKEN=your_raindrop_token
+#### Option A: OAuth (Production)
 
-# Optional
-API_KEY=your_secret_api_key
+```env
+# OAuth Configuration
+OAUTH_CLIENT_ID=your_client_id
+OAUTH_CLIENT_SECRET=your_client_secret
+OAUTH_REDIRECT_URI=http://localhost:3000/auth/callback
+OAUTH_ALLOWED_REDIRECT_URIS=/dashboard,/
+TOKEN_ENCRYPTION_KEY=your_64_char_hex_key  # Generate: openssl rand -hex 32
+
+# Server Configuration
 PORT=3000
 NODE_ENV=development
+API_KEY=your_secret_api_key
+CORS_ORIGIN=*
+```
+
+**Note**: For local OAuth testing, you'll need to configure Raindrop OAuth app with `http://localhost:3000/auth/callback` as redirect URI.
+
+#### Option B: Direct Token (Simple/Development)
+
+```env
+# Direct Token
+RAINDROP_ACCESS_TOKEN=your_raindrop_token
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+API_KEY=your_secret_api_key
 CORS_ORIGIN=*
 ```
 
@@ -81,39 +102,200 @@ The server will start on `http://localhost:3000`
 
 ## Authentication
 
-### Two-Layer Authentication
+The server supports multiple authentication methods for maximum flexibility:
 
-#### Layer 1: API Key (Optional)
-Protects the server endpoint itself:
+### Authentication Methods
+
+| Method | Security | Multi-User | Use Case |
+|--------|----------|------------|----------|
+| **OAuth 2.0 Session** | ⭐⭐⭐⭐⭐ | ✅ Yes | Production deployments |
+| **Direct Token Header** | ⭐⭐⭐ | ✅ Yes | API integrations, development |
+| **Environment Token** | ⭐⭐ | ❌ No | Local development only |
+
+### Method 1: OAuth 2.0 Session (Recommended)
+
+**Best for**: Production multi-user deployments
+
+Users authenticate via OAuth flow, server maintains encrypted sessions:
+
+**Flow:**
+```bash
+# Step 1: Initiate OAuth (user visits in browser)
+GET https://your-server.vercel.app/auth/init?redirect_uri=/dashboard
+
+# Step 2: User authorizes on Raindrop.io (automatic redirect)
+
+# Step 3: Callback sets session cookie
+# Cookie: mcp_session=xxx (httpOnly, secure, 14-day expiry)
+
+# Step 4: Client uses session for MCP requests
+curl https://your-server.vercel.app/mcp \
+  -H "Cookie: mcp_session=session_id_here" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+```
+
+**Features:**
+- PKCE flow (Proof Key for Code Exchange)
+- State parameter for CSRF protection
+- Redirect URI allowlist
+- AES-256-GCM token encryption
+- HttpOnly, Secure cookies
+- Automatic token refresh
+- Session storage in Vercel KV (Redis)
+
+**Requirements:**
+```env
+OAUTH_CLIENT_ID=your_client_id
+OAUTH_CLIENT_SECRET=your_client_secret
+OAUTH_REDIRECT_URI=https://your-app.vercel.app/auth/callback
+OAUTH_ALLOWED_REDIRECT_URIS=https://your-app.com/dashboard,/dashboard
+TOKEN_ENCRYPTION_KEY=64_char_hex_key
+KV_REST_API_URL=https://...  # Auto-set by Vercel
+KV_REST_API_TOKEN=...         # Auto-set by Vercel
+```
+
+📖 **Complete OAuth Setup**: See [OAuth Guide](./OAUTH.md)
+
+### Method 2: Direct Token Header (Per-Request)
+
+**Best for**: Personal use, API integrations, development
+
+Each request includes user's Raindrop token in header:
 
 ```bash
-curl http://localhost:3000/sse \
-  -H "X-API-Key: your_secret_api_key"
+curl https://your-server.vercel.app/mcp \
+  -H "X-Raindrop-Token: user_raindrop_token" \
+  -H "X-API-Key: server_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
-Set via environment variable:
+**Features:**
+- Stateless (no session storage)
+- Multi-tenant capable
+- Simple to implement
+- Per-request authentication
+
+**Requirements:**
 ```env
-API_KEY=your_secret_api_key
+API_KEY=your_server_api_key  # Optional server protection
 ```
 
-#### Layer 2: Raindrop Token
-Authenticates with Raindrop.io API:
+Users provide their own Raindrop tokens from: https://app.raindrop.io/settings/integrations
 
-**Option A: Server-wide token** (single user)
+### Method 3: Environment Token (Fallback)
+
+**Best for**: Local development only
+
+Server uses token from environment variable:
+
 ```env
 RAINDROP_ACCESS_TOKEN=your_raindrop_token
 ```
 
-**Option B: Per-user tokens** (multi-tenant)
 ```bash
-curl http://localhost:3000/sse \
-  -H "X-API-Key: server_api_key" \
-  -H "X-Raindrop-Token: user_raindrop_token"
+# Works without any auth headers (development only)
+curl http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
+
+⚠️ **Limitations:**
+- Single-user only
+- Disabled in `NODE_ENV=production`
+- Not suitable for shared deployments
+
+### Server API Key Protection (Optional)
+
+Add an additional layer of protection to your server endpoint:
+
+```env
+API_KEY=your_secret_server_key
+```
+
+All requests must include:
+```bash
+-H "X-API-Key: your_secret_server_key"
+```
+
+**Recommended for:**
+- Production deployments
+- Public-facing servers
+- Rate limiting enforcement
+
+**Works with all authentication methods**
 
 ## Endpoints
 
-### `GET /`
+### MCP Protocol Endpoints
+
+#### `GET /mcp` or `POST /mcp`
+Primary MCP protocol endpoint (using mcp-handler)
+
+**Authentication:** Required (see Authentication section)
+
+**Headers:**
+- `Cookie: mcp_session=xxx` (OAuth session)
+- OR `X-Raindrop-Token: xxx` (direct token)
+- `X-API-Key: xxx` (optional server protection)
+- `Content-Type: application/json`
+
+**Request Body (POST):**
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "id": 1
+}
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "collection_list",
+        "description": "List all Raindrop.io collections",
+        "inputSchema": { ... }
+      }
+    ]
+  }
+}
+```
+
+### Health & Info Endpoints
+
+#### `GET /health`
+Health check endpoint (no authentication required)
+
+**Response (with OAuth):**
+```json
+{
+  "status": "ok",
+  "service": "raindrop-mcp",
+  "version": "0.1.0",
+  "oauth": true,
+  "storage": "vercel-kv",
+  "timestamp": "2026-01-23T21:00:00.000Z"
+}
+```
+
+**Response (without OAuth):**
+```json
+{
+  "status": "ok",
+  "service": "raindrop-mcp",
+  "version": "0.1.0",
+  "oauth": false,
+  "timestamp": "2026-01-23T21:00:00.000Z"
+}
+```
+
+#### `GET /`
 Server information and documentation
 
 **Response:**
@@ -121,45 +303,82 @@ Server information and documentation
 {
   "name": "Raindrop MCP Server",
   "version": "0.1.0",
-  "transport": "Server-Sent Events (SSE)",
+  "transport": "mcp-handler",
+  "oauth": true,
   "endpoints": {
     "health": "/health",
-    "sse": "/sse",
-    "messages": "/messages"
+    "mcp": "/mcp",
+    "oauth": {
+      "init": "/auth/init",
+      "callback": "/auth/callback",
+      "metadata": "/.well-known/oauth-protected-resource"
+    }
   }
 }
 ```
 
-### `GET /health`
-Health check endpoint (no authentication required)
+### OAuth Endpoints
+
+#### `GET /auth/init?redirect_uri=<uri>`
+Initiate OAuth 2.0 authorization flow
+
+**Query Parameters:**
+- `redirect_uri` (required) - Where to redirect after successful auth
+  - Must be in `OAUTH_ALLOWED_REDIRECT_URIS` allowlist
+  - Can be relative path (e.g., `/dashboard`) or absolute URL
+
+**Example:**
+```bash
+https://your-server.vercel.app/auth/init?redirect_uri=/dashboard
+```
+
+**Response:**
+Redirects to Raindrop.io authorization page
+
+**Sets Cookie:**
+```
+oauth_state=xxx; HttpOnly; Secure; SameSite=Lax; Max-Age=300
+```
+
+#### `GET /auth/callback?code=<code>&state=<state>`
+OAuth callback endpoint (called by Raindrop.io)
+
+**Query Parameters:**
+- `code` - Authorization code from Raindrop
+- `state` - CSRF protection token
+
+**Validation:**
+- Verifies state matches cookie
+- Exchanges code for access token using PKCE
+- Fetches user information
+- Creates encrypted session
+
+**Response:**
+Redirects to original `redirect_uri`
+
+**Sets Cookie:**
+```
+mcp_session=xxx; HttpOnly; Secure; SameSite=Lax; Max-Age=1209600; Path=/
+```
+
+**Security:**
+- State validation prevents CSRF
+- PKCE prevents code interception
+- Redirect URI retrieved from server (not query param)
+- Session ID not exposed in URL
+
+#### `GET /.well-known/oauth-protected-resource`
+OAuth 2.0 metadata endpoint
 
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "raindrop-mcp",
-  "version": "0.1.0",
-  "timestamp": "2026-01-09T21:00:00.000Z",
-  "transport": "sse"
+  "resource": "https://your-server.vercel.app",
+  "authorization_servers": ["https://raindrop.io"],
+  "bearer_methods_supported": ["header", "cookie"],
+  "resource_documentation": "https://github.com/Aarekaz/raindrop-mcp"
 }
 ```
-
-### `GET /sse`
-SSE connection endpoint for MCP communication
-
-**Headers:**
-- `X-API-Key` (optional) - Server API key
-- `X-Raindrop-Token` (optional) - User-specific Raindrop token
-
-**Response:**
-Establishes SSE connection with `text/event-stream` content type
-
-### `POST /messages`
-Client message endpoint for bidirectional communication
-
-**Headers:**
-- `X-API-Key` (optional) - Server API key
-- `Content-Type: text/plain`
 
 ## Serverless Deployment
 
@@ -185,7 +404,18 @@ Coming soon - adapter in development
 
 ### Cloudflare Workers
 
-Coming soon - adapter in development
+The server includes a Cloudflare Workers adapter for edge deployment.
+
+**Files:**
+- `src/adapters/cloudflare-worker.ts` - Cloudflare Workers adapter
+- `wrangler.toml` - Wrangler configuration (if present)
+
+**Deploy:**
+```bash
+npm run deploy:cloudflare
+```
+
+See [CLOUDFLARE-WORKERS.md](./CLOUDFLARE-WORKERS.md) for detailed instructions.
 
 ## Development
 
@@ -229,17 +459,33 @@ npm run deploy:lambda  # Deploy to Lambda (coming soon)
 
 ### Environment Variables
 
+#### OAuth Authentication (Production)
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `OAUTH_CLIENT_ID` | OAuth app client ID | For OAuth | `65a1b2c3d4e5f6g7h8i9j0k1` |
+| `OAUTH_CLIENT_SECRET` | OAuth app client secret | For OAuth | `a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6` |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | For OAuth | `https://your-app.vercel.app/auth/callback` |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | Allowed redirect URIs (comma-separated) | For OAuth | `https://app.com/dashboard,/dashboard` |
+| `TOKEN_ENCRYPTION_KEY` | 64-char hex encryption key | For OAuth | Generate: `openssl rand -hex 32` |
+| `KV_REST_API_URL` | Vercel KV endpoint | For OAuth | Auto-set by Vercel |
+| `KV_REST_API_TOKEN` | Vercel KV auth token | For OAuth | Auto-set by Vercel |
+
+#### Direct Token (Development/Simple)
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `RAINDROP_ACCESS_TOKEN` | Raindrop API token (fallback) | Without OAuth | `abc123def456...` |
+
+#### Server Configuration
+
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `RAINDROP_ACCESS_TOKEN` | Fallback Raindrop token | - | Yes* |
-| `API_KEY` | Server API key | - | No** |
-| `PORT` | HTTP server port | 3000 | No |
-| `HOST` | HTTP server host | 0.0.0.0 | No |
-| `NODE_ENV` | Environment mode | development | No |
-| `CORS_ORIGIN` | CORS allowed origins | * | No |
-
-\* Required unless using per-user tokens  
-\*\* Recommended for production
+| `API_KEY` | Server API key protection | - | Recommended for production |
+| `PORT` | HTTP server port | `3000` | No |
+| `HOST` | HTTP server host | `0.0.0.0` | No |
+| `NODE_ENV` | Environment mode | `development` | No |
+| `CORS_ORIGIN` | CORS allowed origins | `*` | No |
 
 ### Security Headers
 
@@ -257,16 +503,26 @@ For SSE endpoint:
 
 ### MCP Client Configuration
 
+#### Option 1: OAuth Session (Recommended)
+
+User authenticates via browser OAuth flow, then client uses session cookie:
+
 ```typescript
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
+// Step 1: Direct user to OAuth flow (in browser)
+// https://your-server.vercel.app/auth/init?redirect_uri=/dashboard
+
+// Step 2: After OAuth, session cookie is set automatically
+// Now create client with credentials included
+
 const transport = new SSEClientTransport(
-  new URL('https://your-server.vercel.app/sse'),
+  new URL('https://your-server.vercel.app/mcp'),
   {
+    credentials: 'include', // Include cookies in requests
     headers: {
-      'X-API-Key': 'your_api_key',
-      'X-Raindrop-Token': 'user_token'
+      'X-API-Key': 'your_server_api_key' // Optional server protection
     }
   }
 );
@@ -280,6 +536,77 @@ const client = new Client({
 
 await client.connect(transport);
 ```
+
+**Benefits:**
+- Secure OAuth flow
+- Automatic token refresh
+- No token handling in client code
+- Works with multiple users
+
+#### Option 2: Direct Token Header
+
+Each user provides their own Raindrop token:
+
+```typescript
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+const transport = new SSEClientTransport(
+  new URL('https://your-server.vercel.app/mcp'),
+  {
+    headers: {
+      'X-API-Key': 'your_server_api_key',
+      'X-Raindrop-Token': 'user_raindrop_token' // User's personal token
+    }
+  }
+);
+
+const client = new Client({
+  name: 'my-mcp-client',
+  version: '1.0.0'
+}, {
+  capabilities: {}
+});
+
+await client.connect(transport);
+```
+
+**Benefits:**
+- Stateless
+- Simple to implement
+- No OAuth setup required
+- Direct control over tokens
+
+#### Option 3: Environment Token (Local Development)
+
+Uses server's environment token:
+
+```typescript
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+const transport = new SSEClientTransport(
+  new URL('http://localhost:3000/mcp')
+  // No headers needed - uses RAINDROP_ACCESS_TOKEN from server env
+);
+
+const client = new Client({
+  name: 'my-mcp-client',
+  version: '1.0.0'
+}, {
+  capabilities: {}
+});
+
+await client.connect(transport);
+```
+
+**Benefits:**
+- Simplest for local development
+- No authentication setup
+
+**Limitations:**
+- Single-user only
+- Not suitable for production
 
 ## Limitations
 
@@ -351,15 +678,18 @@ Both transports can run simultaneously on different ports.
 
 - [ ] WebSocket transport option
 - [ ] AWS Lambda adapter
-- [ ] Cloudflare Workers adapter
 - [ ] Request rate limiting
 - [ ] Response caching
-- [ ] Metrics and monitoring
+- [ ] Metrics and monitoring dashboard
 - [ ] Connection pooling
-- [ ] Session management
+- [ ] Session analytics
+- [ ] Multi-region deployment
+- [ ] GraphQL API support
 
 ## Support
 
+- [OAuth Guide](./OAUTH.md) - Complete OAuth setup and troubleshooting
+- [Deployment Guide](./DEPLOYMENT.md) - Deployment with OAuth and direct token
+- [Cloudflare Workers Guide](./CLOUDFLARE-WORKERS.md) - Edge deployment
 - [GitHub Issues](https://github.com/Aarekaz/raindrop-mcp/issues)
-- [Deployment Guide](./DEPLOYMENT.md)
 - [Main README](../README.md)
