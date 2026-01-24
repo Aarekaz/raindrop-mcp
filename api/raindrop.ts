@@ -216,11 +216,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
         async (args: any) => {
           switch (args.operation) {
             case 'create':
-              if (!args.link) throw new Error('link required for create');
+              if (!args.url) throw new Error('url required for create');
               const created = await raindropService.createBookmark(
                 args.collectionId || -1, // -1 = Unsorted
                 {
-                  link: args.link,
+                  link: args.url,
                   title: args.title,
                   excerpt: args.excerpt,
                   tags: args.tags,
