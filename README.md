@@ -244,6 +244,57 @@ Choose the authentication method that fits your use case:
   - **OAuth**: OAuth app from [Raindrop Developer Console](https://raindrop.io/dev/apps) + Vercel KV
   - **Direct Token**: API token from [Raindrop Settings](https://app.raindrop.io/settings/integrations)
 
+## Configuration
+
+### For Local Development (MCP Client)
+
+1. **Copy the example config:**
+   ```bash
+   cp claude-desktop-config.example.json claude-desktop-config.json
+   ```
+
+2. **Get your Raindrop.io access token:**
+   - Visit https://app.raindrop.io/settings/integrations
+   - Create a new app or use test token
+   - Copy the access token
+
+3. **Update `claude-desktop-config.json`:**
+   - Replace `YOUR_TOKEN_HERE` with your actual token
+   - Update the path to your build directory (e.g., `/absolute/path/to/raindrop-mcp/build/index.js`)
+
+**Security Note:** Never commit `claude-desktop-config.json` to git. This file is gitignored to prevent credential leaks.
+
+### For Vercel Deployment (OAuth)
+
+OAuth authentication is configured via environment variables. See [OAuth Guide](docs/OAUTH.md) for full setup instructions.
+
+**Required Environment Variables:**
+- `OAUTH_CLIENT_ID` - Your OAuth app client ID
+- `OAUTH_CLIENT_SECRET` - Your OAuth app client secret
+- `OAUTH_REDIRECT_URI` - OAuth callback URL (e.g., `https://your-app.vercel.app/auth/callback`)
+- `OAUTH_ALLOWED_REDIRECT_URIS` - Comma-separated list of allowed redirect URIs
+- `TOKEN_ENCRYPTION_KEY` - 64-character hex key (generate with `openssl rand -hex 32`)
+
+**Optional Environment Variables:**
+- `API_KEY` - Server API key for endpoint protection (recommended for production)
+- `CORS_ORIGIN` - Allowed CORS origins (default: `*`)
+
+### For Environment Token (Development Only)
+
+For quick local testing with STDIO transport:
+
+1. **Copy the environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Add your token to `.env`:**
+   ```env
+   RAINDROP_ACCESS_TOKEN=your_token_here
+   ```
+
+**Warning:** Environment token mode is for local development only. Never use in production deployments.
+
 ## Quick Start
 
 ### Option 1: Local STDIO (Claude Desktop)
