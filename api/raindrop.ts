@@ -248,6 +248,26 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   makeBookmarkLink(updated),
                 ],
               };
+            case 'suggest':
+              if (!args.url) throw new Error('url required for suggest');
+              const suggestions = await raindropService.getSuggestions(args.url);
+
+              // Format suggestions for display
+              const suggestionText = [];
+              if (suggestions.collections && suggestions.collections.length > 0) {
+                const collectionIds = suggestions.collections.map(c => c.$id).join(', ');
+                suggestionText.push(`Suggested collections: ${collectionIds}`);
+              }
+              if (suggestions.tags && suggestions.tags.length > 0) {
+                suggestionText.push(`Suggested tags: ${suggestions.tags.join(', ')}`);
+              }
+              if (suggestionText.length === 0) {
+                suggestionText.push('No suggestions available for this URL');
+              }
+
+              return {
+                content: [textContent(suggestionText.join('\n'))],
+              };
             case 'delete':
               if (!args.id) throw new Error('id required for delete');
               await raindropService.deleteBookmark(args.id);
