@@ -39,7 +39,6 @@ function validateRedirectUri(redirectUri: string): { valid: boolean; error?: str
   // For absolute URLs, validate against allowlist
   try {
     const url = new URL(redirectUri);
-    const fullUrl = url.origin + url.pathname; // Normalize (exclude query/fragment)
 
     // Check if URL is in allowlist (exact match on origin + pathname)
     const isAllowed = allowedUris.some(allowedUri => {
@@ -78,21 +77,23 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
     try {
       const redirectUri = req.query.redirect_uri as string;
       if (!redirectUri) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'redirect_uri parameter is required',
           hint: 'Provide ?redirect_uri=/dashboard or full URL from allowlist'
         });
+        return;
       }
 
       // SECURITY: Validate redirect_uri against allowlist
       const validation = validateRedirectUri(redirectUri);
       if (!validation.valid) {
         logger.warn('Invalid redirect_uri rejected', { redirectUri, error: validation.error });
-        return res.status(400).json({
+        res.status(400).json({
           error: 'invalid_redirect_uri',
           message: validation.error,
           hint: 'Redirect URI must be in OAUTH_ALLOWED_REDIRECT_URIS allowlist or a relative path'
         });
+        return;
       }
 
       const { authUrl, state } = await oauthService.initFlow(redirectUri);
@@ -106,9 +107,11 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
       });
 
       res.redirect(authUrl);
+      return;
     } catch (error) {
       logger.error('OAuth init error', error);
       res.status(500).json({ error: 'Failed to initialize OAuth flow' });
+      return;
     }
   });
 
@@ -121,13 +124,15 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
       const { code, state } = req.query;
 
       if (!code || !state) {
-        return res.status(400).json({ error: 'Missing code or state parameter' });
+        res.status(400).json({ error: 'Missing code or state parameter' });
+        return;
       }
 
       // Validate state matches cookie (CSRF protection)
       const stateCookie = req.cookies.oauth_state;
       if (stateCookie !== state) {
-        return res.status(403).json({ error: 'Invalid state parameter (CSRF check failed)' });
+        res.status(403).json({ error: 'Invalid state parameter (CSRF check failed)' });
+        return;
       }
 
       // SECURITY FIX: Retrieve redirect_uri from stored OAuthState BEFORE handling callback
@@ -154,9 +159,11 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
 
       // Redirect to the stored redirect URI (session_id already in httpOnly cookie)
       res.redirect(redirectUri);
+      return;
     } catch (error) {
       logger.error('OAuth callback error', error);
       res.status(500).json({ error: 'OAuth callback failed' });
+      return;
     }
   });
 
@@ -168,7 +175,8 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
     const sessionId = req.cookies.mcp_session || req.headers.authorization?.split(' ')[1];
 
     if (!sessionId) {
-      return res.json({ authenticated: false });
+      res.json({ authenticated: false });
+      return;
     }
 
     try {
@@ -207,7 +215,8 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
     const sessionId = req.cookies.mcp_session || req.headers.authorization?.split(' ')[1];
 
     if (!sessionId) {
-      return res.status(401).json({ error: 'No session found' });
+      res.status(401).json({ error: 'No session found' });
+      return;
     }
 
     try {

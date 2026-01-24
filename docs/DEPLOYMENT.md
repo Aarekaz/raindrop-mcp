@@ -523,7 +523,7 @@ Increase memory for better performance (edit `vercel.json`):
 ```json
 {
   "functions": {
-    "src/adapters/vercel.ts": {
+    "api/**/*.ts": {
       "memory": 2048  // Increase to 2GB
     }
   }

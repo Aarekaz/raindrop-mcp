@@ -5,6 +5,7 @@ bun.lockb
 # Build output
 build/
 dist/
+tsconfig.tsbuildinfo
 *.js
 *.js.map
 *.d.ts

@@ -120,7 +120,7 @@ function validateToken(req: Request): string {
 /**
  * Error handling middleware
  */
-function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
+function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   logger.error('Error handling request:', err);
 
   if (err instanceof HttpError) {
@@ -154,11 +154,13 @@ function createApp(): express.Application {
   app.use(cookieParser());
 
   // CORS configuration
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: true,
+    origin: corsOrigin,
+    // Never allow credentials with wildcard origin
+    credentials: corsOrigin !== '*',
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-API-Key', 'X-Raindrop-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Raindrop-Token'],
   }));
 
   // Body parsing
@@ -166,13 +168,13 @@ function createApp(): express.Application {
   app.use(express.urlencoded({ extended: true }));
 
   // Request logging
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     logger.info(`${req.method} ${req.path} - ${req.ip}`);
     next();
   });
 
   // Health check endpoint (no auth required)
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'healthy',
       service: 'raindrop-mcp',
@@ -183,7 +185,7 @@ function createApp(): express.Application {
   });
 
   // Info endpoint (no auth required)
-  app.get('/', (req: Request, res: Response) => {
+  app.get('/', (_req: Request, res: Response) => {
     res.json({
       name: 'Raindrop MCP Server',
       description: 'Model Context Protocol server for Raindrop.io bookmark management',

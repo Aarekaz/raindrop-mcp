@@ -384,10 +384,12 @@ OAuth 2.0 metadata endpoint
 
 ### Vercel
 
-The server includes a Vercel adapter for seamless deployment.
+The server supports Vercel deployment using the `mcp-handler` pattern.
 
 **Files:**
-- `src/adapters/vercel.ts` - Vercel serverless function adapter
+- `api/raindrop.ts` - MCP server endpoint (tools)
+- `api/auth/*` - OAuth endpoints
+- `api/.well-known/oauth-protected-resource.ts` - OAuth protected resource metadata
 - `vercel.json` - Deployment configuration
 - `.vercelignore` - Files to exclude
 

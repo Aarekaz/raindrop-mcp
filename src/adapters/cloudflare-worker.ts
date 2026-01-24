@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+
 /**
  * Cloudflare Workers Adapter
  * 
@@ -8,8 +10,7 @@
  * This means some features like process.env need to be adapted.
  */
 
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { RaindropMCPService } from '../services/raindropmcp.service.js';
+// NOTE: This adapter intentionally does not implement a full MCP transport yet.
 
 /**
  * Cloudflare Workers environment bindings
@@ -184,35 +185,12 @@ function handleHealth(): Response {
  */
 async function handleSSE(request: Request, env: Env): Promise<Response> {
   validateAuth(request, env);
-  const raindropToken = getRaindropToken(request, env);
-
-  // Create a TransformStream for SSE
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-  const encoder = new TextEncoder();
-
-  // Send initial connection message
-  await writer.write(encoder.encode('data: {"type":"connection","status":"connected"}\n\n'));
-
-  // Create MCP service with user-specific token
-  const mcpService = new RaindropMCPService(raindropToken);
-  const server = mcpService.getServer();
-
-  // Note: This is a simplified SSE implementation
-  // For production, consider using Durable Objects for stateful connections
-  // that need to persist beyond the Worker's execution time
-
-  // Create response with SSE headers
-  const response = new Response(readable, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
-
-  return response;
+  getRaindropToken(request, env);
+  throw new HttpError(
+    501,
+    'MCP transport is not implemented for Cloudflare Workers in this adapter. ' +
+      'Use the Vercel `mcp-handler` deployment or implement Durable Objects/WebSockets for long-lived connections.'
+  );
 }
 
 /**
@@ -221,26 +199,18 @@ async function handleSSE(request: Request, env: Env): Promise<Response> {
 async function handleMessages(request: Request, env: Env): Promise<Response> {
   validateAuth(request, env);
   getRaindropToken(request, env); // Validate token
-
-  // Parse message body
-  const body = await request.text();
-  
-  // In a real implementation, this would process the message
-  // and coordinate with the SSE connection (possibly via Durable Objects)
-  
-  return new Response('Message received', {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-  });
+  throw new HttpError(
+    501,
+    'MCP transport message handling is not implemented for Cloudflare Workers in this adapter. ' +
+      'Use the Vercel `mcp-handler` deployment or implement Durable Objects/WebSockets.'
+  );
 }
 
 /**
  * Main Cloudflare Workers fetch handler
  */
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     try {
       // Handle CORS preflight
       const corsResponse = handleCors(request, env);

@@ -6,11 +6,13 @@
  */
 
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { z } from "zod";
 import { RaindropService } from "../src/services/raindrop.service.js";
 import { OAuthService } from "../src/oauth/oauth.service.js";
 import { TokenStorage } from "../src/oauth/token-storage.js";
 import { OAuthConfig } from "../src/oauth/oauth.types.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { components as RaindropComponents } from "../src/types/raindrop.schema.js";
 import {
   BookmarkManageInputSchema,
   BookmarkSearchInputSchema,
@@ -20,6 +22,9 @@ import {
   BulkEditInputSchema,
   FilterStatsInputSchema,
 } from "../src/types/raindrop-zod.schemas.js";
+
+type Bookmark = RaindropComponents.schemas.Bookmark;
+type Collection = RaindropComponents.schemas.Collection;
 
 // Initialize OAuth service
 const oauthConfig: OAuthConfig = {
@@ -91,7 +96,7 @@ const verifyToken = async (
  */
 const baseHandler = async (req: Request): Promise<Response> => {
   // Get auth info from request (set by withMcpAuth)
-  const authInfo = (req as any).auth as AuthInfo | undefined;
+  const authInfo = (req as unknown as { auth?: AuthInfo }).auth;
 
   if (!authInfo?.token) {
     return new Response(JSON.stringify({
@@ -111,47 +116,51 @@ const baseHandler = async (req: Request): Promise<Response> => {
     (server) => {
       // Helper functions
       const textContent = (text: string) => ({ type: 'text' as const, text });
-      const makeCollectionLink = (collection: any) => ({
+      const makeCollectionResource = (collection: Collection) => ({
         type: 'resource' as const,
         resource: {
           uri: `raindrop://collection/${collection._id}`,
-          name: collection.title || 'Untitled Collection',
-          description: collection.description || `Collection with ${collection.count || 0} bookmarks`,
           mimeType: 'application/json',
+          text: JSON.stringify(collection, null, 2),
         },
       });
-      const makeBookmarkLink = (bookmark: any) => ({
+      const makeBookmarkResource = (bookmark: Bookmark) => ({
         type: 'resource' as const,
         resource: {
           uri: `raindrop://bookmark/${bookmark._id}`,
-          name: bookmark.title || 'Untitled',
-          description: bookmark.excerpt || bookmark.link || 'No description',
           mimeType: 'application/json',
+          text: JSON.stringify(bookmark, null, 2),
         },
       });
 
       // Tool 1: List Collections
-      server.tool(
+      server.registerTool(
         'collection_list',
-        'List all Raindrop.io collections',
-        {},
+        {
+          title: 'Collection List',
+          description: 'List all Raindrop.io collections',
+          inputSchema: {},
+        },
         async () => {
           const collections = await raindropService.getCollections();
           return {
             content: [
               textContent(`Found ${collections.length} collections`),
-              ...collections.map(makeCollectionLink),
+              ...collections.map(makeCollectionResource),
             ],
           };
         }
       );
 
       // Tool 2: Manage Collections
-      server.tool(
+      server.registerTool(
         'collection_manage',
-        'Create, update, or delete a collection',
-        CollectionManageInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Collection Manage',
+          description: 'Create, update, or delete a collection',
+          inputSchema: CollectionManageInputSchema.shape,
+        },
+        async (args: z.infer<typeof CollectionManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
               if (!args.title) throw new Error('title required for create');
@@ -159,12 +168,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Created collection: ${created.title}`),
-                  makeCollectionLink(created),
+                  makeCollectionResource(created),
                 ],
               };
             case 'update':
               if (!args.id) throw new Error('id required for update');
-              const updates: Record<string, any> = {};
+              const updates: Partial<Collection> = {};
               if (args.title !== undefined) updates.title = args.title;
               if (args.description !== undefined) updates.description = args.description;
               if (args.color !== undefined) updates.color = args.color;
@@ -173,7 +182,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Updated collection ${args.id}`),
-                  makeCollectionLink(updated),
+                  makeCollectionResource(updated),
                 ],
               };
             case 'delete':
@@ -187,33 +196,41 @@ const baseHandler = async (req: Request): Promise<Response> => {
       );
 
       // Tool 3: Search Bookmarks
-      server.tool(
+      server.registerTool(
         'bookmark_search',
-        'Search bookmarks with filters',
-        BookmarkSearchInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Bookmark Search',
+          description: 'Search bookmarks with filters',
+          inputSchema: BookmarkSearchInputSchema.shape,
+        },
+        async (args: z.infer<typeof BookmarkSearchInputSchema>) => {
           const result = await raindropService.getBookmarks({
-            collection: args.collectionId,
+            collection: args.collection,
             search: args.search,
-            tag: args.tag,
+            tags: args.tags,
+            important: args.important,
             page: args.page,
-            perPage: args.perpage,
+            perPage: args.perPage,
+            sort: args.sort,
           });
           return {
             content: [
               textContent(`Found ${result.items.length} bookmarks (total: ${result.count})`),
-              ...result.items.map(makeBookmarkLink),
+              ...result.items.map(makeBookmarkResource),
             ],
           };
         }
       );
 
       // Tool 4: Manage Bookmarks
-      server.tool(
+      server.registerTool(
         'bookmark_manage',
-        'Create, update, or delete a bookmark',
-        BookmarkManageInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Bookmark Manage',
+          description: 'Create, update, delete, or get suggestions for a bookmark',
+          inputSchema: BookmarkManageInputSchema.shape,
+        },
+        async (args: z.infer<typeof BookmarkManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
               if (!args.url) throw new Error('url required for create');
@@ -222,7 +239,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 {
                   link: args.url,
                   title: args.title,
-                  excerpt: args.excerpt,
+                  excerpt: args.description,
                   tags: args.tags,
                   important: args.important,
                 }
@@ -230,14 +247,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Created: ${created.title || created.link}`),
-                  makeBookmarkLink(created),
+                  makeBookmarkResource(created),
                 ],
               };
             case 'update':
               if (!args.id) throw new Error('id required for update');
-              const updates: Record<string, any> = {};
+              const updates: Partial<Bookmark> = {};
               if (args.title !== undefined) updates.title = args.title;
-              if (args.excerpt !== undefined) updates.excerpt = args.excerpt;
+              if (args.description !== undefined) updates.excerpt = args.description;
               if (args.tags !== undefined) updates.tags = args.tags;
               if (args.important !== undefined) updates.important = args.important;
               if (args.collectionId !== undefined) updates.collection = { $id: args.collectionId };
@@ -245,7 +262,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Updated bookmark ${args.id}`),
-                  makeBookmarkLink(updated),
+                  makeBookmarkResource(updated),
                 ],
               };
             case 'suggest':
@@ -279,28 +296,34 @@ const baseHandler = async (req: Request): Promise<Response> => {
       );
 
       // Tool 5: List Tags
-      server.tool(
+      server.registerTool(
         'tag_list',
-        'List all tags',
-        TagInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Tag List',
+          description: 'List all tags',
+          inputSchema: TagInputSchema.shape,
+        },
+        async (args: z.infer<typeof TagInputSchema>) => {
           const tags = await raindropService.getTags(args.collectionId);
-          const tagList = tags.map((tag: any) => `${tag._id} (${tag.count})`).join(', ');
+          const tagList = tags.map((tag) => `${tag._id} (${tag.count})`).join(', ');
           return { content: [textContent(`Tags: ${tagList}`)] };
         }
       );
 
       // Tool 6: Manage Highlights
-      server.tool(
+      server.registerTool(
         'highlight_manage',
-        'Create, update, or delete highlights',
-        HighlightManageInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Highlight Manage',
+          description: 'Create, update, delete, or list highlights',
+          inputSchema: HighlightManageInputSchema.shape,
+        },
+        async (args: z.infer<typeof HighlightManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
-              if (!args.raindropId || !args.text) throw new Error('raindropId and text required');
+              if (!args.bookmarkId || !args.text) throw new Error('bookmarkId and text required');
               const created = await raindropService.createHighlight(
-                args.raindropId,
+                args.bookmarkId,
                 {
                   text: args.text,
                   color: args.color,
@@ -309,17 +332,26 @@ const baseHandler = async (req: Request): Promise<Response> => {
               );
               return { content: [textContent(`Created highlight: ${created._id}`)] };
             case 'update':
-              if (!args.highlightId) throw new Error('highlightId required');
-              const updates: Record<string, any> = {};
+              if (!args.id) throw new Error('id required');
+              const updates: { text?: string; note?: string; color?: string } = {};
               if (args.text !== undefined) updates.text = args.text;
               if (args.color !== undefined) updates.color = args.color;
               if (args.note !== undefined) updates.note = args.note;
-              await raindropService.updateHighlight(args.highlightId, updates);
-              return { content: [textContent(`Updated highlight ${args.highlightId}`)] };
+              await raindropService.updateHighlight(args.id, updates);
+              return { content: [textContent(`Updated highlight ${args.id}`)] };
             case 'delete':
-              if (!args.highlightId) throw new Error('highlightId required');
-              await raindropService.deleteHighlight(args.highlightId);
-              return { content: [textContent(`Deleted highlight ${args.highlightId}`)] };
+              if (!args.id) throw new Error('id required');
+              await raindropService.deleteHighlight(args.id);
+              return { content: [textContent(`Deleted highlight ${args.id}`)] };
+            case 'list':
+              if (!args.bookmarkId) throw new Error('bookmarkId required');
+              const highlights = await raindropService.getHighlights(args.bookmarkId);
+              return {
+                content: [
+                  textContent(`Found ${highlights.length} highlights`),
+                  textContent(JSON.stringify(highlights, null, 2)),
+                ],
+              };
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
           }
@@ -327,19 +359,25 @@ const baseHandler = async (req: Request): Promise<Response> => {
       );
 
       // Tool 7: Bulk Edit Bookmarks
-      server.tool(
+      server.registerTool(
         'bulk_edit_bookmarks',
-        'Perform bulk operations on bookmarks',
-        BulkEditInputSchema.shape,
-        async (args: any) => {
-          if (!args.ids || args.ids.length === 0) {
-            throw new Error('ids array required');
+        {
+          title: 'Bulk Edit Bookmarks',
+          description: 'Perform bulk operations on bookmarks',
+          inputSchema: BulkEditInputSchema.shape,
+        },
+        async (args: z.infer<typeof BulkEditInputSchema>) => {
+          const updates: {
+            ids?: number[];
+            important?: boolean;
+            tags?: string[];
+            media?: string[];
+            cover?: string;
+            collection?: { $id: number };
+          } = {};
+          if (args.ids !== undefined) {
+            updates.ids = args.ids;
           }
-          if (!args.collectionId) {
-            throw new Error('collectionId required for bulk operations');
-          }
-
-          const updates: Record<string, any> = { ids: args.ids };
           if (args.important !== undefined) updates.important = args.important;
           if (args.tags !== undefined) updates.tags = args.tags;
           if (args.media !== undefined) updates.media = args.media;
@@ -352,11 +390,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
       );
 
       // Tool 8: Get Bookmark Statistics
-      server.tool(
+      server.registerTool(
         'bookmark_statistics',
-        'Get bookmark statistics and filters',
-        FilterStatsInputSchema.shape,
-        async (args: any) => {
+        {
+          title: 'Bookmark Statistics',
+          description: 'Get bookmark statistics and filters',
+          inputSchema: FilterStatsInputSchema.shape,
+        },
+        async (args: z.infer<typeof FilterStatsInputSchema>) => {
           const stats = await raindropService.getFilters(
             args.collectionId,
             {
@@ -369,9 +410,15 @@ const baseHandler = async (req: Request): Promise<Response> => {
       );
     },
     {
-      name: 'raindrop-mcp',
-      version: '1.0.0',
-      description: 'MCP Server for Raindrop.io bookmark management',
+      serverInfo: {
+        name: 'raindrop-mcp',
+        version: '0.1.0',
+      },
+    },
+    {
+      streamableHttpEndpoint: '/api/raindrop',
+      disableSse: true,
+      maxDuration: 300,
     }
   );
 

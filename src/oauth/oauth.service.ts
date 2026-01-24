@@ -3,9 +3,9 @@
  * Handles authorization, token exchange, and token refresh
  */
 
-import { generateChallenge } from 'pkce-challenge';
+import pkceChallenge from 'pkce-challenge';
 import crypto from 'crypto';
-import { OAuthConfig, TokenResponse, OAuthState, StoredSession } from './oauth.types.js';
+import { OAuthConfig, TokenResponse, StoredSession } from './oauth.types.js';
 import { TokenStorage } from './token-storage.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -26,7 +26,7 @@ export class OAuthService {
    */
   async initFlow(redirectUri: string): Promise<{ authUrl: string; state: string }> {
     const state = crypto.randomUUID();
-    const { code_verifier, code_challenge } = await generateChallenge(128);
+    const { code_verifier, code_challenge } = await pkceChallenge(128);
 
     // Store state temporarily for callback validation
     await this.storage.saveOAuthState({
@@ -107,13 +107,13 @@ export class OAuthService {
       throw new Error(`Token exchange failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    return (await response.json()) as TokenResponse;
   }
 
   /**
    * Get user information from Raindrop API
    */
-  private async getUserInfo(accessToken: string): Promise<any> {
+  private async getUserInfo(accessToken: string): Promise<{ _id: number }> {
     const response = await fetch('https://api.raindrop.io/rest/v1/user', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -123,7 +123,7 @@ export class OAuthService {
       throw new Error(`Failed to get user info: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { user: { _id: number } };
     return data.user;
   }
 
@@ -148,7 +148,7 @@ export class OAuthService {
       throw new Error('Token refresh failed');
     }
 
-    const tokens: TokenResponse = await response.json();
+    const tokens = (await response.json()) as TokenResponse;
 
     const updatedSession: StoredSession = {
       ...session,

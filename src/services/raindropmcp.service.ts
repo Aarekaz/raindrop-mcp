@@ -10,18 +10,12 @@ import { z } from 'zod';
 import { RaindropService } from './raindrop.service.js';
 import {
   BookmarkManageInputSchema,
-  BookmarkOutputSchema,
   BookmarkSearchInputSchema,
-  BookmarkSearchOutputSchema,
   CollectionManageInputSchema,
-  CollectionOutputSchema,
   TagInputSchema,
   HighlightManageInputSchema,
   BulkEditInputSchema,
-  SuggestionInputSchema,
-  SuggestionOutputSchema,
   FilterStatsInputSchema,
-  FilterStatsOutputSchema,
 } from '../types/raindrop-zod.schemas.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -33,7 +27,10 @@ const SERVER_VERSION = '0.1.0';
  */
 type McpContent =
   | { type: 'text'; text: string }
-  | { type: 'resource_link'; uri: string; name: string; description: string; mimeType: string };
+  | {
+      type: 'resource';
+      resource: { uri: string; mimeType: string; text: string };
+    };
 
 /**
  * Helper function to create text content
@@ -47,11 +44,12 @@ function textContent(text: string): McpContent {
  */
 function makeCollectionLink(collection: any): McpContent {
   return {
-    type: 'resource_link',
-    uri: `mcp://collection/${collection._id}`,
-    name: collection.title || 'Untitled Collection',
-    description: collection.description || `Collection with ${collection.count || 0} bookmarks`,
-    mimeType: 'application/json',
+    type: 'resource',
+    resource: {
+      uri: `raindrop://collection/${collection._id}`,
+      mimeType: 'application/json',
+      text: JSON.stringify(collection, null, 2),
+    },
   };
 }
 
@@ -60,11 +58,12 @@ function makeCollectionLink(collection: any): McpContent {
  */
 function makeBookmarkLink(bookmark: any): McpContent {
   return {
-    type: 'resource_link',
-    uri: `mcp://raindrop/${bookmark._id}`,
-    name: bookmark.title || 'Untitled',
-    description: bookmark.excerpt || bookmark.link || 'No description',
-    mimeType: 'application/json',
+    type: 'resource',
+    resource: {
+      uri: `raindrop://bookmark/${bookmark._id}`,
+      mimeType: 'application/json',
+      text: JSON.stringify(bookmark, null, 2),
+    },
   };
 }
 
@@ -97,15 +96,9 @@ export class RaindropMCPService {
       name: 'raindrop-mcp',
       version: SERVER_VERSION,
       description: 'MCP Server for Raindrop.io bookmark management',
-      capabilities: {
-        resources: true,
-        tools: true,
-      },
     });
 
     this.registerTools();
-    // TODO: Update resource handlers to use new MCP SDK API
-    // this.registerResourceHandlers();
 
     logger.info('Raindrop MCP service initialized');
   }
@@ -407,7 +400,10 @@ Examples:
               setIfDefined(updates, 'color', args.color);
               const updated = await this.raindropService.updateHighlight(args.id, updates);
               return {
-                content: [textContent(`Updated highlight ${args.id}`)],
+                content: [
+                  textContent(`Updated highlight ${args.id}`),
+                  textContent(JSON.stringify(updated, null, 2)),
+                ],
               };
 
             case 'delete':
@@ -532,84 +528,6 @@ Examples:
     logger.info('Registered 8 MCP tools');
   }
 
-  /**
-   * Register resource handlers for dynamic resource access
-   */
-  private registerResourceHandlers(): void {
-    // Handle resource read requests
-    this.server.onResourceRead(async (uri: string) => {
-      try {
-        // User profile resource
-        if (uri === 'mcp://user/profile') {
-          const user = await this.raindropService.getUserInfo();
-          return {
-            contents: [
-              {
-                uri,
-                mimeType: 'application/json',
-                text: JSON.stringify(user, null, 2),
-              },
-            ],
-          };
-        }
-
-        // Collection resource
-        if (uri.startsWith('mcp://collection/')) {
-          const id = parseInt(uri.split('/').pop() || '0');
-          if (!id) throw new Error('Invalid collection ID');
-          
-          const collection = await this.raindropService.getCollection(id);
-          return {
-            contents: [
-              {
-                uri,
-                mimeType: 'application/json',
-                text: JSON.stringify(collection, null, 2),
-              },
-            ],
-          };
-        }
-
-        // Bookmark resource
-        if (uri.startsWith('mcp://raindrop/')) {
-          const id = parseInt(uri.split('/').pop() || '0');
-          if (!id) throw new Error('Invalid bookmark ID');
-          
-          const bookmark = await this.raindropService.getBookmark(id);
-          return {
-            contents: [
-              {
-                uri,
-                mimeType: 'application/json',
-                text: JSON.stringify(bookmark, null, 2),
-              },
-            ],
-          };
-        }
-
-        throw new Error(`Resource not found: ${uri}`);
-      } catch (error) {
-        logger.error(`Error reading resource ${uri}:`, error);
-        throw error;
-      }
-    });
-
-    // Handle resource list requests
-    this.server.onResourceList(async () => {
-      return {
-        resources: [
-          {
-            uri: 'mcp://user/profile',
-            name: 'User Profile',
-            description: 'Authenticated user information from Raindrop.io',
-            mimeType: 'application/json',
-          },
-        ],
-      };
-    });
-
-    logger.info('Registered resource handlers');
-  }
 }
 
 export default RaindropMCPService;

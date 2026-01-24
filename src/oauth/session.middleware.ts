@@ -47,7 +47,7 @@ export function createSessionMiddleware(oauthService: OAuthService) {
 
       // Priority 3: Environment token (development fallback)
       const envToken = process.env.RAINDROP_ACCESS_TOKEN;
-      if (envToken) {
+      if (envToken && process.env.NODE_ENV !== 'production') {
         req.raindropToken = envToken;
         logger.debug('Authenticated via environment token');
         return next();

@@ -9,11 +9,11 @@ import createClient from 'openapi-fetch';
 import type { components, paths } from '../types/raindrop.schema.js';
 import { createLogger } from '../utils/logger.js';
 
-type Bookmark = components['schemas']['Bookmark'];
-type Collection = components['schemas']['Collection'];
-type User = components['schemas']['User'];
-type Tag = components['schemas']['Tag'];
-type Highlight = components['schemas']['Highlight'];
+type Bookmark = components.schemas.Bookmark;
+type Collection = components.schemas.Collection;
+type User = components.schemas.User;
+type Tag = components.schemas.Tag;
+type Highlight = components.schemas.Highlight;
 
 const logger = createLogger('raindrop-service');
 
