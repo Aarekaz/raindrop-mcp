@@ -130,6 +130,11 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
         return res.status(403).json({ error: 'Invalid state parameter (CSRF check failed)' });
       }
 
+      // SECURITY FIX: Retrieve redirect_uri from stored OAuthState BEFORE handling callback
+      // The handleCallback method deletes the state, so we must get redirectUri first
+      const storedState = await oauthService['storage'].getOAuthState(state as string);
+      const redirectUri = storedState?.redirectUri || '/';
+
       const session = await oauthService.handleCallback(
         code as string,
         state as string
@@ -147,13 +152,7 @@ export function createOAuthRoutes(oauthService: OAuthService): Router {
       // Clear OAuth state cookie
       res.clearCookie('oauth_state');
 
-      // SECURITY FIX 1: Retrieve redirect_uri from stored OAuthState (not query param)
-      // This prevents attackers from changing the redirect target
-      const storedState = await oauthService['storage'].getOAuthState(state as string);
-      const redirectUri = storedState?.redirectUri || '/';
-
-      // SECURITY FIX 2: Remove session_id from URL (already in httpOnly cookie)
-      // Session ID in URL leaks credentials via browser history, logs, and Referer headers
+      // Redirect to the stored redirect URI (session_id already in httpOnly cookie)
       res.redirect(redirectUri);
     } catch (error) {
       logger.error('OAuth callback error', error);
