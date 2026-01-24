@@ -217,14 +217,16 @@ const baseHandler = async (req: Request): Promise<Response> => {
           switch (args.operation) {
             case 'create':
               if (!args.link) throw new Error('link required for create');
-              const created = await raindropService.createBookmark({
-                link: args.link,
-                collectionId: args.collectionId,
-                title: args.title,
-                excerpt: args.excerpt,
-                tags: args.tags,
-                important: args.important,
-              });
+              const created = await raindropService.createBookmark(
+                args.collectionId || -1, // -1 = Unsorted
+                {
+                  link: args.link,
+                  title: args.title,
+                  excerpt: args.excerpt,
+                  tags: args.tags,
+                  important: args.important,
+                }
+              );
               return {
                 content: [
                   textContent(`Created: ${created.title || created.link}`),
@@ -279,9 +281,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
               if (!args.raindropId || !args.text) throw new Error('raindropId and text required');
               const created = await raindropService.createHighlight(
                 args.raindropId,
-                args.text,
-                args.color,
-                args.note
+                {
+                  text: args.text,
+                  color: args.color,
+                  note: args.note,
+                }
               );
               return { content: [textContent(`Created highlight: ${created._id}`)] };
             case 'update':
@@ -311,10 +315,19 @@ const baseHandler = async (req: Request): Promise<Response> => {
           if (!args.ids || args.ids.length === 0) {
             throw new Error('ids array required');
           }
-          // BulkEditInputSchema expects collectionId in updates
-          const collectionId = args.updates?.collectionId || args.ids[0]; // fallback
-          await raindropService.bulkUpdateBookmarks(collectionId, args.updates);
-          return { content: [textContent(`Bulk updated ${args.ids.length} bookmarks`)] };
+          if (!args.collectionId) {
+            throw new Error('collectionId required for bulk operations');
+          }
+
+          const updates: Record<string, any> = { ids: args.ids };
+          if (args.important !== undefined) updates.important = args.important;
+          if (args.tags !== undefined) updates.tags = args.tags;
+          if (args.media !== undefined) updates.media = args.media;
+          if (args.cover) updates.cover = args.cover;
+          if (args.moveToCollection) updates.collection = { $id: args.moveToCollection };
+
+          const result = await raindropService.bulkUpdateBookmarks(args.collectionId, updates);
+          return { content: [textContent(`Bulk updated ${result.modified} bookmarks`)] };
         }
       );
 
@@ -324,7 +337,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
         'Get bookmark statistics and filters',
         FilterStatsInputSchema.shape,
         async (args: any) => {
-          const stats = await raindropService.getFilters(args.collectionId, args.search);
+          const stats = await raindropService.getFilters(
+            args.collectionId,
+            {
+              search: args.search,
+              tagsSort: args.tagsSort,
+            }
+          );
           return { content: [textContent(JSON.stringify(stats, null, 2))] };
         }
       );
