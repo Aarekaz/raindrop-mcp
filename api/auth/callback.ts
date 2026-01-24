@@ -46,6 +46,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // SECURITY FIX: Retrieve redirect_uri from stored OAuthState BEFORE handling callback
+    // The handleCallback method deletes the state, so we must get redirectUri first
+    const storedOAuthState = await oauthService['storage'].getOAuthState(state);
+    const redirectUri = storedOAuthState?.redirectUri || '/';
+
     // Exchange code for tokens
     const session = await oauthService.handleCallback(code, state);
 
@@ -55,13 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/` // Clear state cookie
     ]);
 
-    // SECURITY FIX 1: Retrieve redirect_uri from stored OAuthState (not query param)
-    // This prevents attackers from changing the redirect target
-    const storedOAuthState = await oauthService['storage'].getOAuthState(state);
-    const redirectUri = storedOAuthState?.redirectUri || '/';
-
-    // SECURITY FIX 2: Remove session_id from URL (already in httpOnly cookie)
-    // Session ID in URL leaks credentials via browser history, logs, and Referer headers
+    // Redirect to the stored redirect URI (session_id already in httpOnly cookie)
     return res.redirect(redirectUri);
   } catch (error) {
     console.error('OAuth callback error:', error);
