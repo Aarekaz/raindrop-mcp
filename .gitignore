@@ -45,3 +45,6 @@ coverage/
 Thumbs.db
 .vercel
 .env*.local
+
+# Local configuration with secrets
+claude-desktop-config.json
