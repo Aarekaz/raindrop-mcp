@@ -1,16 +1,17 @@
-/**
- * OAuth Protected Resource Metadata (RFC9728)
- *
- * MCP specification compliance endpoint that provides OAuth configuration details.
- * Allows MCP clients to discover authorization servers and supported scopes.
- */
-
 import { protectedResourceHandler, metadataCorsOptionsRequestHandler } from 'mcp-handler';
 
+/**
+ * OAuth Protected Resource Metadata endpoint
+ * Complies with RFC 9728 and MCP Streamable HTTP specification
+ */
 const handler = protectedResourceHandler({
   authServerUrls: ['https://raindrop.io'],
+  scopes: ['raindrop:read', 'raindrop:write'],
 });
 
+/**
+ * CORS preflight handler for metadata endpoint
+ */
 const corsHandler = metadataCorsOptionsRequestHandler();
 
 export { handler as GET, corsHandler as OPTIONS };
