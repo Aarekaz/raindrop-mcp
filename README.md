@@ -19,6 +19,57 @@ A Model Context Protocol (MCP) server for interacting with [Raindrop.io](https:/
 - 🔄 **Token Refresh** - Automatic token renewal without re-authentication
 - 🔒 **Encrypted Storage** - AES-256-GCM encryption for tokens at rest
 
+## MCP Best Practices Compliance
+
+This server follows MCP (Model Context Protocol) best practices:
+
+### ✅ Output Schemas
+All 8 tools define structured output schemas using Zod, helping clients understand and process responses:
+- `collection_list` → Collection list with counts
+- `bookmark_search` → Paginated bookmark results
+- `bookmark_statistics` → Quality metrics and tag distributions
+- All manage tools → Operation results with resource URIs
+
+### ✅ Tool Annotations
+Every tool includes metadata hints:
+- **readOnlyHint**: Identifies safe, read-only operations (search, list, statistics)
+- **destructiveHint**: Warns about deletion operations
+- **idempotentHint**: Indicates if operations can be safely retried
+
+### ✅ Actionable Error Messages
+Errors include:
+- Context about what went wrong
+- Specific examples of correct usage
+- Guidance on how to find required IDs
+- Warnings for destructive operations
+
+Example:
+```
+Error: id required for update. Use bookmark_search to find bookmark IDs,
+or check the raindrop://bookmark/{id} resource. Bookmark IDs are numeric
+values returned by bookmark_search and visible in resource URIs.
+```
+
+### ✅ Comprehensive Evaluations
+See `evaluations/raindrop.xml` for 10 realistic test questions that verify:
+- Complex multi-tool workflows
+- Search and filtering capabilities
+- Cross-collection queries
+- Statistical analysis
+- AI-powered suggestions
+
+### ✅ Resource Templates
+Dynamic resources for exploring data:
+- `raindrop://user/profile` - User information
+- `raindrop://collections` - All collections
+- `raindrop://collection/{id}` - Specific collection
+- `raindrop://bookmark/{id}` - Specific bookmark
+
+### ✅ Type Safety
+- Full TypeScript implementation
+- Zod validation for all inputs and outputs
+- OpenAPI-generated types for Raindrop.io API
+
 ## Architecture
 
 ### System Overview

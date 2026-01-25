@@ -53,3 +53,14 @@ To verify MCP is reachable, you should use an MCP client (Streamable HTTP) point
 
 - `https://your-app.vercel.app/mcp`
 
+## MCP Compliance
+
+This server implements MCP best practices:
+
+- **Structured outputs**: All tools define output schemas
+- **Tool metadata**: Annotations for read-only, destructive, idempotent operations
+- **Helpful errors**: Error messages include examples and guidance
+- **Evaluations**: 10 test questions in `evaluations/raindrop.xml`
+
+See README.md for full compliance details.
+
