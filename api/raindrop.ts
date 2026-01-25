@@ -37,6 +37,33 @@ type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
 
 /**
+ * Validate Origin header to prevent DNS rebinding attacks
+ * Required by MCP Streamable HTTP specification
+ */
+function validateOrigin(req: Request): void {
+  const origin = req.headers.get('origin');
+
+  // Allow requests without Origin header (non-browser clients)
+  if (!origin) {
+    return;
+  }
+
+  const allowedOrigins = [
+    'https://your-app.vercel.app', // Production domain
+    'http://localhost:3000',        // Local development
+    'http://127.0.0.1:3000',        // Local development (numeric)
+  ];
+
+  const isAllowed = allowedOrigins.some(allowed =>
+    origin.startsWith(allowed)
+  );
+
+  if (!isAllowed) {
+    throw new Error(`Invalid origin: ${origin}. Potential DNS rebinding attack.`);
+  }
+}
+
+/**
  * Validate required environment variables
  * Throws with actionable error message if any are missing
  */
@@ -146,6 +173,14 @@ const verifyToken = async (
  * Uses request-scoped RaindropService based on auth token
  */
 const baseHandler = async (req: Request): Promise<Response> => {
+  // Validate origin to prevent DNS rebinding attacks
+  try {
+    validateOrigin(req);
+  } catch (error) {
+    console.error('Origin validation failed:', error);
+    return new Response('Forbidden', { status: 403 });
+  }
+
   // Get auth info from request (set by withMcpAuth)
   const authInfo = (req as unknown as { auth?: AuthInfo }).auth;
 
