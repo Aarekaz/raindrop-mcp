@@ -71,4 +71,99 @@ describe('Vercel MCP handler', () => {
       expect.arrayContaining(['raindrop://collection/{id}', 'raindrop://bookmark/{id}'])
     );
   });
+
+  it('all tools have output schemas defined', async () => {
+    const msg = await mcpCall('tools/list', 4);
+    const tools = msg.result.tools as Array<{ name: string; outputSchema?: any }>;
+
+    // Verify all 8 tools have output schemas
+    expect(tools).toHaveLength(8);
+
+    // Check that every tool has an outputSchema defined
+    for (const tool of tools) {
+      expect(tool).toHaveProperty('outputSchema');
+      expect(tool.outputSchema).toBeDefined();
+      expect(typeof tool.outputSchema).toBe('object');
+      // Output schema should not be empty
+      expect(Object.keys(tool.outputSchema).length).toBeGreaterThan(0);
+    }
+
+    // Verify key tools have output schemas (existence check)
+    const expectedTools = [
+      'collection_list',
+      'collection_manage',
+      'bookmark_search',
+      'bookmark_manage',
+      'tag_list',
+      'highlight_manage',
+      'bulk_edit_bookmarks',
+      'bookmark_statistics'
+    ];
+
+    for (const toolName of expectedTools) {
+      const tool = tools.find(t => t.name === toolName);
+      expect(tool).toBeDefined();
+      expect(tool?.outputSchema).toBeDefined();
+    }
+  });
+
+  it('all tools have proper annotations', async () => {
+    const msg = await mcpCall('tools/list', 5);
+    const tools = msg.result.tools as Array<{
+      name: string;
+      annotations?: {
+        readOnlyHint?: boolean;
+        destructiveHint?: boolean;
+        idempotentHint?: boolean;
+        openWorldHint?: boolean;
+      }
+    }>;
+
+    // Verify all tools have annotations
+    for (const tool of tools) {
+      expect(tool).toHaveProperty('annotations');
+      expect(tool.annotations).toHaveProperty('readOnlyHint');
+      expect(tool.annotations).toHaveProperty('destructiveHint');
+      expect(tool.annotations).toHaveProperty('idempotentHint');
+      expect(tool.annotations).toHaveProperty('openWorldHint');
+    }
+
+    // Check read-only tools have correct annotations
+    const collectionList = tools.find(t => t.name === 'collection_list');
+    expect(collectionList?.annotations?.readOnlyHint).toBe(true);
+    expect(collectionList?.annotations?.destructiveHint).toBe(false);
+    expect(collectionList?.annotations?.idempotentHint).toBe(true);
+
+    const bookmarkSearch = tools.find(t => t.name === 'bookmark_search');
+    expect(bookmarkSearch?.annotations?.readOnlyHint).toBe(true);
+    expect(bookmarkSearch?.annotations?.destructiveHint).toBe(false);
+
+    const tagList = tools.find(t => t.name === 'tag_list');
+    expect(tagList?.annotations?.readOnlyHint).toBe(true);
+    expect(tagList?.annotations?.destructiveHint).toBe(false);
+
+    const bookmarkStatistics = tools.find(t => t.name === 'bookmark_statistics');
+    expect(bookmarkStatistics?.annotations?.readOnlyHint).toBe(true);
+    expect(bookmarkStatistics?.annotations?.destructiveHint).toBe(false);
+
+    // Check destructive tools have correct annotations
+    const collectionManage = tools.find(t => t.name === 'collection_manage');
+    expect(collectionManage?.annotations?.destructiveHint).toBe(true);
+    expect(collectionManage?.annotations?.readOnlyHint).toBe(false);
+    expect(collectionManage?.annotations?.idempotentHint).toBe(false);
+
+    const bookmarkManage = tools.find(t => t.name === 'bookmark_manage');
+    expect(bookmarkManage?.annotations?.destructiveHint).toBe(true);
+    expect(bookmarkManage?.annotations?.readOnlyHint).toBe(false);
+
+    const highlightManage = tools.find(t => t.name === 'highlight_manage');
+    expect(highlightManage?.annotations?.destructiveHint).toBe(true);
+    expect(highlightManage?.annotations?.readOnlyHint).toBe(false);
+
+    // Check bulk edit (not destructive, but not read-only)
+    const bulkEdit = tools.find(t => t.name === 'bulk_edit_bookmarks');
+    expect(bulkEdit?.annotations?.readOnlyHint).toBe(false);
+    expect(bulkEdit?.annotations?.destructiveHint).toBe(false);
+    expect(bulkEdit?.annotations?.idempotentHint).toBe(false);
+  });
 });
