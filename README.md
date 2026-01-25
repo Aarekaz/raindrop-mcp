@@ -13,24 +13,11 @@ A Model Context Protocol (MCP) server for interacting with [Raindrop.io](https:/
 - ⚡ **Bulk Operations** - Update multiple bookmarks efficiently
 - 🔗 **Resource Links** - Efficient data access using MCP resource link pattern
 - 🛡️ **Type Safe** - Full TypeScript implementation with Zod validation
-- 🌐 **HTTP Transport** - Remote access via Server-Sent Events (SSE)
-- ☁️ **Serverless Ready** - Deploy to Vercel or Cloudflare Workers
+- ☁️ **Serverless Ready** - Deploy to Vercel
 - 🔐 **OAuth 2.0 Authentication** - Secure multi-user access with PKCE flow
 - 👥 **Multi-Tenant** - Support multiple users with per-request authentication
 - 🔄 **Token Refresh** - Automatic token renewal without re-authentication
 - 🔒 **Encrypted Storage** - AES-256-GCM encryption for tokens at rest
-- 🌍 **Edge Computing** - Global low-latency access with Cloudflare Workers
-
-## Transport Modes
-
-The server supports multiple transport mechanisms:
-
-| Transport | Use Case | Setup Difficulty |
-|-----------|----------|-----------------|
-| **STDIO** | Local Claude Desktop | Easy ⭐ |
-| **HTTP/SSE** | Remote access, development | Medium ⭐⭐ |
-| **Vercel** | Serverless, Node.js apps | Medium ⭐⭐ |
-| **Cloudflare Workers** | Edge computing, global access | Medium ⭐⭐ |
 
 ## Architecture
 
@@ -38,18 +25,14 @@ The server supports multiple transport mechanisms:
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        Claude[Claude Desktop]
-        Browser[Web Browser]
-        MCPClient[MCP Client SDK]
-    end
+	    subgraph "Client Layer"
+	        Browser[Web Browser]
+	        MCPClient[MCP Client SDK]
+	    end
 
-    subgraph "Transport Layer"
-        STDIO[STDIO Transport<br/>index.ts]
-        HTTP[HTTP/SSE Transport<br/>http-server.ts]
-        Vercel[Vercel Functions<br/>api/raindrop.ts]
-        Cloudflare[Cloudflare Worker<br/>cloudflare-worker.ts]
-    end
+		    subgraph "Transport Layer"
+		        Vercel[Vercel Functions<br/>api/raindrop.ts]
+		    end
 
     subgraph "Authentication Layer"
         OAuth[OAuth Service<br/>PKCE Flow]
@@ -60,8 +43,8 @@ graph TB
         TokenStorage --> VercelKV
     end
 
-    subgraph "MCP Protocol Layer"
-        MCPService[RaindropMCPService<br/>MCP Protocol Implementation]
+	    subgraph "MCP Protocol Layer"
+	        MCPService[MCP Server<br/>(mcp-handler)]
 
         subgraph "MCP Tools"
             CollectionTool[collection_list<br/>collection_manage]
@@ -86,17 +69,11 @@ graph TB
         RaindropAPI[Raindrop.io API<br/>REST API]
     end
 
-    %% Client connections
-    Claude -->|STDIO| STDIO
-    Browser -->|HTTPS| HTTP
-    Browser -->|HTTPS| Vercel
-    MCPClient -->|HTTPS| Cloudflare
+	    %% Client connections
+		    Browser -->|HTTPS| Vercel
 
-    %% Transport to MCP Service
-    STDIO -->|Direct| MCPService
-    HTTP -->|Session/Token| OAuth
-    Vercel -->|mcp-handler<br/>withMcpAuth| OAuth
-    Cloudflare -->|Session/Token| OAuth
+	    %% Transport to MCP Service
+		    Vercel -->|mcp-handler<br/>withMcpAuth| OAuth
 
     OAuth -->|Validated Token| MCPService
 
@@ -232,9 +209,6 @@ Choose the authentication method that fits your use case:
 - Quick development and testing
 - When you don't need multi-tenant support
 
-**Environment Token** is only recommended for:
-- Local development with STDIO transport
-- Testing on your local machine
 
 ## Prerequisites
 
@@ -245,24 +219,6 @@ Choose the authentication method that fits your use case:
   - **Direct Token**: API token from [Raindrop Settings](https://app.raindrop.io/settings/integrations)
 
 ## Configuration
-
-### For Local Development (MCP Client)
-
-1. **Copy the example config:**
-   ```bash
-   cp claude-desktop-config.example.json claude-desktop-config.json
-   ```
-
-2. **Get your Raindrop.io access token:**
-   - Visit https://app.raindrop.io/settings/integrations
-   - Create a new app or use test token
-   - Copy the access token
-
-3. **Update `claude-desktop-config.json`:**
-   - Replace `YOUR_TOKEN_HERE` with your actual token
-   - Update the path to your build directory (e.g., `/absolute/path/to/raindrop-mcp/build/index.js`)
-
-**Security Note:** Never commit `claude-desktop-config.json` to git. This file is gitignored to prevent credential leaks.
 
 ### For Vercel Deployment (OAuth)
 
@@ -277,90 +233,9 @@ OAuth authentication is configured via environment variables. See [OAuth Guide](
 
 **Optional Environment Variables:**
 - `API_KEY` - Server API key for endpoint protection (recommended for production)
-- `CORS_ORIGIN` - Allowed CORS origins (default: `*`)
-
-### For Environment Token (Development Only)
-
-For quick local testing with STDIO transport:
-
-1. **Copy the environment file:**
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Add your token to `.env`:**
-   ```env
-   RAINDROP_ACCESS_TOKEN=your_token_here
-   ```
-
-**Warning:** Environment token mode is for local development only. Never use in production deployments.
 
 ## Quick Start
-
-### Option 1: Local STDIO (Claude Desktop)
-
-Perfect for local Claude Desktop integration.
-
-```bash
-# Clone and install
-git clone https://github.com/Aarekaz/raindrop-mcp.git
-cd raindrop-mcp
-npm install
-
-# Configure
-cp .env.example .env
-# Edit .env and add your RAINDROP_ACCESS_TOKEN
-
-# Build and run
-npm run build
-npm start
-```
-
-**Configure Claude Desktop:**
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "raindrop": {
-      "command": "node",
-      "args": ["/absolute/path/to/raindrop-mcp/build/index.js"],
-      "env": {
-        "RAINDROP_ACCESS_TOKEN": "your_token_here"
-      }
-    }
-  }
-}
-```
-
-### Option 2: HTTP Server (Local)
-
-Run as an HTTP server for remote access or development.
-
-```bash
-# Install and configure
-npm install
-cp .env.example .env
-
-# Edit .env
-RAINDROP_ACCESS_TOKEN=your_token_here
-API_KEY=optional_api_key
-PORT=3000
-
-# Build and run HTTP server
-npm run build:http
-npm run start:http
-```
-
-Server runs at `http://localhost:3000`
-
-**Test the server:**
-```bash
-curl http://localhost:3000/health
-```
-
-### Option 3: Deploy to Vercel
+### Option 1: Deploy to Vercel
 
 Deploy to Vercel's serverless platform with OAuth support.
 
@@ -401,39 +276,12 @@ Set environment variables in Vercel dashboard:
 
 📖 **Full Deployment Guide**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
-### Option 4: Deploy to Cloudflare Workers
-
-Deploy to Cloudflare's global edge network.
-
-```bash
-# Install Wrangler CLI
-npm install -g wrangler
-
-# Login
-wrangler login
-
-# Set secrets
-wrangler secret put RAINDROP_ACCESS_TOKEN
-wrangler secret put API_KEY
-
-# Deploy
-npm run build:cloudflare
-npm run deploy:cloudflare
-```
-
-Your worker will be live at: `https://raindrop-mcp.your-subdomain.workers.dev`
-
-📖 **Full Guide**: [docs/CLOUDFLARE-WORKERS.md](docs/CLOUDFLARE-WORKERS.md)
-
-## HTTP Transport & Authentication
+## MCP Endpoint & Authentication
 
 ### Endpoints
 
-When running as HTTP server:
-
-**MCP Endpoints:**
-- `GET /mcp` or `POST /mcp` - MCP protocol endpoint (authenticated)
-- `GET /health` - Health check (no auth required)
+The deployed MCP endpoint is:
+- `POST /mcp` (rewritten to `POST /api/raindrop` via `vercel.json`)
 
 **OAuth Endpoints:**
 - `GET /auth/init?redirect_uri=/dashboard` - Start OAuth flow
@@ -487,21 +335,6 @@ curl https://your-server.vercel.app/mcp \
 
 Each user provides their own Raindrop token. No session storage required.
 
-#### Method 3: Environment Token (Fallback)
-
-**Best for**: Local development only
-
-```env
-RAINDROP_ACCESS_TOKEN=your_raindrop_token
-```
-
-Token from environment used when:
-- No session cookie provided
-- No `X-Raindrop-Token` header
-- `NODE_ENV` is not `production`
-
-⚠️ **Not recommended for production** - single-user only.
-
 ### Server Protection (Optional)
 
 Add API key protection to your server:
@@ -519,21 +352,8 @@ Recommended for production deployments to prevent unauthorized access.
 
 ### MCP Client Configuration
 
-Connect your MCP client to the HTTP server:
-
-```typescript
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-
-const transport = new SSEClientTransport(
-  new URL('https://your-server.vercel.app/sse'),
-  {
-    headers: {
-      'X-API-Key': 'your_api_key',
-      'X-Raindrop-Token': 'user_raindrop_token'
-    }
-  }
-);
-```
+If your client supports Streamable HTTP, point it at `https://your-app.vercel.app/mcp`.
+For stdio-only clients, use `mcp-remote`.
 
 ## Environment Variables
 
@@ -562,10 +382,7 @@ const transport = new SSEClientTransport(
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `API_KEY` | Server API key for endpoint protection | - | Recommended for production |
-| `PORT` | HTTP server port | 3000 | No |
-| `HOST` | HTTP server host | 0.0.0.0 | No |
 | `NODE_ENV` | Environment mode | development | No |
-| `CORS_ORIGIN` | Allowed CORS origins | * | No |
 
 ### Platform-Specific Setup
 
@@ -573,10 +390,6 @@ const transport = new SSEClientTransport(
 - Set environment variables in dashboard: Project → Settings → Environment Variables
 - Link Vercel KV for OAuth: Storage → Connect Store
 - `KV_REST_API_URL` and `KV_REST_API_TOKEN` are auto-set when KV linked
-
-**Cloudflare Workers**:
-- Use `wrangler secret put` for sensitive values
-- Configure `wrangler.toml` for non-secret settings
 
 **📖 Complete Setup Guide**: See [OAuth Guide](docs/OAUTH.md) for step-by-step instructions
 
@@ -672,34 +485,22 @@ Remove all tags from bookmarks in collection 12345
 
 ## Resource Access
 
-The server provides dynamic resources for detailed data access:
+The server provides MCP resources for detailed data access. Tools typically return `resource_link` blocks pointing at these URIs, and clients can fetch full JSON using `resources/read`.
 
-- `mcp://user/profile` - Your Raindrop.io account information
-- `mcp://collection/{id}` - Detailed collection data
-- `mcp://raindrop/{id}` - Detailed bookmark data
+- `raindrop://user/profile` - Your Raindrop.io account information
+- `raindrop://collections` - List of collections (JSON)
+- `raindrop://collection/{id}` - Detailed collection data
+- `raindrop://bookmark/{id}` - Detailed bookmark data
 
 ## Development
 
 ### Available Scripts
 
 ```bash
-# STDIO mode (local)
-npm run dev                  # Development with hot reload
-npm run build                # Build STDIO server
-npm run start                # Run STDIO server
-
-# HTTP mode
-npm run dev:http             # HTTP dev with hot reload
-npm run build:http           # Build HTTP server
-npm run start:http           # Run HTTP server
-
-# Cloudflare Workers
-npm run dev:cloudflare       # Local Cloudflare dev server
-npm run build:cloudflare     # Build for Workers
-npm run deploy:cloudflare    # Deploy to Cloudflare
+# Local development (Vercel)
+npm run dev                  # vercel dev
 
 # Utilities
-npm run build:all            # Build all variants
 npm run type-check           # TypeScript type checking
 npm run test                 # Run tests
 npm run clean                # Clean build directory
@@ -710,56 +511,27 @@ npm run clean                # Clean build directory
 ```
 raindrop-mcp/
 ├── src/
-│   ├── index.ts                        # STDIO entry point
-│   ├── http-server.ts                  # HTTP entry point
-│   ├── adapters/
-│   │   ├── vercel.ts                   # Vercel adapter
-│   │   └── cloudflare-worker.ts        # Cloudflare adapter
 │   ├── services/
 │   │   ├── raindrop.service.ts         # Raindrop.io API client
-│   │   └── raindropmcp.service.ts      # MCP server implementation
 │   ├── types/
 │   │   ├── raindrop.schema.d.ts        # API type definitions
 │   │   └── raindrop-zod.schemas.ts     # Zod validation schemas
 │   └── utils/
 │       └── logger.ts                   # Logging utility
+├── api/
+│   ├── raindrop.ts                     # MCP endpoint (mcp-handler)
+│   ├── auth/                           # OAuth endpoints
+│   └── .well-known/                    # OAuth protected resource metadata
 ├── docs/
 │   ├── DEPLOYMENT.md                   # Deployment guide
-│   ├── HTTP-TRANSPORT.md               # HTTP transport details
-│   └── CLOUDFLARE-WORKERS.md           # Cloudflare guide
 ├── tests/                              # Test files
-├── build/                              # Compiled output
 ├── vercel.json                         # Vercel config
-├── wrangler.toml                       # Cloudflare config
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
 ## Architecture
-
-### Dual Transport Support
-
-```
-┌─────────────────────────────────────────────────────┐
-│                 Raindrop MCP Server                  │
-├─────────────────────────────────────────────────────┤
-│                                                      │
-│  ┌──────────────┐         ┌──────────────────────┐ │
-│  │ STDIO Entry  │         │   HTTP Entry         │ │
-│  │ (index.ts)   │         │ (http-server.ts)     │ │
-│  └──────┬───────┘         └──────────┬───────────┘ │
-│         │                            │             │
-│         │      ┌──────────────┐      │             │
-│         └──────┤ MCP Service  ├──────┘             │
-│                │   (Shared)   │                    │
-│                └──────┬───────┘                    │
-│                       │                            │
-│                ┌──────▼──────────┐                 │
-│                │ Raindrop.io API │                 │
-│                └─────────────────┘                 │
-└─────────────────────────────────────────────────────┘
-```
 
 ### Service Layers
 
@@ -769,42 +541,29 @@ raindrop-mcp/
    - Direct mapping to Raindrop.io REST API
    - Supports custom tokens for multi-tenancy
 
-2. **RaindropMCPService** - MCP protocol layer
-   - Exposes Raindrop functionality as MCP tools
-   - Implements resource link pattern for efficiency
-   - Handles MCP-specific concerns (resources, validation)
-   - Token-aware for per-user isolation
-
-3. **Transport Adapters** - Platform-specific handlers
-   - **STDIO**: Direct process communication
-   - **HTTP/Express**: Server-Sent Events (SSE)
-   - **Vercel**: Serverless function wrapper
-   - **Cloudflare Workers**: Edge computing adapter
+2. **Vercel MCP handler** - MCP protocol layer
+   - Exposes Raindrop functionality as MCP tools and resources
+   - Request-scoped auth via OAuth session or per-request token
 
 ## Serverless Deployment
 
 ### Platform Comparison
 
-| Feature | Vercel | Cloudflare Workers |
-|---------|--------|-------------------|
-| **Cold Start** | ~500ms | Sub-millisecond |
-| **Free Tier** | 100GB bandwidth | 100K requests/day |
-| **Execution Time** | 10s (hobby), 300s (pro) | 10-50ms CPU time |
-| **Global CDN** | Yes | 300+ edge locations |
-| **Node.js Support** | Full | Limited (Web APIs) |
-| **Custom Domains** | Yes (free SSL) | Yes (free SSL) |
-| **Best For** | Node.js apps | Edge computing, low latency |
+| Feature | Vercel |
+|---------|--------|
+| **Cold Start** | ~500ms |
+| **Free Tier** | 100GB bandwidth |
+| **Execution Time** | 10s (hobby), 300s (pro) |
+| **Global CDN** | Yes |
+| **Node.js Support** | Full |
+| **Custom Domains** | Yes (free SSL) |
+| **Best For** | Node.js apps |
 
 ### Deployment Commands
 
 ```bash
 # Vercel
 npm run deploy:vercel
-
-# Cloudflare Workers  
-npm run deploy:cloudflare
-npm run deploy:cloudflare:staging
-npm run deploy:cloudflare:production
 ```
 
 ## Usage Examples
@@ -838,7 +597,7 @@ of the key points.
 
 ### Running Tests
 
-Tests require a valid `RAINDROP_ACCESS_TOKEN` in your `.env` file:
+Some tests require a valid `RAINDROP_ACCESS_TOKEN` in your `.env` file:
 
 ```bash
 # Run all tests
@@ -860,9 +619,6 @@ npm test --coverage
 # Test health endpoint
 curl http://localhost:3000/health
 
-# Test SSE connection (local)
-curl -N http://localhost:3000/sse -H "X-API-Key: your_key"
-
 # Test deployed endpoint
 curl https://your-app.vercel.app/health
 ```
@@ -876,12 +632,7 @@ curl https://your-app.vercel.app/health
 - Get token from https://app.raindrop.io/settings/integrations
 - Add as: `RAINDROP_ACCESS_TOKEN=your_token_here`
 
-**2. Claude Can't Find the Server (STDIO)**
-- Use absolute path in `claude_desktop_config.json`
-- Verify build exists: `npm run build`
-- Check Claude's logs: `~/Library/Logs/Claude/` (macOS)
-
-**3. 401 Unauthorized (HTTP)**
+**2. 401 Unauthorized**
 - Check `API_KEY` environment variable
 - Verify `X-API-Key` header matches
 
@@ -890,14 +641,8 @@ curl https://your-app.vercel.app/health
 - Check server logs for details
 - Ensure environment variables are set
 
-**5. SSE Connection Drops**
-- Vercel: 300s timeout (use reconnection logic)
-- Cloudflare: Use Durable Objects for persistent connections
-- Implement client reconnection logic
-
-**6. CORS Errors**
-- Set `CORS_ORIGIN` environment variable
-- Match client origin to allowed origin
+**4. Request Timeouts**
+- Vercel: requests have time limits; keep operations bounded and paginate where possible
 
 ### View Logs
 
@@ -905,44 +650,35 @@ curl https://your-app.vercel.app/health
 # Vercel
 vercel logs your-project
 
-# Cloudflare Workers
-wrangler tail
-wrangler tail --env production
-
 # Local
 # Logs appear in console
 ```
 
 ## Security Best Practices
 
-1. ✅ **Use HTTPS** in production (automatic with Vercel/Cloudflare)
+1. ✅ **Use HTTPS** in production (automatic with Vercel)
 2. ✅ **Set API_KEY** for HTTP deployments
-3. ✅ **Restrict CORS_ORIGIN** to specific domains
-4. ✅ **Use per-user tokens** for multi-tenant deployments
-5. ✅ **Rotate API keys** regularly
-6. ✅ **Monitor logs** for suspicious activity
-7. ✅ **Keep dependencies updated**
+3. ✅ **Use per-user tokens** for multi-tenant deployments
+4. ✅ **Rotate API keys** regularly
+5. ✅ **Monitor logs** for suspicious activity
+6. ✅ **Keep dependencies updated**
 
 ## Documentation
 
 - 📖 [OAuth Guide](docs/OAUTH.md) - **NEW!** Complete OAuth 2.0 setup and troubleshooting
 - 📖 [Deployment Guide](docs/DEPLOYMENT.md) - Vercel deployment with OAuth and direct token
-- 📖 [HTTP Transport Guide](docs/HTTP-TRANSPORT.md) - HTTP transport and authentication details
-- 📖 [Cloudflare Workers Guide](docs/CLOUDFLARE-WORKERS.md) - Edge deployment guide
 
 ## Performance
 
 ### Optimization Tips
 
 - **Vercel**: Increase function memory, choose optimal region
-- **Cloudflare**: Use KV for caching, Durable Objects for state
 - **HTTP**: Enable gzip compression, implement caching
 - **All**: Minimize dependencies, use tree-shaking
 
 ### Monitoring
 
 - **Vercel**: Built-in analytics in dashboard
-- **Cloudflare**: Workers Analytics and Logs
 - **Custom**: Implement health checks and error tracking
 
 ## Contributing

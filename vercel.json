@@ -3,6 +3,10 @@
     {
       "source": "/mcp",
       "destination": "/api/raindrop"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
     }
   ],
   "functions": {

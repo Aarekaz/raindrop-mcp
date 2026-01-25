@@ -12,6 +12,7 @@ import { OAuthService } from "../src/oauth/oauth.service.js";
 import { TokenStorage } from "../src/oauth/token-storage.js";
 import { OAuthConfig } from "../src/oauth/oauth.types.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { components as RaindropComponents } from "../src/types/raindrop.schema.js";
 import {
   BookmarkManageInputSchema,
@@ -116,22 +117,121 @@ const baseHandler = async (req: Request): Promise<Response> => {
     (server) => {
       // Helper functions
       const textContent = (text: string) => ({ type: 'text' as const, text });
-      const makeCollectionResource = (collection: Collection) => ({
-        type: 'resource' as const,
-        resource: {
-          uri: `raindrop://collection/${collection._id}`,
-          mimeType: 'application/json',
-          text: JSON.stringify(collection, null, 2),
-        },
+      const makeCollectionLink = (collection: Collection) => ({
+        type: 'resource_link' as const,
+        uri: `raindrop://collection/${collection._id}`,
+        name: collection.title || `Collection ${collection._id}`,
+        description: collection.description || `Collection with ${collection.count ?? 0} bookmarks`,
+        mimeType: 'application/json',
       });
-      const makeBookmarkResource = (bookmark: Bookmark) => ({
-        type: 'resource' as const,
-        resource: {
-          uri: `raindrop://bookmark/${bookmark._id}`,
-          mimeType: 'application/json',
-          text: JSON.stringify(bookmark, null, 2),
-        },
+      const makeBookmarkLink = (bookmark: Bookmark) => ({
+        type: 'resource_link' as const,
+        uri: `raindrop://bookmark/${bookmark._id}`,
+        name: bookmark.title || bookmark.link || `Bookmark ${bookmark._id}`,
+        description: bookmark.excerpt || bookmark.link,
+        mimeType: 'application/json',
       });
+
+      // Resources
+      server.registerResource(
+        'user_profile',
+        'raindrop://user/profile',
+        {
+          title: 'User Profile',
+          description: 'Authenticated user profile information from Raindrop.io',
+          mimeType: 'application/json',
+        },
+        async (uri) => {
+          const user = await raindropService.getUserInfo();
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                mimeType: 'application/json',
+                text: JSON.stringify(user, null, 2),
+              },
+            ],
+          };
+        }
+      );
+
+      server.registerResource(
+        'collections',
+        'raindrop://collections',
+        {
+          title: 'Collections',
+          description: 'List of collections available to the authenticated user',
+          mimeType: 'application/json',
+        },
+        async (uri) => {
+          const collections = await raindropService.getCollections();
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                mimeType: 'application/json',
+                text: JSON.stringify(collections, null, 2),
+              },
+            ],
+          };
+        }
+      );
+
+      server.registerResource(
+        'collection',
+        new ResourceTemplate('raindrop://collection/{id}', {
+          list: undefined,
+        }),
+        {
+          title: 'Collection',
+          description: 'A single Raindrop.io collection by ID',
+          mimeType: 'application/json',
+        },
+        async (uri) => {
+          const id = parseInt(uri.pathname.slice(1), 10);
+          if (!Number.isFinite(id)) {
+            throw new Error(`Invalid collection ID in uri: ${uri.toString()}`);
+          }
+          const collection = await raindropService.getCollection(id);
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                mimeType: 'application/json',
+                text: JSON.stringify(collection, null, 2),
+              },
+            ],
+          };
+        }
+      );
+
+      server.registerResource(
+        'bookmark',
+        new ResourceTemplate('raindrop://bookmark/{id}', {
+          list: undefined,
+        }),
+        {
+          title: 'Bookmark',
+          description: 'A single Raindrop.io bookmark by ID',
+          mimeType: 'application/json',
+        },
+        async (uri) => {
+          const id = parseInt(uri.pathname.slice(1), 10);
+          if (!Number.isFinite(id)) {
+            throw new Error(`Invalid bookmark ID in uri: ${uri.toString()}`);
+          }
+          const bookmark = await raindropService.getBookmark(id);
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                mimeType: 'application/json',
+                text: JSON.stringify(bookmark, null, 2),
+              },
+            ],
+          };
+        }
+      );
 
       // Tool 1: List Collections
       server.registerTool(
@@ -146,7 +246,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           return {
             content: [
               textContent(`Found ${collections.length} collections`),
-              ...collections.map(makeCollectionResource),
+              ...collections.map(makeCollectionLink),
             ],
           };
         }
@@ -168,7 +268,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Created collection: ${created.title}`),
-                  makeCollectionResource(created),
+                  makeCollectionLink(created),
                 ],
               };
             case 'update':
@@ -182,7 +282,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Updated collection ${args.id}`),
-                  makeCollectionResource(updated),
+                  makeCollectionLink(updated),
                 ],
               };
             case 'delete':
@@ -216,7 +316,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           return {
             content: [
               textContent(`Found ${result.items.length} bookmarks (total: ${result.count})`),
-              ...result.items.map(makeBookmarkResource),
+              ...result.items.map(makeBookmarkLink),
             ],
           };
         }
@@ -247,7 +347,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Created: ${created.title || created.link}`),
-                  makeBookmarkResource(created),
+                  makeBookmarkLink(created),
                 ],
               };
             case 'update':
@@ -262,7 +362,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               return {
                 content: [
                   textContent(`Updated bookmark ${args.id}`),
-                  makeBookmarkResource(updated),
+                  makeBookmarkLink(updated),
                 ],
               };
             case 'suggest':
@@ -413,6 +513,10 @@ const baseHandler = async (req: Request): Promise<Response> => {
       serverInfo: {
         name: 'raindrop-mcp',
         version: '0.1.0',
+      },
+      capabilities: {
+        tools: {},
+        resources: {},
       },
     },
     {
