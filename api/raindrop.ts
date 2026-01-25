@@ -23,6 +23,15 @@ import {
   BulkEditInputSchema,
   FilterStatsInputSchema,
 } from "../src/types/raindrop-zod.schemas.js";
+import {
+  CollectionListOutputSchema,
+  BookmarkSearchOutputSchema,
+  TagListOutputSchema,
+  HighlightListOutputSchema,
+  BulkEditOutputSchema,
+  StatisticsOutputSchema,
+  OperationResultSchema,
+} from '../src/types/tool-outputs.js';
 
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
@@ -240,6 +249,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Collection List',
           description: 'List all Raindrop.io collections',
           inputSchema: {},
+          outputSchema: CollectionListOutputSchema.shape,
         },
         async () => {
           const collections = await raindropService.getCollections();
@@ -259,6 +269,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Collection Manage',
           description: 'Create, update, or delete a collection',
           inputSchema: CollectionManageInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
         },
         async (args: z.infer<typeof CollectionManageInputSchema>) => {
           switch (args.operation) {
@@ -302,6 +313,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Bookmark Search',
           description: 'Search bookmarks with filters',
           inputSchema: BookmarkSearchInputSchema.shape,
+          outputSchema: BookmarkSearchOutputSchema.shape,
         },
         async (args: z.infer<typeof BookmarkSearchInputSchema>) => {
           const result = await raindropService.getBookmarks({
@@ -329,6 +341,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Bookmark Manage',
           description: 'Create, update, delete, or get suggestions for a bookmark',
           inputSchema: BookmarkManageInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
         },
         async (args: z.infer<typeof BookmarkManageInputSchema>) => {
           switch (args.operation) {
@@ -402,6 +415,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Tag List',
           description: 'List all tags',
           inputSchema: TagInputSchema.shape,
+          outputSchema: TagListOutputSchema.shape,
         },
         async (args: z.infer<typeof TagInputSchema>) => {
           const tags = await raindropService.getTags(args.collectionId);
@@ -417,6 +431,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Highlight Manage',
           description: 'Create, update, delete, or list highlights',
           inputSchema: HighlightManageInputSchema.shape,
+          outputSchema: HighlightListOutputSchema.shape,
         },
         async (args: z.infer<typeof HighlightManageInputSchema>) => {
           switch (args.operation) {
@@ -465,6 +480,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Bulk Edit Bookmarks',
           description: 'Perform bulk operations on bookmarks',
           inputSchema: BulkEditInputSchema.shape,
+          outputSchema: BulkEditOutputSchema.shape,
         },
         async (args: z.infer<typeof BulkEditInputSchema>) => {
           const updates: {
@@ -496,6 +512,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
           title: 'Bookmark Statistics',
           description: 'Get bookmark statistics and filters',
           inputSchema: FilterStatsInputSchema.shape,
+          outputSchema: StatisticsOutputSchema.shape,
         },
         async (args: z.infer<typeof FilterStatsInputSchema>) => {
           const stats = await raindropService.getFilters(
