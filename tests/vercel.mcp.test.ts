@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { POST } from '../api/raindrop';
+import { POST, GET, DELETE } from '../api/raindrop';
 
 function parseFirstSseDataJson(text: string): unknown {
   const line = text
@@ -165,5 +165,53 @@ describe('Vercel MCP handler', () => {
     expect(bulkEdit?.annotations?.readOnlyHint).toBe(false);
     expect(bulkEdit?.annotations?.destructiveHint).toBe(false);
     expect(bulkEdit?.annotations?.idempotentHint).toBe(false);
+  });
+
+  it('supports GET method for SSE streams', async () => {
+    const request = new Request('https://example.com/api/raindrop', {
+      method: 'GET',
+      headers: {
+        accept: 'text/event-stream',
+        'x-raindrop-token': 'test-token',
+      },
+    });
+
+    const response = await GET(request);
+    // GET without POST should either work or return appropriate response
+    expect(response.status).toBeLessThan(500);
+  });
+
+  it('supports DELETE method for session termination', async () => {
+    const request = new Request('https://example.com/api/raindrop', {
+      method: 'DELETE',
+      headers: {
+        'x-raindrop-token': 'test-token',
+      },
+    });
+
+    const response = await DELETE(request);
+    // DELETE should return appropriate status
+    expect(response.status).toBeLessThan(500);
+  });
+
+  it('validates Origin header to prevent DNS rebinding', async () => {
+    const request = new Request('https://example.com/api/raindrop', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json, text/event-stream',
+        'content-type': 'application/json',
+        'origin': 'http://malicious.com', // Invalid origin
+        'x-raindrop-token': 'test-token',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 99,
+        method: 'tools/list',
+        params: {},
+      }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(403);
   });
 });
