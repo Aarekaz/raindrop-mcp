@@ -53,6 +53,54 @@ To verify MCP is reachable, you should use an MCP client (Streamable HTTP) point
 
 - `https://your-app.vercel.app/mcp`
 
+## Vercel Best Practices
+
+This deployment follows Vercel MCP server best practices:
+
+### Fluid Compute Enabled
+
+Fluid compute is enabled for optimized performance:
+- 90% cost savings vs traditional serverless
+- 50% CPU reduction vs legacy SSE transport
+- Optimized concurrency for irregular MCP usage patterns
+- Automatic bytecode caching for faster cold starts
+
+Verify in Vercel dashboard: Project → Settings → Functions → Fluid Compute (should be ON)
+
+### Streamable HTTP Transport
+
+The server implements MCP Streamable HTTP specification (2025-03-26):
+- Supports GET, POST, and DELETE methods
+- Optional SSE upgrade for streaming responses
+- Session management via Mcp-Session-Id headers
+- Origin header validation for security
+
+### Security
+
+Critical security features:
+- Origin header validation (prevents DNS rebinding attacks)
+- OAuth 2.0 with PKCE authentication
+- AES-256-GCM token encryption
+- HTTPS-only in production
+
+### Testing
+
+Test all HTTP methods after deployment:
+
+```bash
+# Test POST (client requests)
+curl -X POST https://your-app.vercel.app/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+
+# Test GET (server messages)
+curl -X GET https://your-app.vercel.app/mcp \
+  -H "Accept: text/event-stream"
+
+# Test DELETE (session termination)
+curl -X DELETE https://your-app.vercel.app/mcp
+```
+
 ## MCP Compliance
 
 This server implements MCP best practices:

@@ -18,6 +18,9 @@ A Model Context Protocol (MCP) server for interacting with [Raindrop.io](https:/
 - 👥 **Multi-Tenant** - Support multiple users with per-request authentication
 - 🔄 **Token Refresh** - Automatic token renewal without re-authentication
 - 🔒 **Encrypted Storage** - AES-256-GCM encryption for tokens at rest
+- ⚡ **Fluid Compute** - Optimized Vercel execution (90% cost savings)
+- 🌐 **Streamable HTTP** - Latest MCP transport (2025-03-26 spec)
+- 🔒 **DNS Rebinding Protection** - Origin header validation
 
 ## MCP Best Practices Compliance
 
