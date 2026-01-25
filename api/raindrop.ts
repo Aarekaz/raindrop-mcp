@@ -250,6 +250,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'List all Raindrop.io collections',
           inputSchema: {},
           outputSchema: CollectionListOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
         },
         async () => {
           const collections = await raindropService.getCollections();
@@ -270,6 +276,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Create, update, or delete a collection',
           inputSchema: CollectionManageInputSchema.shape,
           outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof CollectionManageInputSchema>) => {
           switch (args.operation) {
@@ -314,6 +326,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Search bookmarks with filters',
           inputSchema: BookmarkSearchInputSchema.shape,
           outputSchema: BookmarkSearchOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof BookmarkSearchInputSchema>) => {
           const result = await raindropService.getBookmarks({
@@ -342,6 +360,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Create, update, delete, or get suggestions for a bookmark',
           inputSchema: BookmarkManageInputSchema.shape,
           outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof BookmarkManageInputSchema>) => {
           switch (args.operation) {
@@ -416,6 +440,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'List all tags',
           inputSchema: TagInputSchema.shape,
           outputSchema: TagListOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof TagInputSchema>) => {
           const tags = await raindropService.getTags(args.collectionId);
@@ -432,6 +462,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Create, update, delete, or list highlights',
           inputSchema: HighlightManageInputSchema.shape,
           outputSchema: HighlightListOutputSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof HighlightManageInputSchema>) => {
           switch (args.operation) {
@@ -481,6 +517,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Perform bulk operations on bookmarks',
           inputSchema: BulkEditInputSchema.shape,
           outputSchema: BulkEditOutputSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof BulkEditInputSchema>) => {
           const updates: {
@@ -513,6 +555,12 @@ const baseHandler = async (req: Request): Promise<Response> => {
           description: 'Get bookmark statistics and filters',
           inputSchema: FilterStatsInputSchema.shape,
           outputSchema: StatisticsOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
         },
         async (args: z.infer<typeof FilterStatsInputSchema>) => {
           const stats = await raindropService.getFilters(
