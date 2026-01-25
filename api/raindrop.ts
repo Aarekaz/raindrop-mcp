@@ -750,7 +750,6 @@ const baseHandler = async (req: Request): Promise<Response> => {
       },
     },
     {
-      basePath: '/api', // Required for Vercel routing
       streamableHttpEndpoint: '/api/raindrop',
       disableSse: true,
       maxDuration: 300,
