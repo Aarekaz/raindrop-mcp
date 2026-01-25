@@ -36,6 +36,41 @@ import {
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
 
+/**
+ * Validate required environment variables
+ * Throws with actionable error message if any are missing
+ */
+function validateEnvVars(required: string[]): void {
+  const missing = required.filter(v => !process.env[v]);
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}.\n\n` +
+      `For OAuth deployment, you need:\n` +
+      `  - OAUTH_CLIENT_ID (from https://app.raindrop.io/settings/integrations)\n` +
+      `  - OAUTH_CLIENT_SECRET (from Raindrop OAuth app)\n` +
+      `  - OAUTH_REDIRECT_URI (e.g., https://your-app.vercel.app/auth/callback)\n` +
+      `  - TOKEN_ENCRYPTION_KEY (generate: openssl rand -hex 32)\n` +
+      `  - KV_REST_API_URL and KV_REST_API_TOKEN (auto-set when you attach Vercel KV)\n\n` +
+      `For direct token deployment (no OAuth), you need:\n` +
+      `  - RAINDROP_ACCESS_TOKEN (from Raindrop settings)\n\n` +
+      `See docs/DEPLOYMENT.md for full setup instructions.`
+    );
+  }
+}
+
+// Validate OAuth environment variables (if using OAuth)
+if (process.env.OAUTH_CLIENT_ID || process.env.OAUTH_CLIENT_SECRET) {
+  // If any OAuth vars are set, require all of them
+  validateEnvVars([
+    'OAUTH_CLIENT_ID',
+    'OAUTH_CLIENT_SECRET',
+    'OAUTH_REDIRECT_URI',
+    'TOKEN_ENCRYPTION_KEY',
+    'KV_REST_API_URL',
+    'KV_REST_API_TOKEN',
+  ]);
+}
+
 // Initialize OAuth service
 const oauthConfig: OAuthConfig = {
   clientId: process.env.OAUTH_CLIENT_ID!,
@@ -84,7 +119,13 @@ const verifyToken = async (
 
     // Method 3: Environment token (development fallback)
     const envToken = process.env.RAINDROP_ACCESS_TOKEN;
-    if (envToken && process.env.NODE_ENV !== 'production') {
+    if (envToken) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(
+          'WARNING: Using RAINDROP_ACCESS_TOKEN in production. ' +
+          'This is not recommended. Use OAuth instead for multi-user support.'
+        );
+      }
       return {
         token: envToken,
         scopes: ['raindrop:read', 'raindrop:write'],
