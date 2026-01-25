@@ -50,3 +50,4 @@ Thumbs.db
 # Local configuration with secrets
 claude-desktop-config.json
 SECURITY.md
+.env.production
