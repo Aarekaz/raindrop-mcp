@@ -286,7 +286,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
         async (args: z.infer<typeof CollectionManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
-              if (!args.title) throw new Error('title required for create');
+              if (!args.title) {
+                throw new Error(
+                  'title required for create. ' +
+                  'Provide a descriptive collection name (e.g., "Research Papers", "Tutorial Videos"). ' +
+                  'Collections organize your bookmarks into categories. ' +
+                  'Optionally set public=true to share the collection publicly.'
+                );
+              }
               const created = await raindropService.createCollection(args.title, args.public);
               return {
                 content: [
@@ -295,7 +302,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 ],
               };
             case 'update':
-              if (!args.id) throw new Error('id required for update');
+              if (!args.id) {
+                throw new Error(
+                  'id required for update. ' +
+                  'Use collection_list to see available collections and their IDs. ' +
+                  'Collection IDs are visible in the raindrop://collection/{id} resource URIs.'
+                );
+              }
               const updates: Partial<Collection> = {};
               if (args.title !== undefined) updates.title = args.title;
               if (args.description !== undefined) updates.description = args.description;
@@ -309,7 +322,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 ],
               };
             case 'delete':
-              if (!args.id) throw new Error('id required for delete');
+              if (!args.id) {
+                throw new Error(
+                  'id required for delete. ' +
+                  'Use collection_list to find the collection you want to delete. ' +
+                  'WARNING: Deleting a collection moves all its bookmarks to "Unsorted". ' +
+                  'The operation is permanent. Consider renaming or archiving instead.'
+                );
+              }
               await raindropService.deleteCollection(args.id);
               return { content: [textContent(`Deleted collection ${args.id}`)] };
             default:
@@ -370,7 +390,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
         async (args: z.infer<typeof BookmarkManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
-              if (!args.url) throw new Error('url required for create');
+              if (!args.url) {
+                throw new Error(
+                  'url required for create. ' +
+                  'Provide a valid URL (e.g., "https://example.com/article"). ' +
+                  'The URL will be automatically parsed and metadata extracted by Raindrop.io. ' +
+                  'Use the "suggest" operation first to get AI-powered collection and tag recommendations.'
+                );
+              }
               const created = await raindropService.createBookmark(
                 args.collectionId || -1, // -1 = Unsorted
                 {
@@ -388,7 +415,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 ],
               };
             case 'update':
-              if (!args.id) throw new Error('id required for update');
+              if (!args.id) {
+                throw new Error(
+                  'id required for update. ' +
+                  'Use bookmark_search to find bookmark IDs, or check the raindrop://bookmark/{id} resource. ' +
+                  'Bookmark IDs are numeric values returned by bookmark_search and visible in resource URIs.'
+                );
+              }
               const updates: Partial<Bookmark> = {};
               if (args.title !== undefined) updates.title = args.title;
               if (args.description !== undefined) updates.excerpt = args.description;
@@ -403,7 +436,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 ],
               };
             case 'suggest':
-              if (!args.url) throw new Error('url required for suggest');
+              if (!args.url) {
+                throw new Error(
+                  'url required for suggest. ' +
+                  'Provide a URL to get AI-powered collection and tag suggestions. ' +
+                  'Example: "https://github.com/openai/gpt-4" would suggest tags like "ai", "github", "openai". ' +
+                  'Use these suggestions when creating bookmarks with bookmark_manage create.'
+                );
+              }
               const suggestions = await raindropService.getSuggestions(args.url);
 
               // Format suggestions for display
@@ -423,7 +463,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 content: [textContent(suggestionText.join('\n'))],
               };
             case 'delete':
-              if (!args.id) throw new Error('id required for delete');
+              if (!args.id) {
+                throw new Error(
+                  'id required for delete. ' +
+                  'Use bookmark_search to find the bookmark you want to delete. ' +
+                  'WARNING: This operation is destructive and cannot be undone. ' +
+                  'Consider using bookmark_manage update with important=false instead of deleting.'
+                );
+              }
               await raindropService.deleteBookmark(args.id);
               return { content: [textContent(`Deleted bookmark ${args.id}`)] };
             default:
@@ -472,7 +519,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
         async (args: z.infer<typeof HighlightManageInputSchema>) => {
           switch (args.operation) {
             case 'create':
-              if (!args.bookmarkId || !args.text) throw new Error('bookmarkId and text required');
+              if (!args.bookmarkId || !args.text) {
+                throw new Error(
+                  'bookmarkId and text required for creating highlights. ' +
+                  'Use bookmark_search to find the bookmark, then provide the text you want to highlight. ' +
+                  'Optionally add a note or color (yellow, blue, green, red). ' +
+                  'Example: text="Important quote here", color="yellow", note="Remember this!"'
+                );
+              }
               const created = await raindropService.createHighlight(
                 args.bookmarkId,
                 {
@@ -483,7 +537,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
               );
               return { content: [textContent(`Created highlight: ${created._id}`)] };
             case 'update':
-              if (!args.id) throw new Error('id required');
+              if (!args.id) {
+                throw new Error(
+                  'id required for update. ' +
+                  'Use highlight_manage list with bookmarkId to see existing highlights. ' +
+                  'Highlight IDs are string values (e.g., "65abc123def456").'
+                );
+              }
               const updates: { text?: string; note?: string; color?: string } = {};
               if (args.text !== undefined) updates.text = args.text;
               if (args.color !== undefined) updates.color = args.color;
@@ -491,11 +551,23 @@ const baseHandler = async (req: Request): Promise<Response> => {
               await raindropService.updateHighlight(args.id, updates);
               return { content: [textContent(`Updated highlight ${args.id}`)] };
             case 'delete':
-              if (!args.id) throw new Error('id required');
+              if (!args.id) {
+                throw new Error(
+                  'id required for delete. ' +
+                  'Use highlight_manage list to find highlight IDs. ' +
+                  'Deleting a highlight removes the annotation permanently from the bookmark.'
+                );
+              }
               await raindropService.deleteHighlight(args.id);
               return { content: [textContent(`Deleted highlight ${args.id}`)] };
             case 'list':
-              if (!args.bookmarkId) throw new Error('bookmarkId required');
+              if (!args.bookmarkId) {
+                throw new Error(
+                  'bookmarkId required for listing highlights. ' +
+                  'Use bookmark_search to find the bookmark, then use its ID here. ' +
+                  'This will return all highlights (annotations) saved for that bookmark.'
+                );
+              }
               const highlights = await raindropService.getHighlights(args.bookmarkId);
               return {
                 content: [
@@ -525,6 +597,23 @@ const baseHandler = async (req: Request): Promise<Response> => {
           },
         },
         async (args: z.infer<typeof BulkEditInputSchema>) => {
+          if (!args.ids || args.ids.length === 0) {
+            throw new Error(
+              'ids array required for bulk operations. ' +
+              'Use bookmark_search to find multiple bookmarks, then provide their IDs as an array. ' +
+              'Example: ids=[123, 456, 789] to update three bookmarks at once. ' +
+              'You can update tags, important status, or move bookmarks to different collections.'
+            );
+          }
+          if (!args.collectionId) {
+            throw new Error(
+              'collectionId required for bulk operations. ' +
+              'Specify which collection the bookmarks are currently in. ' +
+              'Use collection_list to find collection IDs. ' +
+              'This is required by the Raindrop.io API for bulk operations.'
+            );
+          }
+
           const updates: {
             ids?: number[];
             important?: boolean;
