@@ -5,10 +5,13 @@ bun.lockb
 # Build output
 build/
 dist/
+tsconfig.tsbuildinfo
 *.js
 *.js.map
 *.d.ts
 *.d.ts.map
+
+.claude/
 
 # Environment variables
 .env
@@ -41,3 +44,10 @@ coverage/
 
 # OS
 Thumbs.db
+.vercel
+.env*.local
+
+# Local configuration with secrets
+claude-desktop-config.json
+SECURITY.md
+.env.production

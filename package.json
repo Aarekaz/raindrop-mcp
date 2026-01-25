@@ -2,22 +2,14 @@
   "name": "@aarekaz/raindrop-mcp",
   "version": "0.1.0",
   "description": "MCP Server for Raindrop.io bookmark management",
-  "main": "build/index.js",
-  "module": "build/index.js",
   "type": "module",
-  "bin": {
-    "raindrop-mcp": "./build/index.js"
-  },
-  "files": [
-    "build"
-  ],
   "scripts": {
-    "dev": "bun run build && bun --watch src/index.ts",
+    "dev": "vercel dev",
     "type-check": "tsc --noEmit",
     "test": "bun test",
-    "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts",
-    "start": "bun run build/index.js",
-    "clean": "rm -rf build"
+    "clean": "rm -rf build dist",
+    "deploy:vercel": "vercel deploy --prod",
+    "deploy:lambda": "serverless deploy"
   },
   "keywords": [
     "mcp",
@@ -27,7 +19,9 @@
     "raindrop",
     "bookmarks",
     "ai-assistant",
-    "typescript"
+    "typescript",
+    "http-transport",
+    "serverless"
   ],
   "author": "Anurag Dhungana",
   "license": "MIT",
@@ -41,15 +35,20 @@
   "homepage": "https://github.com/Aarekaz/raindrop-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
+    "@vercel/kv": "^2.0.0",
     "axios": "^1.12.2",
-    "dotenv": "^17.2.2",
+    "cookie": "^1.1.1",
+    "mcp-handler": "^1.0.7",
     "openapi-fetch": "^0.14.0",
-    "zod": "^4.1.9"
+    "pkce-challenge": "^5.0.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/bun": "^1.2.22",
     "@types/node": "^24.5.1",
+    "@vercel/node": "^3.0.21",
     "typescript": "^5.9.2",
+    "vercel": "^33.5.5",
     "vitest": "^3.2.4"
   },
   "engines": {

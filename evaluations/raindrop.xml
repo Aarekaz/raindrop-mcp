@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation>
+  <description>
+    Raindrop MCP Server Evaluation Suite
+    Tests LLM ability to use Raindrop.io tools for realistic bookmark management tasks
+  </description>
+
+  <!-- Question 1: Collection Organization -->
+  <qa_pair>
+    <question>
+      Find all collections that contain more than 10 bookmarks and are marked as public.
+      What is the title of the collection with the most bookmarks?
+    </question>
+    <answer>Research Papers</answer>
+    <explanation>
+      Requires: collection_list to get all collections, then filter by count > 10 and public=true.
+      Tests: Basic filtering and finding maximum values.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 2: Tag Analysis -->
+  <qa_pair>
+    <question>
+      Which tag appears most frequently across all bookmarks? Return just the tag name.
+    </question>
+    <answer>javascript</answer>
+    <explanation>
+      Requires: tag_list with no collectionId to get all tags, then find max by count.
+      Tests: Global tag analysis and sorting.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 3: Important Bookmarks -->
+  <qa_pair>
+    <question>
+      How many bookmarks are marked as important in the "Web Development" collection?
+    </question>
+    <answer>7</answer>
+    <explanation>
+      Requires: collection_list to find "Web Development" ID, bookmark_search with important=true.
+      Tests: Collection lookup, filtering by boolean field.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 4: Bookmark Search with Multiple Filters -->
+  <qa_pair>
+    <question>
+      Find all important bookmarks tagged with "tutorial" that were created in 2024.
+      What is the title of the most recently created one?
+    </question>
+    <answer>Advanced TypeScript Patterns</answer>
+    <explanation>
+      Requires: bookmark_search with important=true, tags=["tutorial"], and date filtering.
+      Tests: Complex multi-filter queries and temporal sorting.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 5: Collection Statistics -->
+  <qa_pair>
+    <question>
+      Using bookmark_statistics, how many broken links are in the "Resources" collection?
+    </question>
+    <answer>3</answer>
+    <explanation>
+      Requires: collection_list to find "Resources" ID, bookmark_statistics with that ID.
+      Tests: Using specialized statistics tool for quality metrics.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 6: Highlight Analysis -->
+  <qa_pair>
+    <question>
+      Find the bookmark titled "Introduction to Machine Learning" and count how many highlights it has.
+    </question>
+    <answer>5</answer>
+    <explanation>
+      Requires: bookmark_search to find bookmark by title, highlight_manage list with bookmarkId.
+      Tests: Chaining search → resource inspection, counting related entities.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 7: Tag Combination Analysis -->
+  <qa_pair>
+    <question>
+      How many bookmarks have BOTH the "react" and "typescript" tags?
+    </question>
+    <answer>12</answer>
+    <explanation>
+      Requires: bookmark_search with tags=["react", "typescript"] (intersection).
+      Tests: Multi-tag filtering and understanding tag logic.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 8: URL Pattern Matching -->
+  <qa_pair>
+    <question>
+      Use bookmark_search to find all GitHub repositories bookmarked (URLs containing "github.com").
+      How many are there?
+    </question>
+    <answer>24</answer>
+    <explanation>
+      Requires: bookmark_search with search="github.com".
+      Tests: Text search in URL field.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 9: Suggestion Quality -->
+  <qa_pair>
+    <question>
+      Get suggestions for the URL "https://www.typescriptlang.org/docs/handbook/2/types-from-types.html".
+      What is the first suggested tag (alphabetically)?
+    </question>
+    <answer>documentation</answer>
+    <explanation>
+      Requires: bookmark_manage with operation="suggest" and the provided URL.
+      Tests: Using AI-powered suggestion feature and sorting results.
+    </explanation>
+  </qa_pair>
+
+  <!-- Question 10: Multi-Collection Search -->
+  <qa_pair>
+    <question>
+      Across ALL collections (use collection=0 for "All bookmarks"), how many bookmarks have no tags?
+      Use bookmark_statistics to find this efficiently.
+    </question>
+    <answer>8</answer>
+    <explanation>
+      Requires: bookmark_statistics with collectionId=0, check "notag" field.
+      Tests: Using special collection ID for "All", interpreting statistics fields.
+    </explanation>
+  </qa_pair>
+</evaluation>

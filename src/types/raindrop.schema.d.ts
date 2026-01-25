@@ -68,7 +68,7 @@ export namespace components {
       _id: string;
       text: string;
       note?: string;
-      color?: 'yellow' | 'blue' | 'green' | 'red' | 'purple';
+      color?: 'blue' | 'brown' | 'cyan' | 'gray' | 'green' | 'indigo' | 'orange' | 'pink' | 'purple' | 'red' | 'teal' | 'yellow';
       created?: string;
       lastUpdate?: string;
       raindrop?: {
@@ -94,6 +94,26 @@ export namespace components {
     export interface Tag {
       _id: string;
       count: number;
+    }
+
+    /**
+     * Suggestion result for collections and tags
+     */
+    export interface SuggestionResult {
+      collections?: Array<{ $id: number }>;
+      tags?: string[];
+    }
+
+    /**
+     * Filter statistics for bookmarks
+     */
+    export interface FilterStats {
+      broken?: number;
+      duplicates?: number;
+      important?: number;
+      notag?: number;
+      tags?: Array<{ _id: string; count: number }>;
+      types?: Array<{ _id: string; count: number }>;
     }
   }
 }
@@ -373,6 +393,55 @@ export interface paths {
             'application/json': {
               result: boolean;
               items: components['schemas']['Tag'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  '/raindrop/suggest': {
+    post: {
+      requestBody: {
+        content: {
+          'application/json': {
+            link: string;
+          };
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              result: boolean;
+              item: components['schemas']['SuggestionResult'];
+            };
+          };
+        };
+      };
+    };
+  };
+  '/filters/{collectionId}': {
+    get: {
+      parameters: {
+        path: {
+          collectionId: number;
+        };
+        query?: {
+          tagsSort?: '-count' | '_id';
+          search?: string;
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              result: boolean;
+              broken?: number;
+              duplicates?: number;
+              important?: number;
+              notag?: number;
+              tags?: Array<{ _id: string; count: number }>;
+              types?: Array<{ _id: string; count: number }>;
             };
           };
         };

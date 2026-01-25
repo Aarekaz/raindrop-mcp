@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "node",
+      "args": ["/path/to/raindrop-mcp/build/index.js"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}

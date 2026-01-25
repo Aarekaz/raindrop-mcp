@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+bun.lockb
+package-lock.json
+yarn.lock
+
+# Build outputs
+build/
+dist/
+.turbo/
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Development files
+.env
+.env.local
+.env.development
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional, comment out if you want to include)
+# README.md
+# docs/
