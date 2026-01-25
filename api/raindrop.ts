@@ -766,5 +766,5 @@ const authHandler = withMcpAuth(baseHandler, verifyToken, {
   resourceMetadataPath: '/.well-known/oauth-protected-resource',
 });
 
-// Export for Vercel Functions
+// Streamable HTTP transport requires GET, POST, and DELETE
 export { authHandler as GET, authHandler as POST, authHandler as DELETE };
