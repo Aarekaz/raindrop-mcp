@@ -104,6 +104,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.redirect(authUrl);
   } catch (error) {
     console.error('OAuth init error:', error);
-    return res.status(500).json({ error: 'Failed to initialize OAuth flow' });
+    return res.status(500).json({ 
+      error: 'Failed to initialize OAuth flow',
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 }
