@@ -9,6 +9,14 @@
     {
       "source": "/health",
       "destination": "/api/health"
+    },
+    {
+      "source": "/auth/init",
+      "destination": "/api/auth/init"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/api/auth/callback"
     }
   ],
   "functions": {
@@ -17,7 +25,9 @@
       "memory": 1024
     }
   },
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "headers": [
     {
       "source": "/api/raindrop",
