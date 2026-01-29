@@ -2,6 +2,18 @@
  * Type definitions for OAuth 2.0 authentication flow
  */
 
+// Re-export OAuth server types
+export type {
+  OAuthClient,
+  AuthorizationCode,
+  RefreshToken,
+  JWTPayload,
+  ClientRegistrationRequest,
+  ClientRegistrationResponse,
+  AuthorizationRequest,
+  TokenRequest,
+} from '../types/oauth-server.types.js';
+
 export interface OAuthConfig {
   clientId: string;
   clientSecret: string;

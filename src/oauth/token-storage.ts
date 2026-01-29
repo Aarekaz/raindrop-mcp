@@ -4,11 +4,19 @@
  */
 
 import { kv } from '@vercel/kv';
-import { StoredSession, OAuthState } from './oauth.types.js';
+import {
+  StoredSession,
+  OAuthState,
+  OAuthClient,
+  AuthorizationCode,
+  RefreshToken
+} from './oauth.types.js';
 import { encrypt, decrypt } from './crypto.utils.js';
 
 const SESSION_TTL = 14 * 24 * 60 * 60; // 14 days in seconds
 const STATE_TTL = 5 * 60; // 5 minutes in seconds
+const AUTH_CODE_TTL = 5 * 60; // 5 minutes in seconds
+const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 
 export class TokenStorage {
   /**
@@ -69,5 +77,80 @@ export class TokenStorage {
    */
   async deleteOAuthState(state: string): Promise<void> {
     await kv.del(`oauth:${state}`);
+  }
+
+  // ============================================================================
+  // OAuth Authorization Server Storage Methods
+  // ============================================================================
+
+  /**
+   * Save OAuth client registration
+   */
+  async saveClient(client: OAuthClient): Promise<void> {
+    await kv.set(`client:${client.client_id}`, client);
+  }
+
+  /**
+   * Get OAuth client by client_id
+   */
+  async getClient(clientId: string): Promise<OAuthClient | null> {
+    return await kv.get<OAuthClient>(`client:${clientId}`);
+  }
+
+  /**
+   * Save authorization code (short-lived, 5 minutes)
+   */
+  async saveAuthCode(authCode: AuthorizationCode): Promise<void> {
+    await kv.set(`authcode:${authCode.code}`, authCode, { ex: AUTH_CODE_TTL });
+  }
+
+  /**
+   * Get authorization code
+   */
+  async getAuthCode(code: string): Promise<AuthorizationCode | null> {
+    return await kv.get<AuthorizationCode>(`authcode:${code}`);
+  }
+
+  /**
+   * Delete authorization code (one-time use)
+   */
+  async deleteAuthCode(code: string): Promise<void> {
+    await kv.del(`authcode:${code}`);
+  }
+
+  /**
+   * Save refresh token (long-lived, 30 days)
+   */
+  async saveRefreshToken(token: RefreshToken): Promise<void> {
+    await kv.set(`refresh:${token.token}`, token, { ex: REFRESH_TOKEN_TTL });
+  }
+
+  /**
+   * Get refresh token
+   */
+  async getRefreshToken(token: string): Promise<RefreshToken | null> {
+    return await kv.get<RefreshToken>(`refresh:${token}`);
+  }
+
+  /**
+   * Delete refresh token
+   */
+  async deleteRefreshToken(token: string): Promise<void> {
+    await kv.del(`refresh:${token}`);
+  }
+
+  /**
+   * Save user → Raindrop token mapping (encrypted)
+   * Used to make backend API calls on behalf of the user
+   */
+  async saveUserRaindropToken(userId: string, encryptedToken: string): Promise<void> {
+    await kv.set(`user_raindrop:${userId}`, encryptedToken, { ex: SESSION_TTL });
+  }
+
+  /**
+   * Get user's Raindrop token (returns encrypted value)
+   */
+  async getUserRaindropToken(userId: string): Promise<string | null> {
+    return await kv.get<string>(`user_raindrop:${userId}`);
   }
 }

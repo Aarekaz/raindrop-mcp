@@ -25,28 +25,35 @@ const oauthService = new OAuthService(oauthConfig, tokenStorage);
  * Validate redirect URI against allowlist
  * SECURITY FIX: Prevents open redirect attacks
  */
-function validateRedirectUri(redirectUri: string): { valid: boolean; error?: string } {
+function validateRedirectUri(redirectUri: string, requestOrigin?: string): { valid: boolean; error?: string } {
   const allowedUris = process.env.OAUTH_ALLOWED_REDIRECT_URIS?.split(',').map(uri => uri.trim()) || [];
-
-  if (allowedUris.length === 0) {
-    // If no allowlist configured, only allow relative paths
-    if (redirectUri.startsWith('/') && !redirectUri.startsWith('//')) {
-      return { valid: true };
-    }
-    return {
-      valid: false,
-      error: 'No allowed redirect URIs configured. Set OAUTH_ALLOWED_REDIRECT_URIS environment variable.'
-    };
-  }
 
   // Allow relative paths
   if (redirectUri.startsWith('/') && !redirectUri.startsWith('//')) {
     return { valid: true };
   }
 
-  // Validate absolute URLs against allowlist
+  // Validate absolute URLs
   try {
     const url = new URL(redirectUri);
+
+    // SECURITY: Always allow same-origin redirects (internal redirects to our own server)
+    // This is safe because we control the destination
+    if (requestOrigin) {
+      const origin = new URL(requestOrigin);
+      if (url.origin === origin.origin) {
+        return { valid: true };
+      }
+    }
+
+    // Check against allowlist for external redirects
+    if (allowedUris.length === 0) {
+      return {
+        valid: false,
+        error: 'No allowed redirect URIs configured. Set OAUTH_ALLOWED_REDIRECT_URIS environment variable.'
+      };
+    }
+
     const isAllowed = allowedUris.some(allowedUri => {
       try {
         const allowed = new URL(allowedUri);
@@ -83,8 +90,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Get request origin for same-origin check
+    const requestOrigin = req.headers.host
+      ? `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}`
+      : undefined;
+
     // SECURITY: Validate redirect_uri against allowlist
-    const validation = validateRedirectUri(redirectUri);
+    const validation = validateRedirectUri(redirectUri, requestOrigin);
     if (!validation.valid) {
       console.warn('Invalid redirect_uri rejected:', redirectUri, validation.error);
       return res.status(400).json({
@@ -104,6 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.redirect(authUrl);
   } catch (error) {
     console.error('OAuth init error:', error);
-    return res.status(500).json({ error: 'Failed to initialize OAuth flow' });
+    return res.status(500).json({ 
+      error: 'Failed to initialize OAuth flow',
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 }
