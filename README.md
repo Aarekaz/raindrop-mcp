@@ -429,6 +429,24 @@ Get your token from: [Raindrop Settings → Integrations](https://app.raindrop.i
 The deployed MCP endpoint is:
 - `POST /mcp` (rewritten to `POST /api/raindrop` via `vercel.json`)
 
+### MCP Flow (Short Diagram)
+
+```
+Client -> /mcp (GET/POST)
+  | 401 + WWW-Authenticate (resource_metadata)
+  v
+/.well-known/oauth-protected-resource/api/raindrop
+  | authorization_servers[0]
+  v
+/.well-known/oauth-authorization-server
+  | authorize/token/register endpoints
+  v
+/authorize -> /auth/init -> Raindrop OAuth -> /auth/callback
+  | access token
+  v
+Client -> /mcp (authorized)
+```
+
 **OAuth Endpoints:**
 - `GET /auth/init?redirect_uri=/dashboard` - Start OAuth flow
 - `GET /auth/callback` - OAuth callback (handles Raindrop redirect)
