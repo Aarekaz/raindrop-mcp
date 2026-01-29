@@ -796,8 +796,25 @@ const corsHandler = async (req: Request): Promise<Response> => {
   });
 };
 
+// HEAD handler (returns same headers as GET but no body)
+const headHandler = async (req: Request): Promise<Response> => {
+  const response = await authHandler(req);
+  return new Response(null, {
+    status: response.status,
+    headers: response.headers,
+  });
+};
+
 // Wrap with CORS support
 const corsAuthHandler = withCors(authHandler);
+const corsHeadHandler = withCors(headHandler);
 
 // Streamable HTTP transport requires GET, POST, DELETE, and OPTIONS (for CORS)
-export { corsAuthHandler as GET, corsAuthHandler as POST, corsAuthHandler as DELETE, corsHandler as OPTIONS };
+// HEAD is also supported for endpoint health checks
+export {
+  corsAuthHandler as GET,
+  corsAuthHandler as POST,
+  corsAuthHandler as DELETE,
+  corsHeadHandler as HEAD,
+  corsHandler as OPTIONS
+};
