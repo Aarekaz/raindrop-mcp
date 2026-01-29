@@ -11,6 +11,8 @@ import { RaindropService } from "../src/services/raindrop.service.js";
 import { OAuthService } from "../src/oauth/oauth.service.js";
 import { TokenStorage } from "../src/oauth/token-storage.js";
 import { OAuthConfig } from "../src/oauth/oauth.types.js";
+import { AuthorizationServerService } from "../src/oauth/authorization-server.service.js";
+import { decrypt } from "../src/oauth/crypto.utils.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { components as RaindropComponents } from "../src/types/raindrop.schema.js";
@@ -109,42 +111,80 @@ const oauthConfig: OAuthConfig = {
 
 const tokenStorage = new TokenStorage();
 const oauthService = new OAuthService(oauthConfig, tokenStorage);
+const authServerService = new AuthorizationServerService(tokenStorage);
 
 /**
  * Token verification for MCP authentication
+ * Supports both JWT tokens (new) and session-based auth (legacy)
  */
 const verifyToken = async (
   req: Request,
   bearerToken?: string
 ): Promise<AuthInfo | undefined> => {
   try {
-    // Method 1: OAuth session ID
-    if (bearerToken) {
+    // Method 1: JWT token (contains '.' separators)
+    if (bearerToken && bearerToken.includes('.')) {
+      try {
+        const payload = await authServerService.verifyJWT(bearerToken);
+
+        // Get user's Raindrop token for backend API calls
+        const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
+        if (!encryptedToken) {
+          console.error('No Raindrop token found for user:', payload.sub);
+          return undefined;
+        }
+
+        const raindropToken = decrypt(encryptedToken);
+
+        return {
+          token: raindropToken,
+          scopes: payload.scope.split(' '),
+          clientId: payload.client_id,
+          extra: {
+            userId: payload.sub,
+            jwtPayload: payload,
+            authMethod: 'jwt',
+          },
+        };
+      } catch (error) {
+        console.error('JWT verification failed:', error);
+        // JWT invalid, continue to other methods
+      }
+    }
+
+    // Method 2: OAuth session ID (legacy/backward compatibility)
+    if (bearerToken && !bearerToken.includes('.')) {
       try {
         const raindropToken = await oauthService.ensureValidToken(bearerToken);
         return {
           token: raindropToken,
           scopes: ['raindrop:read', 'raindrop:write'],
           clientId: 'oauth-session',
-          extra: { sessionId: bearerToken },
+          extra: {
+            sessionId: bearerToken,
+            authMethod: 'session',
+          },
         };
       } catch (error) {
         // Session invalid, continue to other methods
       }
     }
 
-    // Method 2: Direct Raindrop token from header
+    // Method 3: Direct Raindrop token from header
     const directToken = req.headers.get('x-raindrop-token');
     if (directToken) {
       return {
         token: directToken,
         scopes: ['raindrop:read', 'raindrop:write'],
         clientId: 'direct-token',
-        extra: { method: 'header' },
+        extra: {
+          method: 'header',
+          authMethod: 'direct',
+        },
       };
     }
 
-    // Method 3: Environment token (development fallback)
+    // Method 4: Environment token (development fallback)
     const envToken = process.env.RAINDROP_ACCESS_TOKEN;
     if (envToken) {
       if (process.env.NODE_ENV === 'production') {
@@ -157,7 +197,10 @@ const verifyToken = async (
         token: envToken,
         scopes: ['raindrop:read', 'raindrop:write'],
         clientId: 'env-token',
-        extra: { method: 'environment' },
+        extra: {
+          method: 'environment',
+          authMethod: 'env',
+        },
       };
     }
 
@@ -784,7 +827,7 @@ const withCors = (handler: (req: Request) => Promise<Response>) => {
 };
 
 // CORS preflight handler
-const corsHandler = async (req: Request): Promise<Response> => {
+const corsHandler = async (_req: Request): Promise<Response> => {
   return new Response(null, {
     status: 204,
     headers: {
@@ -797,8 +840,8 @@ const corsHandler = async (req: Request): Promise<Response> => {
 };
 
 // HEAD handler (returns same headers as GET but no body)
-const headHandler = async (req: Request): Promise<Response> => {
-  const response = await authHandler(req);
+const headHandler = async (_req: Request): Promise<Response> => {
+  const response = await authHandler(_req);
   return new Response(null, {
     status: response.status,
     headers: response.headers,

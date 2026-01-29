@@ -11,6 +11,7 @@ import { parse as parseCookie } from 'cookie';
 import { OAuthService } from '../../src/oauth/oauth.service.js';
 import { TokenStorage } from '../../src/oauth/token-storage.js';
 import { OAuthConfig } from '../../src/oauth/oauth.types.js';
+import { encrypt } from '../../src/oauth/crypto.utils.js';
 
 const oauthConfig: OAuthConfig = {
   clientId: process.env.OAUTH_CLIENT_ID!,
@@ -54,10 +55,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Exchange code for tokens
     const session = await oauthService.handleCallback(code, state);
 
-    // Set session cookie
+    // NEW: Store user → Raindrop token mapping for JWT-based auth
+    // This allows our authorization server to make Raindrop API calls on behalf of the user
+    try {
+      await tokenStorage.saveUserRaindropToken(
+        session.userId,
+        encrypt(session.accessToken)
+      );
+    } catch (error) {
+      console.error('Failed to store user Raindrop token:', error);
+      // Don't fail the login if this fails - session-based auth will still work
+    }
+
+    // Set session cookies
     res.setHeader('Set-Cookie', [
+      // mcp_session cookie for backward compatibility (session-based auth)
       `mcp_session=${session.sessionId}; HttpOnly; Secure; SameSite=Lax; Max-Age=${14 * 24 * 60 * 60}; Path=/`,
-      `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/` // Clear state cookie
+      // raindrop_session cookie for OAuth authorization flow
+      `raindrop_session=${session.userId}; HttpOnly; Secure; SameSite=Lax; Max-Age=${14 * 24 * 60 * 60}; Path=/`,
+      // Clear state cookie
+      `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`
     ]);
 
     // Redirect to the stored redirect URI (session_id already in httpOnly cookie)

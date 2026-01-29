@@ -37,13 +37,16 @@
     "@modelcontextprotocol/sdk": "^1.18.0",
     "@vercel/kv": "^2.0.0",
     "axios": "^1.12.2",
+    "bcryptjs": "^2.4.3",
     "cookie": "^1.1.1",
+    "jose": "^5.2.0",
     "mcp-handler": "^1.0.7",
     "openapi-fetch": "^0.14.0",
     "pkce-challenge": "^5.0.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/bun": "^1.2.22",
     "@types/node": "^24.5.1",
     "@vercel/node": "^3.0.21",
