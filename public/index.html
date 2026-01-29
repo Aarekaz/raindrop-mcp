@@ -603,11 +603,11 @@
             <button data-endpoint="tools">Available tools</button>
             <button data-endpoint="resources">Available resources</button>
           </div>
-          <pre id="interactive-output">{ 
-  "status": "connected",
-  "active_streams": 3,
-  "context_window": "5k tokens",
-  "latency_ms": 140
+          <pre id="interactive-output">{
+  "transport": "streamable-http",
+  "authentication": "OAuth 2.1 + PKCE",
+  "endpoint": "https://raindrop-mcp.anuragd.me/mcp",
+  "discovery": "/.well-known/oauth-protected-resource"
 }</pre>
         </div>
         <div class="signal">
