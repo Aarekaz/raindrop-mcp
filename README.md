@@ -330,6 +330,98 @@ Set environment variables in Vercel dashboard:
 
 📖 **Full Deployment Guide**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
+## Connecting Your MCP Client
+
+Once deployed, connect your MCP client to access your Raindrop.io bookmarks.
+
+### Method 1: Smart Client Auto-Discovery (Recommended)
+
+**For:** Claude Desktop, LiteLLM, and other MCP clients supporting Streamable HTTP with OAuth 2.1
+
+Simply add this to your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://your-app.vercel.app/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
+```
+
+**What happens automatically:**
+1. Client connects to `/mcp` endpoint
+2. Receives 401 response with OAuth metadata
+3. Discovers authorization server via `/.well-known/oauth-protected-resource`
+4. Opens browser for you to authorize on Raindrop.io
+5. Receives OAuth token and reconnects
+6. Ready to use!
+
+**No manual authentication needed** - the client handles the entire OAuth flow for you.
+
+### Method 2: Manual Web Authentication
+
+**For:** Basic MCP clients or when you need to pre-authenticate
+
+If your MCP client doesn't support automatic OAuth discovery:
+
+1. **Authenticate via browser:**
+   ```
+   https://your-app.vercel.app/auth/init?redirect_uri=/dashboard
+   ```
+
+2. **Authorize on Raindrop.io** when redirected
+
+3. **Session cookie is set** (`mcp_session`)
+
+4. **Configure your MCP client** to use the session cookie:
+   ```json
+   {
+     "mcpServers": {
+       "raindrop": {
+         "url": "https://your-app.vercel.app/mcp",
+         "transport": "streamable-http",
+         "auth": {
+           "type": "cookie",
+           "cookie": "mcp_session"
+         }
+       }
+     }
+   }
+   ```
+
+5. **Your client can now access** the MCP server with your authenticated session
+
+**Session features:**
+- ✅ Automatic token refresh (no re-authentication needed)
+- ✅ Encrypted token storage (AES-256-GCM)
+- ✅ HttpOnly cookies (XSS protection)
+- ✅ Works across multiple devices
+
+### Alternative: Direct Token (Development)
+
+For development or personal use without OAuth:
+
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://your-app.vercel.app/mcp",
+      "transport": "streamable-http",
+      "headers": {
+        "X-Raindrop-Token": "your_raindrop_token_here"
+      }
+    }
+  }
+}
+```
+
+Get your token from: [Raindrop Settings → Integrations](https://app.raindrop.io/settings/integrations)
+
+---
+
 ## MCP Endpoint & Authentication
 
 ### Endpoints
@@ -340,9 +432,9 @@ The deployed MCP endpoint is:
 **OAuth Endpoints:**
 - `GET /auth/init?redirect_uri=/dashboard` - Start OAuth flow
 - `GET /auth/callback` - OAuth callback (handles Raindrop redirect)
-- `GET /.well-known/oauth-protected-resource` - OAuth metadata
+- `GET /.well-known/oauth-protected-resource` - OAuth metadata (RFC 9728)
 
-### Authentication
+### Authentication Details
 
 The server supports three authentication methods simultaneously:
 
