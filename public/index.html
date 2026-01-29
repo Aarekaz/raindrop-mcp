@@ -543,7 +543,7 @@
         <h1>Stream your Raindrop knowledge into every assistant.</h1>
         <p>Raindrop MCP Server is a secure Model Context Protocol bridge for your Raindrop.io collections. It streams relevant bookmarks, tags, and highlights in real time so assistants answer with your exact sources.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="/sse">Connect MCP Client</a>
+          <button class="btn btn-primary" onclick="navigator.clipboard.writeText('https://raindrop-mcp.anuragd.me/mcp')">Copy MCP Endpoint</button>
         </div>
         <div class="trust">
           <span>OAuth-ready</span>
@@ -557,15 +557,19 @@
           <span class="terminal-dot"></span>
           <span class="terminal-dot"></span>
         </div>
-        <pre>$ curl -X GET https://raindrop-mcp.anuragd.me/sse
+        <pre>{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
 
-➜ connected
-➜ context: 24 bookmarks
-➜ top tags: research, ux, ai
-➜ refreshed: 1.2s
-
-$ mcp use raindrop --collection "Design Ops"
-➜ streamed 18 sources with highlights</pre>
+➜ Auto-discovers OAuth endpoint
+➜ Opens browser for authorization
+➜ Connects to your Raindrop.io account
+➜ Ready to use in seconds</pre>
       </div>
     </section>
 
@@ -594,10 +598,10 @@ $ mcp use raindrop --collection "Design Ops"
       <div class="showcase">
         <div class="interactive">
           <div class="interactive-buttons">
-            <button class="active" data-endpoint="sse">/sse stream</button>
-            <button data-endpoint="auth">/auth start</button>
-            <button data-endpoint="collections">/collections list</button>
-            <button data-endpoint="search">/search query</button>
+            <button class="active" data-endpoint="mcp">/mcp endpoint</button>
+            <button data-endpoint="metadata">OAuth metadata</button>
+            <button data-endpoint="tools">Available tools</button>
+            <button data-endpoint="resources">Available resources</button>
           </div>
           <pre id="interactive-output">{ 
   "status": "connected",
@@ -657,25 +661,31 @@ $ mcp use raindrop --collection "Design Ops"
     </section>
 
     <section id="start" class="reveal">
-      <h2 class="section-title">Go live in one deploy.</h2>
-      <p class="section-lead">Share your details and we will send a ready-to-run config, plus a guided setup checklist.</p>
-      <div class="cta-row">
-        <button class="btn btn-primary">Request a Setup Link</button>
-        <button class="btn btn-ghost">Watch a 2-min Demo</button>
+      <h2 class="section-title">Connect in seconds.</h2>
+      <p class="section-lead">Add this to your MCP client configuration. It auto-discovers OAuth and connects to your Raindrop.io account.</p>
+      <div class="terminal" style="margin-top: 24px;">
+        <div class="terminal-header">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+        </div>
+        <pre>{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}</pre>
       </div>
-      <form class="form" style="margin-top: 18px;">
-        <input type="text" placeholder="Name" aria-label="Name" />
-        <input type="email" placeholder="Email" aria-label="Email" />
-        <input type="text" placeholder="Company" aria-label="Company" />
-        <button type="submit">Get Access</button>
-      </form>
+      <p class="section-lead" style="margin-top: 18px;">Compatible with Claude Desktop, LiteLLM, and any MCP client supporting Streamable HTTP transport.</p>
     </section>
 
     <footer>
       <div class="footer-links">
-        <a href="/sse">SSE</a>
-        <a href="/auth">Auth</a>
-        <a href="/status">Status</a>
+        <a href="/mcp">MCP Endpoint</a>
+        <a href="/.well-known/oauth-protected-resource">OAuth Metadata</a>
+        <a href="/health">Health</a>
       </div>
       <div class="newsletter">
         <input type="email" placeholder="Newsletter email" aria-label="Newsletter email" />
@@ -687,29 +697,34 @@ $ mcp use raindrop --collection "Design Ops"
 
   <script>
     const endpoints = {
-      sse: `{
-  "status": "connected",
-  "active_streams": 3,
-  "context_window": "5k tokens",
-  "latency_ms": 140
+      mcp: `{
+  "transport": "streamable-http",
+  "authentication": "OAuth 2.1 + PKCE",
+  "endpoint": "https://raindrop-mcp.anuragd.me/mcp",
+  "discovery": "/.well-known/oauth-protected-resource"
 }`,
-      auth: `{
-  "auth": "started",
-  "provider": "raindrop",
-  "scopes": ["collections.read", "highlights.read"],
-  "redirect": "/auth/callback"
+      metadata: `{
+  "resource": "https://raindrop-mcp.anuragd.me/mcp",
+  "authorization_servers": ["https://raindrop.io"],
+  "scopes_supported": ["raindrop:read", "raindrop:write"],
+  "grant_types_supported": ["authorization_code"]
 }`,
-      collections: `[
-  { "id": 311, "title": "Design Ops", "items": 148 },
-  { "id": 479, "title": "Agent Research", "items": 92 },
-  { "id": 512, "title": "Playbooks", "items": 61 }
+      tools: `[
+  "collection_list",
+  "collection_manage",
+  "bookmark_search",
+  "bookmark_manage",
+  "tag_list",
+  "highlight_manage",
+  "bulk_edit_bookmarks",
+  "bookmark_statistics"
 ]`,
-      search: `{
-  "query": "context window",
-  "matches": 12,
-  "top_hit": "Scaling retrieval in long-lived agents",
-  "highlighted": true
-}`
+      resources: `[
+  "raindrop://user/profile",
+  "raindrop://collections",
+  "raindrop://collection/{id}",
+  "raindrop://bookmark/{id}"
+]`
     };
 
     const buttons = document.querySelectorAll('.interactive-buttons button');
