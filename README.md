@@ -281,7 +281,7 @@ OAuth authentication is configured via environment variables. See [OAuth Guide](
 **Required Environment Variables:**
 - `OAUTH_CLIENT_ID` - Your OAuth app client ID
 - `OAUTH_CLIENT_SECRET` - Your OAuth app client secret
-- `OAUTH_REDIRECT_URI` - OAuth callback URL (e.g., `https://your-app.vercel.app/auth/callback`)
+- `OAUTH_REDIRECT_URI` - OAuth callback URL (e.g., `https://raindrop-mcp.anuragd.me/auth/callback`)
 - `OAUTH_ALLOWED_REDIRECT_URIS` - Comma-separated list of allowed redirect URIs
 - `TOKEN_ENCRYPTION_KEY` - 64-character hex key (generate with `openssl rand -hex 32`)
 
@@ -312,13 +312,13 @@ npm run deploy:vercel
 4. Set environment variables in Vercel dashboard:
    - `OAUTH_CLIENT_ID`
    - `OAUTH_CLIENT_SECRET`
-   - `OAUTH_REDIRECT_URI` (e.g., `https://your-app.vercel.app/auth/callback`)
+   - `OAUTH_REDIRECT_URI` (e.g., `https://raindrop-mcp.anuragd.me/auth/callback`)
    - `OAUTH_ALLOWED_REDIRECT_URIS` (e.g., `https://your-app.com/dashboard,/dashboard`)
    - `TOKEN_ENCRYPTION_KEY` (generate with `openssl rand -hex 32`)
    - `KV_REST_API_URL` (auto-set when KV linked)
    - `KV_REST_API_TOKEN` (auto-set when KV linked)
 
-Users authenticate via: `https://your-app.vercel.app/auth/init?redirect_uri=/dashboard`
+Users authenticate via: `https://raindrop-mcp.anuragd.me/auth/init?redirect_uri=/dashboard`
 
 📖 **Complete OAuth Setup**: [docs/OAUTH.md](docs/OAUTH.md)
 
@@ -344,7 +344,7 @@ Simply add this to your MCP client configuration:
 {
   "mcpServers": {
     "raindrop": {
-      "url": "https://your-app.vercel.app/mcp",
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
       "transport": "streamable-http"
     }
   }
@@ -369,7 +369,7 @@ If your MCP client doesn't support automatic OAuth discovery:
 
 1. **Authenticate via browser:**
    ```
-   https://your-app.vercel.app/auth/init?redirect_uri=/dashboard
+   https://raindrop-mcp.anuragd.me/auth/init?redirect_uri=/dashboard
    ```
 
 2. **Authorize on Raindrop.io** when redirected
@@ -381,7 +381,7 @@ If your MCP client doesn't support automatic OAuth discovery:
    {
      "mcpServers": {
        "raindrop": {
-         "url": "https://your-app.vercel.app/mcp",
+         "url": "https://raindrop-mcp.anuragd.me/mcp",
          "transport": "streamable-http",
          "auth": {
            "type": "cookie",
@@ -408,7 +408,7 @@ For development or personal use without OAuth:
 {
   "mcpServers": {
     "raindrop": {
-      "url": "https://your-app.vercel.app/mcp",
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
       "transport": "streamable-http",
       "headers": {
         "X-Raindrop-Token": "your_raindrop_token_here"
@@ -445,13 +445,13 @@ The server supports three authentication methods simultaneously:
 Users authenticate via browser:
 ```bash
 # Step 1: User visits in browser
-https://your-server.vercel.app/auth/init?redirect_uri=/dashboard
+https://raindrop-mcp.anuragd.me/auth/init?redirect_uri=/dashboard
 
 # Step 2: After Raindrop authorization, session cookie is set
 # Cookie: mcp_session=xxx (httpOnly, secure)
 
 # Step 3: Client includes cookie in requests
-curl https://your-server.vercel.app/mcp \
+curl https://raindrop-mcp.anuragd.me/mcp \
   -H "Cookie: mcp_session=session_id_here" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
@@ -472,7 +472,7 @@ curl https://your-server.vercel.app/mcp \
 **Best for**: Personal use, development, API integrations
 
 ```bash
-curl https://your-server.vercel.app/mcp \
+curl https://raindrop-mcp.anuragd.me/mcp \
   -H "X-API-Key: server_api_key" \
   -H "X-Raindrop-Token: user_raindrop_token" \
   -H "Content-Type: application/json" \
@@ -498,7 +498,7 @@ Recommended for production deployments to prevent unauthorized access.
 
 ### MCP Client Configuration
 
-If your client supports Streamable HTTP, point it at `https://your-app.vercel.app/mcp`.
+If your client supports Streamable HTTP, point it at `https://raindrop-mcp.anuragd.me/mcp`.
 For stdio-only clients, use `mcp-remote`.
 
 ## Environment Variables
@@ -511,7 +511,7 @@ For stdio-only clients, use `mcp-remote`.
 |----------|-------------|----------|------------|
 | `OAUTH_CLIENT_ID` | OAuth app client ID | For OAuth | [Create OAuth app](https://raindrop.io/dev/apps) |
 | `OAUTH_CLIENT_SECRET` | OAuth app client secret | For OAuth | From OAuth app settings |
-| `OAUTH_REDIRECT_URI` | OAuth callback URL | For OAuth | `https://your-app.vercel.app/auth/callback` |
+| `OAUTH_REDIRECT_URI` | OAuth callback URL | For OAuth | `https://raindrop-mcp.anuragd.me/auth/callback` |
 | `OAUTH_ALLOWED_REDIRECT_URIS` | Comma-separated allowed redirect URIs | For OAuth | `https://app.com/dashboard,/dashboard` |
 | `TOKEN_ENCRYPTION_KEY` | 64-char hex encryption key | For OAuth | `openssl rand -hex 32` |
 | `KV_REST_API_URL` | Vercel KV endpoint | For OAuth | Auto-set when KV linked |
@@ -766,7 +766,7 @@ npm test --coverage
 curl http://localhost:3000/health
 
 # Test deployed endpoint
-curl https://your-app.vercel.app/health
+curl https://raindrop-mcp.anuragd.me/health
 ```
 
 ## Troubleshooting
