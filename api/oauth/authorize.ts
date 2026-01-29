@@ -169,6 +169,9 @@ function generateConsentHtml(params: {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Authorize Application</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     * {
       margin: 0;
@@ -176,8 +179,12 @@ function generateConsentHtml(params: {
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'IBM Plex Mono', monospace;
+      color: #f6f7f9;
+      background: radial-gradient(circle at 20% 20%, #17202a, transparent 55%),
+        radial-gradient(circle at 80% 0%, #0f1c17, transparent 45%),
+        radial-gradient(circle at 80% 80%, #0f1216, transparent 50%),
+        #0b0d0f;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -185,48 +192,72 @@ function generateConsentHtml(params: {
       padding: 20px;
     }
     .consent-card {
-      background: white;
+      background: rgba(18, 22, 26, 0.95);
+      border: 1px solid #1f2a32;
       border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
       max-width: 480px;
       width: 100%;
       padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .consent-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #3dff9f, transparent);
     }
     .logo {
       width: 48px;
       height: 48px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #12161a;
+      border: 1px solid #1f2a32;
       border-radius: 12px;
       margin-bottom: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 24px;
-      color: white;
+    }
+    .brand-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #3dff9f;
+      box-shadow: 0 0 12px rgba(61, 255, 159, 0.6);
     }
     h1 {
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 24px;
       font-weight: 700;
-      color: #1a202c;
+      color: #f6f7f9;
       margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
     .subtitle {
       font-size: 14px;
-      color: #718096;
+      color: #93a0ad;
       margin-bottom: 32px;
+      line-height: 1.6;
     }
     .app-name {
       font-weight: 600;
-      color: #667eea;
+      color: #3dff9f;
     }
     .section-title {
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 16px;
       font-weight: 600;
-      color: #2d3748;
+      color: #f6f7f9;
       margin-bottom: 16px;
     }
     .scopes {
-      background: #f7fafc;
+      background: rgba(12, 15, 19, 0.6);
+      border: 1px solid #1f2a32;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 32px;
@@ -236,13 +267,14 @@ function generateConsentHtml(params: {
       align-items: flex-start;
       margin-bottom: 12px;
       font-size: 14px;
-      color: #4a5568;
+      color: #93a0ad;
+      line-height: 1.6;
     }
     .scope-item:last-child {
       margin-bottom: 0;
     }
     .scope-icon {
-      color: #48bb78;
+      color: #3dff9f;
       margin-right: 12px;
       font-weight: bold;
       flex-shrink: 0;
@@ -254,43 +286,53 @@ function generateConsentHtml(params: {
     button {
       flex: 1;
       padding: 14px 24px;
-      border-radius: 10px;
+      border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 15px;
       font-weight: 600;
+      letter-spacing: 0.02em;
       cursor: pointer;
-      transition: all 0.2s;
-      border: none;
+      transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+      border: 1px solid transparent;
     }
     .btn-approve {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: #3dff9f;
+      color: #0a0d0b;
+      box-shadow: 0 0 20px rgba(61, 255, 159, 0.3);
     }
     .btn-approve:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 0 30px rgba(61, 255, 159, 0.5);
     }
     .btn-deny {
-      background: white;
-      color: #4a5568;
-      border: 2px solid #e2e8f0;
+      background: transparent;
+      color: #f6f7f9;
+      border-color: #1f2a32;
     }
     .btn-deny:hover {
-      background: #f7fafc;
+      border-color: #3dff9f;
+      background: rgba(61, 255, 159, 0.05);
     }
     .security-note {
       margin-top: 24px;
       padding: 16px;
-      background: #fff5f5;
-      border-left: 4px solid #fc8181;
+      background: rgba(255, 179, 71, 0.1);
+      border-left: 3px solid #ffb347;
       border-radius: 8px;
       font-size: 13px;
-      color: #742a2a;
+      color: #93a0ad;
+      line-height: 1.6;
+    }
+    .security-note strong {
+      color: #ffb347;
     }
   </style>
 </head>
 <body>
   <div class="consent-card">
-    <div class="logo">🔐</div>
+    <div class="logo">
+      <span class="brand-dot"></span>
+    </div>
     <h1>Authorize Access</h1>
     <p class="subtitle">
       <span class="app-name">${escapeHtml(params.clientName)}</span> is requesting access to your Raindrop.io account
