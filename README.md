@@ -431,20 +431,27 @@ The deployed MCP endpoint is:
 
 ### MCP Flow (Short Diagram)
 
-```
-Client -> /mcp (GET/POST)
-  | 401 + WWW-Authenticate (resource_metadata)
-  v
-/.well-known/oauth-protected-resource/api/raindrop
-  | authorization_servers[0]
-  v
-/.well-known/oauth-authorization-server
-  | authorize/token/register endpoints
-  v
-/authorize -> /auth/init -> Raindrop OAuth -> /auth/callback
-  | access token
-  v
-Client -> /mcp (authorized)
+```mermaid
+sequenceDiagram
+  participant Client
+  participant MCP as /mcp (streamable-http)
+  participant PRM as /.well-known/oauth-protected-resource/api/raindrop
+  participant ASMeta as /.well-known/oauth-authorization-server
+  participant Auth as /authorize
+  participant OAuth as Raindrop OAuth
+  participant Callback as /auth/callback
+
+  Client->>MCP: GET/POST
+  MCP-->>Client: 401 + WWW-Authenticate (resource_metadata)
+  Client->>PRM: GET
+  PRM-->>Client: authorization_servers[0]
+  Client->>ASMeta: GET
+  ASMeta-->>Client: authorize/token/register endpoints
+  Client->>Auth: GET /authorize
+  Auth->>OAuth: /auth/init -> Raindrop OAuth
+  OAuth-->>Callback: redirect with code
+  Callback-->>Client: session cookie set
+  Client->>MCP: GET/POST (authorized)
 ```
 
 **OAuth Endpoints:**
