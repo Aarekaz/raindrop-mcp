@@ -766,5 +766,38 @@ const authHandler = withMcpAuth(baseHandler, verifyToken, {
   resourceMetadataPath: '/.well-known/oauth-protected-resource',
 });
 
-// Streamable HTTP transport requires GET, POST, and DELETE
-export { authHandler as GET, authHandler as POST, authHandler as DELETE };
+// Add CORS headers to all responses
+const withCors = (handler: (req: Request) => Promise<Response>) => {
+  return async (req: Request): Promise<Response> => {
+    const response = await handler(req);
+    const headers = new Headers(response.headers);
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Raindrop-Token');
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  };
+};
+
+// CORS preflight handler
+const corsHandler = async (req: Request): Promise<Response> => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Raindrop-Token',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+};
+
+// Wrap with CORS support
+const corsAuthHandler = withCors(authHandler);
+
+// Streamable HTTP transport requires GET, POST, DELETE, and OPTIONS (for CORS)
+export { corsAuthHandler as GET, corsAuthHandler as POST, corsAuthHandler as DELETE, corsHandler as OPTIONS };
