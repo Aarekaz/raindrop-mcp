@@ -6,7 +6,6 @@ import { protectedResourceHandler, metadataCorsOptionsRequestHandler } from 'mcp
  */
 const handler = protectedResourceHandler({
   authServerUrls: ['https://raindrop.io'],
-  scopes: ['raindrop:read', 'raindrop:write'],
 });
 
 /**
