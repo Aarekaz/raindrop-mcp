@@ -120,13 +120,13 @@ Returns authorization server metadata (RFC 8414):
 }
 ```
 
-#### GET /.well-known/oauth-protected-resource
+#### GET /.well-known/oauth-protected-resource/api/raindrop
 
 Returns protected resource metadata (RFC 9728):
 
 ```json
 {
-  "resource": "https://raindrop-mcp.anuragd.me",
+  "resource": "https://raindrop-mcp.anuragd.me/api/raindrop",
   "authorization_servers": [
     "https://raindrop-mcp.anuragd.me"
   ]

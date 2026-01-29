@@ -151,7 +151,7 @@ export PROD_URL="https://your-production-url.com"
 curl $PROD_URL/.well-known/oauth-authorization-server | jq
 
 # 2. Protected resource metadata
-curl $PROD_URL/.well-known/oauth-protected-resource | jq
+curl $PROD_URL/.well-known/oauth-protected-resource/api/raindrop | jq
 
 # 3. Health check
 curl $PROD_URL/health
@@ -311,7 +311,7 @@ If critical issues occur:
 vercel rollback
 
 # Verify
-curl $PROD_URL/.well-known/oauth-protected-resource | jq
+curl $PROD_URL/.well-known/oauth-protected-resource/api/raindrop | jq
 ```
 
 - [ ] Previous deployment ID noted: ___________________

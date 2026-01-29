@@ -38,6 +38,8 @@ import {
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
 
+const RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource/api/raindrop';
+
 /**
  * Validate Origin header to prevent DNS rebinding attacks
  * Required by MCP Streamable HTTP specification
@@ -806,7 +808,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
 const authHandler = withMcpAuth(baseHandler, verifyToken, {
   required: true,
   requiredScopes: ['raindrop:read'],
-  resourceMetadataPath: '/.well-known/oauth-protected-resource',
+  resourceMetadataPath: RESOURCE_METADATA_PATH,
 });
 
 // Add CORS headers to all responses
@@ -817,6 +819,10 @@ const withCors = (handler: (req: Request) => Promise<Response>) => {
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Raindrop-Token');
+    if (response.status === 401 && !headers.has('WWW-Authenticate')) {
+      const resourceMetadataUrl = new URL(RESOURCE_METADATA_PATH, req.url).toString();
+      headers.set('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${resourceMetadataUrl}"`);
+    }
 
     return new Response(response.body, {
       status: response.status,
