@@ -540,8 +540,8 @@
 
     <section class="hero">
       <div class="stagger">
-        <h1>Stream your Raindrop knowledge into every assistant.</h1>
-        <p>Raindrop MCP Server is a secure Model Context Protocol bridge for your Raindrop.io collections. It streams relevant bookmarks, tags, and highlights in real time so assistants answer with your exact sources.</p>
+        <h1>Your AI should remember what you saved.</h1>
+        <p>Connect your Raindrop.io bookmarks to any AI assistant. When Claude, ChatGPT, or your coding copilot needs context, they'll cite your curated sources instead of making things up.</p>
         <div class="cta-row">
           <button class="btn btn-primary" onclick="navigator.clipboard.writeText('https://raindrop-mcp.anuragd.me/mcp')">Copy MCP Endpoint</button>
         </div>
@@ -574,27 +574,27 @@
     </section>
 
     <section id="why" class="reveal">
-      <h2 class="section-title">Your assistants should sound like your archive.</h2>
-      <p class="section-lead">Most MCP servers stream generic summaries. Raindrop MCP Server brings your curated links, notes, and highlights into each response, so assistants reflect how you think and cite what you saved.</p>
+      <h2 class="section-title">Stop pasting bookmarks into chat windows.</h2>
+      <p class="section-lead">You've spent years saving research, articles, and references in Raindrop. Now your AI assistants can access that knowledge directly—no copy-paste, no context limits, no hallucinations about sources you actually saved.</p>
       <div class="story">
         <div class="story-block">
           <h3>Problem</h3>
-          <p>Teams bookmark thousands of references, but assistants answer with stale or public data. The signal lives in Raindrop, not in the model.</p>
+          <p>You bookmark hundreds of references, but your AI answers with generic web data. Your carefully curated knowledge stays siloed in Raindrop.</p>
         </div>
         <div class="story-block">
           <h3>Solution</h3>
-          <p>Raindrop MCP Server authenticates once, then streams fresh, scoped context on demand. No scraping, no manual exports, no duplication.</p>
+          <p>One-time OAuth setup connects your Raindrop account. Your AI can now search your bookmarks, read your highlights, and cite your exact sources on demand.</p>
         </div>
         <div class="story-block">
           <h3>Outcome</h3>
-          <p>Assistants respond with your exact sources, complete with tags, highlights, and notes in seconds.</p>
+          <p>Your AI responds using your research, your notes, and your tags—like having a research assistant who actually read your bookmarks.</p>
         </div>
       </div>
     </section>
 
     <section id="showcase" class="reveal">
-      <h2 class="section-title">Command the context, live.</h2>
-      <p class="section-lead">Pick the endpoint and watch the server respond. This live preview simulates real payloads from the MCP gateway.</p>
+      <h2 class="section-title">See what your AI can do.</h2>
+      <p class="section-lead">Once connected, your AI assistant gets 8 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
       <div class="showcase">
         <div class="interactive">
           <div class="interactive-buttons">
@@ -611,58 +611,58 @@
 }</pre>
         </div>
         <div class="signal">
-          <div class="label">Live Context Pulse</div>
-          <div class="value">1.3s refresh</div>
+          <div class="label">Real-Time Access</div>
+          <div class="value">Always Current</div>
           <div class="pulse"></div>
-          <p class="section-lead">Auto-refreshing streams keep your assistants synced to new bookmarks without re-indexing.</p>
+          <p class="section-lead">No syncing or indexing. Your AI sees new bookmarks the moment you save them to Raindrop.</p>
         </div>
       </div>
     </section>
 
     <section id="proof" class="reveal">
-      <h2 class="section-title">For the knowledge hoarders.</h2>
-      <p class="section-lead">You save the links. Your AI should use them. Raindrop MCP Server makes sure every assistant knows what you've curated.</p>
+      <h2 class="section-title">Built for people who save everything.</h2>
+      <p class="section-lead">You save the links. Your AI should use them. Stop explaining your research to your assistant—just connect your bookmarks once.</p>
       <div class="testimonials" style="margin-top: 20px;">
         <div class="testimonial">
-          <p>"Summarize the key insights from my AI agent research bookmarks tagged 'context-window'"</p>
+          <p>"Find all my bookmarks about React performance optimization. I saved them last month but forgot to tag them."</p>
         </div>
         <div class="testimonial">
-          <p>"What design patterns did I save about API rate limiting? Include the article links."</p>
+          <p>"List the articles I bookmarked about distributed systems, with the highlights I made."</p>
         </div>
         <div class="testimonial">
-          <p>"Pull relevant quotes from my 'LLM security' collection for this blog post draft"</p>
+          <p>"I'm writing about API design. Pull quotes from my 'REST' and 'GraphQL' collection bookmarks."</p>
         </div>
       </div>
     </section>
 
     <section id="security" class="reveal">
-      <h2 class="section-title">Built for secure, scoped context.</h2>
-      <p class="section-lead">Raindrop MCP Server stays out of your data plane. It streams only the collection you authorize, and never stores bookmarks or highlights.</p>
+      <h2 class="section-title">Your bookmarks stay yours.</h2>
+      <p class="section-lead">Standard OAuth login. Your AI reads directly from Raindrop when it needs context—nothing gets copied, stored, or cached permanently.</p>
       <div class="comparison">
         <div class="card">
-          <h3>Raindrop MCP</h3>
-          <p>Scoped OAuth with short-lived tokens, on-demand streaming, and ephemeral context windows.</p>
+          <h3>✓ With Raindrop MCP</h3>
+          <p>OAuth once. Bookmark in Raindrop. AI has instant access when you ask. Revoke anytime.</p>
         </div>
         <div class="card">
-          <h3>DIY scripts</h3>
-          <p>Manual exports, stale indexes, and brittle cron jobs that drift out of date.</p>
+          <h3>✗ Copy-paste everything</h3>
+          <p>Manually paste URLs into every chat. Hit token limits. Lose your highlights and tags.</p>
         </div>
         <div class="card">
-          <h3>Vector DB dumps</h3>
-          <p>Permanent storage of bookmarks, duplicated data, and expensive re-embeds.</p>
+          <h3>✗ Export to CSV</h3>
+          <p>Download static files. Import to vector DB. Re-export when you add bookmarks. Data gets stale.</p>
         </div>
       </div>
       <div class="badge-row">
-        <span class="badge">OAuth 2.0</span>
-        <span class="badge">SSE Streaming</span>
         <span class="badge">Zero Storage</span>
-        <span class="badge">Fine-Grained Scopes</span>
+        <span class="badge">OAuth Login</span>
+        <span class="badge">Read-Only Access</span>
+        <span class="badge">Revocable</span>
       </div>
     </section>
 
     <section id="start" class="reveal">
-      <h2 class="section-title">Connect in seconds.</h2>
-      <p class="section-lead">Add this to your MCP client configuration. It auto-discovers OAuth and connects to your Raindrop.io account.</p>
+      <h2 class="section-title">Add to any MCP-compatible app.</h2>
+      <p class="section-lead">Copy this config into Claude Desktop, Cline, or any app supporting MCP. Click authorize once—then start using your bookmarks in conversation.</p>
       <div class="terminal" style="margin-top: 24px;">
         <div class="terminal-header">
           <span class="terminal-dot"></span>
@@ -678,7 +678,7 @@
   }
 }</pre>
       </div>
-      <p class="section-lead" style="margin-top: 18px;">Compatible with Claude Desktop, LiteLLM, and any MCP client supporting Streamable HTTP transport.</p>
+      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cline, and other MCP-compatible apps. Your bookmarks, your AI, connected.</p>
     </section>
 
     <footer>
@@ -691,7 +691,7 @@
         <input type="email" placeholder="Newsletter email" aria-label="Newsletter email" />
         <button>Join the Drop</button>
       </div>
-      <small style="color: var(--color-muted);">© 2024 Raindrop MCP Server. Built for context-first assistants.</small>
+      <small style="color: var(--color-muted);">© 2024 Raindrop MCP Server. Built for people who actually save their research.</small>
     </footer>
   </div>
 
