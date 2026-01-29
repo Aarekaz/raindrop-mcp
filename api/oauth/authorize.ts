@@ -22,7 +22,7 @@ export async function GET(req: Request): Promise<Response> {
   const clientId = params.get('client_id');
   const redirectUri = params.get('redirect_uri');
   const responseType = params.get('response_type');
-  const scope = params.get('scope');
+  const scope = params.get('scope') || 'raindrop:read raindrop:write'; // Default scope for MCP clients
   const state = params.get('state');
   const codeChallenge = params.get('code_challenge');
   const codeChallengeMethod = params.get('code_challenge_method');
@@ -37,9 +37,7 @@ export async function GET(req: Request): Promise<Response> {
   if (responseType !== 'code') {
     return errorResponse('Invalid response_type. Only "code" is supported.');
   }
-  if (!scope) {
-    return errorResponse('Missing scope parameter');
-  }
+  // Note: scope is now optional, defaults to 'raindrop:read raindrop:write'
   if (!state) {
     return errorResponse('Missing state parameter (CSRF protection)');
   }
