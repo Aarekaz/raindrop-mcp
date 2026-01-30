@@ -795,7 +795,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
       },
     },
     {
-      streamableHttpEndpoint: '/api/raindrop',
+      streamableHttpEndpoint: '/mcp',
       disableSse: true,
       maxDuration: 300,
     }
