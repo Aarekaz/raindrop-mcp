@@ -17,7 +17,7 @@ import {
 } from './oauth.types.js';
 import type { TokenResponse } from '../types/oauth-server.types.js';
 
-const JWT_ISSUER = process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me';
+const JWT_ISSUER = (process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me').trim();
 const JWT_ACCESS_TOKEN_EXPIRY = parseInt(process.env.JWT_ACCESS_TOKEN_EXPIRY || '3600', 10); // 1 hour
 const JWT_REFRESH_TOKEN_EXPIRY = parseInt(process.env.JWT_REFRESH_TOKEN_EXPIRY || '2592000', 10); // 30 days
 

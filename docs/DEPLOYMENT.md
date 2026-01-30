@@ -8,7 +8,7 @@ This repository is designed to be hosted on Vercel using the `mcp-handler` patte
 - Health: `GET /health` (rewritten to `GET /api/health`)
 - OAuth init: `GET /auth/init` (served from `api/auth/init.ts`)
 - OAuth callback: `GET /auth/callback` (served from `api/auth/callback.ts`)
-- OAuth metadata: `GET /.well-known/oauth-protected-resource/api/raindrop` (served from `api/.well-known/oauth-protected-resource.ts` via rewrite)
+- OAuth metadata: `GET /.well-known/oauth-protected-resource/mcp` (served from `api/.well-known/oauth-protected-resource.ts` via rewrite)
 
 ## Deploy
 

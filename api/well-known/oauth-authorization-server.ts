@@ -3,7 +3,7 @@
  * Provides server discovery information
  */
 
-const BASE_URL = process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me';
+const BASE_URL = (process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me').trim();
 
 /**
  * GET /.well-known/oauth-authorization-server

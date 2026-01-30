@@ -354,7 +354,7 @@ Simply add this to your MCP client configuration:
 **What happens automatically:**
 1. Client connects to `/mcp` endpoint
 2. Receives 401 response with OAuth metadata
-3. Discovers authorization server via `/.well-known/oauth-protected-resource/api/raindrop`
+3. Discovers authorization server via `/.well-known/oauth-protected-resource/mcp`
 4. Opens browser for you to authorize on Raindrop.io
 5. Receives OAuth token and reconnects
 6. Ready to use!
@@ -435,7 +435,7 @@ The deployed MCP endpoint is:
 sequenceDiagram
   participant Client
   participant MCP as /mcp (streamable-http)
-  participant PRM as /.well-known/oauth-protected-resource/api/raindrop
+  participant PRM as /.well-known/oauth-protected-resource/mcp
   participant ASMeta as /.well-known/oauth-authorization-server
   participant Auth as /authorize
   participant OAuth as Raindrop OAuth
@@ -457,7 +457,7 @@ sequenceDiagram
 **OAuth Endpoints:**
 - `GET /auth/init?redirect_uri=/dashboard` - Start OAuth flow
 - `GET /auth/callback` - OAuth callback (handles Raindrop redirect)
-- `GET /.well-known/oauth-protected-resource/api/raindrop` - OAuth metadata (RFC 9728, path-based MCP endpoint)
+- `GET /.well-known/oauth-protected-resource/mcp` - OAuth metadata (RFC 9728, path-based MCP endpoint)
 
 ### Authentication Details
 
