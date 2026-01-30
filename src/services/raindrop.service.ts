@@ -62,9 +62,7 @@ export class RaindropService {
           }
           
           logger.error(errorMsg);
-          throw new Error(errorMsg);
         }
-        return response;
       },
     });
   }
