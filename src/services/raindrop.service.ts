@@ -664,8 +664,15 @@ export class RaindropService {
    * Fetch highlights for a specific bookmark
    */
   async getHighlights(bookmarkId: number): Promise<Highlight[]> {
-    const url = new URL(`${this.baseUrl}/raindrop/${bookmarkId}/highlights`);
-    return this.fetchHighlights(url, `bookmark ${bookmarkId}`);
+    const { data, error } = await this.client.GET('/raindrop/{id}', {
+      params: { path: { id: bookmarkId } },
+    });
+
+    if (error || !data?.item) {
+      throw new Error(`Failed to fetch highlights (bookmark ${bookmarkId}): ${error}`);
+    }
+
+    return data.item.highlights || [];
   }
 
   /**
