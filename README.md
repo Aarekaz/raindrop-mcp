@@ -8,7 +8,7 @@ A Model Context Protocol (MCP) server for interacting with [Raindrop.io](https:/
 
 - 📚 **Collection Management** - Create, update, delete, and list collections
 - 🔖 **Bookmark Operations** - Full CRUD operations for bookmarks with advanced search
-- 🏷️ **Tag Management** - List and organize tags across collections
+- 🏷️ **Tag Management** - List, rename, merge, and delete tags across collections
 - ✨ **Highlight Support** - Create and manage text highlights with color coding
 - ⚡ **Bulk Operations** - Update multiple bookmarks efficiently
 - 🔗 **Resource Links** - Efficient data access using MCP resource link pattern
@@ -622,20 +622,33 @@ Show all my tags
 List tags for collection 12345
 ```
 
-### 6. highlight_manage
+### 6. tag_manage
+Manage tags (list, rename, merge, delete).
+
+**Examples:**
+```
+List all tags
+Rename tag "old" to "new"
+Merge tags "old1" and "old2" into "new"
+Delete tag "obsolete"
+```
+
+### 7. highlight_manage
 Manage text highlights on bookmarks.
 
 **Examples:**
 ```
+List all highlights
+List highlights for collection 12345
 List highlights for bookmark 12345
 Create a yellow highlight on bookmark 12345 with text "Important concept"
 Update highlight abc123 to change color to blue
 Delete highlight abc123
 ```
 
-**Supported colors:** yellow, blue, green, red, purple
+**Supported colors:** yellow, blue, green, red, purple, teal, orange, pink, gray, indigo, brown, cyan
 
-### 7. bulk_edit_bookmarks
+### 8. bulk_edit_bookmarks
 Update multiple bookmarks at once.
 
 **Examples:**
@@ -692,7 +705,8 @@ raindrop-mcp/
 ├── api/
 │   ├── raindrop.ts                     # MCP endpoint (mcp-handler)
 │   ├── auth/                           # OAuth endpoints
-│   └── .well-known/                    # OAuth protected resource metadata
+├── public/
+│   └── .well-known/                    # OAuth metadata (static)
 ├── docs/
 │   ├── DEPLOYMENT.md                   # Deployment guide
 ├── tests/                              # Test files
@@ -804,10 +818,9 @@ curl https://raindrop-mcp.anuragd.me/health
 - Add as: `RAINDROP_ACCESS_TOKEN=your_token_here`
 
 **2. 401 Unauthorized**
-- Check `API_KEY` environment variable
-- Verify `X-API-Key` header matches
+- Verify auth is configured (OAuth flow completed or X-Raindrop-Token header set)
 
-**4. 500 Internal Server Error**
+**3. 500 Internal Server Error**
 - Verify Raindrop token is valid
 - Check server logs for details
 - Ensure environment variables are set
