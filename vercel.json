@@ -33,8 +33,7 @@
     {
       "source": "/register",
       "destination": "/api/oauth/register"
-    },
-    
+    }
   ],
   "functions": {
     "api/**/*.ts": {
