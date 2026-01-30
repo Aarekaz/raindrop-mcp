@@ -95,6 +95,13 @@ export const TagInputSchema = z.object({
   collectionId: z.number().optional(),
 });
 
+export const TagManageInputSchema = z.object({
+  operation: z.enum(['list', 'rename', 'merge', 'delete']),
+  collectionId: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+  replace: z.string().optional(),
+});
+
 // ==================== Highlight Schemas ====================
 
 export const HighlightOutputSchema = z.object({

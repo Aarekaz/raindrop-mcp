@@ -21,6 +21,7 @@ import {
   BookmarkSearchInputSchema,
   CollectionManageInputSchema,
   TagInputSchema,
+  TagManageInputSchema,
   HighlightManageInputSchema,
   BulkEditInputSchema,
   FilterStatsInputSchema,
@@ -674,6 +675,88 @@ const baseHandler = async (req: Request): Promise<Response> => {
               total: tags.length,
             },
           };
+        }
+      );
+
+      // Tool 5b: Manage Tags
+      server.registerTool(
+        'tag_manage',
+        {
+          title: 'Tag Manage',
+          description: 'List, rename, merge, or delete tags',
+          inputSchema: TagManageInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof TagManageInputSchema>) => {
+          switch (args.operation) {
+            case 'list': {
+              const tags = await raindropService.getTags(args.collectionId);
+              const tagList = tags.map((tag) => `${tag._id} (${tag.count})`).join(', ');
+              return {
+                content: [textContent(`Tags: ${tagList}`)],
+                structuredContent: {
+                  success: true,
+                  message: `Found ${tags.length} tags`,
+                },
+              };
+            }
+            case 'rename': {
+              if (!args.replace || !args.tags || args.tags.length !== 1) {
+                throw new Error(
+                  'rename requires replace and tags with exactly one tag name. ' +
+                  'Example: tags=["old"], replace="new".'
+                );
+              }
+              await raindropService.renameTag(args.tags, args.replace, args.collectionId);
+              return {
+                content: [textContent(`Renamed tag ${args.tags[0]} → ${args.replace}`)],
+                structuredContent: {
+                  success: true,
+                  message: `Renamed tag ${args.tags[0]} → ${args.replace}`,
+                },
+              };
+            }
+            case 'merge': {
+              if (!args.replace || !args.tags || args.tags.length < 2) {
+                throw new Error(
+                  'merge requires replace and tags with two or more tag names. ' +
+                  'Example: tags=["old1","old2"], replace="new".'
+                );
+              }
+              await raindropService.mergeTags(args.tags, args.replace, args.collectionId);
+              return {
+                content: [textContent(`Merged ${args.tags.length} tags → ${args.replace}`)],
+                structuredContent: {
+                  success: true,
+                  message: `Merged ${args.tags.length} tags → ${args.replace}`,
+                },
+              };
+            }
+            case 'delete': {
+              if (!args.tags || args.tags.length === 0) {
+                throw new Error(
+                  'delete requires tags with at least one tag name. ' +
+                  'Example: tags=["obsolete"].'
+                );
+              }
+              await raindropService.deleteTags(args.tags, args.collectionId);
+              return {
+                content: [textContent(`Deleted ${args.tags.length} tag(s)`)],
+                structuredContent: {
+                  success: true,
+                  message: `Deleted ${args.tags.length} tag(s)`,
+                },
+              };
+            }
+            default:
+              throw new Error(`Unknown operation: ${args.operation}`);
+          }
         }
       );
 

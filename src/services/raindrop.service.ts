@@ -353,6 +353,62 @@ export class RaindropService {
     return data?.items || [];
   }
 
+  async renameTag(
+    tags: string[],
+    replace: string,
+    collectionId?: number
+  ): Promise<void> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: JSON.stringify({ tags, replace }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to rename tag(s): ${response.status}`);
+    }
+  }
+
+  async mergeTags(
+    tags: string[],
+    replace: string,
+    collectionId?: number
+  ): Promise<void> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: JSON.stringify({ tags, replace }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to merge tags: ${response.status}`);
+    }
+  }
+
+  async deleteTags(tags: string[], collectionId?: number): Promise<void> {
+    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: JSON.stringify({ tags }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete tags: ${response.status}`);
+    }
+  }
+
   /**
    * Get filter statistics and counts for a collection
    * Useful for bookmark analysis, cleanup suggestions, and insights
