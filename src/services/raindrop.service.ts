@@ -404,23 +404,56 @@ export class RaindropService {
    * Fetch highlights for a specific bookmark
    */
   async getHighlights(bookmarkId: number): Promise<Highlight[]> {
-    const url = `${this.baseUrl}/raindrop/${bookmarkId}/highlights`;
-    
+    const url = new URL(`${this.baseUrl}/raindrop/${bookmarkId}/highlights`);
+    return this.fetchHighlights(url, `bookmark ${bookmarkId}`);
+  }
+
+  /**
+   * Fetch all highlights (optionally paginated)
+   */
+  async getHighlightsAll(page?: number, perPage?: number): Promise<Highlight[]> {
+    const url = new URL(`${this.baseUrl}/highlights`);
+    if (page) url.searchParams.set('page', String(page));
+    if (perPage) url.searchParams.set('perpage', String(perPage));
+    return this.fetchHighlights(url, 'all highlights');
+  }
+
+  /**
+   * Fetch highlights for a collection (optionally paginated)
+   */
+  async getHighlightsByCollection(
+    collectionId: number,
+    page?: number,
+    perPage?: number
+  ): Promise<Highlight[]> {
+    const url = new URL(`${this.baseUrl}/highlights/${collectionId}`);
+    if (page) url.searchParams.set('page', String(page));
+    if (perPage) url.searchParams.set('perpage', String(perPage));
+    return this.fetchHighlights(url, `collection ${collectionId}`);
+  }
+
+  private async fetchHighlights(url: URL, label: string): Promise<Highlight[]> {
     try {
-      const response = await fetch(url, {
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch highlights: ${response.status}`);
+        throw new Error(`Failed to fetch highlights (${label}): ${response.status}`);
       }
 
-      const result = await response.json() as { items: Highlight[] };
-      return result.items || [];
+      const result = await response.json() as { items?: Highlight[]; item?: { highlights?: Highlight[] } };
+      if (result.items) {
+        return result.items || [];
+      }
+      if (result.item?.highlights) {
+        return result.item.highlights || [];
+      }
+      return [];
     } catch (error) {
-      logger.error(`Error fetching highlights for bookmark ${bookmarkId}:`, error);
+      logger.error(`Error fetching highlights (${label}):`, error);
       throw error;
     }
   }

@@ -57,6 +57,11 @@ export const HighlightOutputSchema = z.object({
   note: z.string().optional(),
   color: z.string().optional(),
   created: z.string().optional(),
+  lastUpdate: z.string().optional(),
+  title: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  link: z.string().optional(),
+  raindropRef: z.number().optional(),
 });
 
 // Highlight list output schema

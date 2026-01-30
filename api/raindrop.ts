@@ -755,14 +755,15 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 },
               };
             case 'list':
-              if (!args.bookmarkId) {
-                throw new Error(
-                  'bookmarkId required for listing highlights. ' +
-                  'Use bookmark_search to find the bookmark, then use its ID here. ' +
-                  'This will return all highlights (annotations) saved for that bookmark.'
-                );
-              }
-              const highlights = await raindropService.getHighlights(args.bookmarkId);
+              const highlights = args.bookmarkId
+                ? await raindropService.getHighlights(args.bookmarkId)
+                : args.collectionId
+                  ? await raindropService.getHighlightsByCollection(
+                      args.collectionId,
+                      args.page,
+                      args.perPage
+                    )
+                  : await raindropService.getHighlightsAll(args.page, args.perPage);
               return {
                 content: [
                   textContent(`Found ${highlights.length} highlights`),

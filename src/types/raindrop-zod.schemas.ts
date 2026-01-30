@@ -108,6 +108,9 @@ export const HighlightOutputSchema = z.object({
 
 export const HighlightInputSchema = z.object({
   bookmarkId: z.number().optional(),
+  collectionId: z.number().optional(),
+  page: z.number().optional(),
+  perPage: z.number().optional(),
   text: z.string().optional(),
   note: z.string().optional(),
   color: z.enum(['blue', 'brown', 'cyan', 'gray', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal', 'yellow']).optional(),
