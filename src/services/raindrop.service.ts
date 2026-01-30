@@ -6,6 +6,7 @@
  */
 
 import createClient from 'openapi-fetch';
+import { Buffer } from 'buffer';
 import type { components, paths } from '../types/raindrop.schema.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -80,6 +81,94 @@ export class RaindropService {
     }
     
     return data?.items || [];
+  }
+
+  async getChildCollections(): Promise<Collection[]> {
+    const { data, error } = await this.client.GET('/collections/childrens');
+    if (error) {
+      throw new Error(`Failed to fetch child collections: ${error}`);
+    }
+    return data?.items || [];
+  }
+
+  async deleteCollections(ids: number[]): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/collections`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: JSON.stringify({ ids }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete collections: ${response.status}`);
+    }
+  }
+
+  async reorderCollections(sort: 'title' | '-title' | '-count'): Promise<void> {
+    const { error } = await (this.client as any).PUT('/collections', {
+      body: { sort },
+    });
+    if (error) {
+      throw new Error(`Failed to reorder collections: ${error}`);
+    }
+  }
+
+  async setCollectionsExpanded(expanded: boolean): Promise<void> {
+    const { error } = await (this.client as any).PUT('/collections', {
+      body: { expanded },
+    });
+    if (error) {
+      throw new Error(`Failed to set collections expanded=${expanded}: ${error}`);
+    }
+  }
+
+  async mergeCollections(to: number, ids: number[]): Promise<void> {
+    const { error } = await (this.client as any).PUT('/collections/merge', {
+      body: { to, ids },
+    });
+    if (error) {
+      throw new Error(`Failed to merge collections: ${error}`);
+    }
+  }
+
+  async cleanCollections(): Promise<{ count: number }> {
+    const { data, error } = await (this.client as any).PUT('/collections/clean');
+    if (error) {
+      throw new Error(`Failed to clean collections: ${error}`);
+    }
+    return { count: data?.count || 0 };
+  }
+
+  async emptyTrash(): Promise<void> {
+    const { error } = await this.client.DELETE('/collection/-99');
+    if (error) {
+      throw new Error(`Failed to empty trash: ${error}`);
+    }
+  }
+
+  async uploadCollectionCover(
+    id: number,
+    fileBase64: string,
+    fileName: string,
+    mimeType?: string
+  ): Promise<void> {
+    const bytes = Buffer.from(fileBase64, 'base64');
+    const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+    const form = new FormData();
+    form.append('cover', blob, fileName);
+
+    const response = await fetch(`${this.baseUrl}/collection/${id}/cover`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to upload collection cover: ${response.status}`);
+    }
   }
 
   /**
@@ -202,6 +291,34 @@ export class RaindropService {
     return data.item;
   }
 
+  async getRaindropCacheUrl(id: number): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/raindrop/${id}/cache`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      redirect: 'manual',
+    });
+
+    if (response.status === 307 || response.status === 302) {
+      const location = response.headers.get('location');
+      if (!location) {
+        throw new Error('Cache redirect missing Location header');
+      }
+      return location;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to get cache URL: ${response.status}`);
+    }
+
+    const location = response.headers.get('location');
+    if (location) {
+      return location;
+    }
+    throw new Error('Cache URL not available');
+  }
+
   /**
    * Create a new bookmark
    */
@@ -235,6 +352,44 @@ export class RaindropService {
     return data.item;
   }
 
+  async bulkCreateBookmarks(items: Array<{
+    link: string;
+    title?: string;
+    excerpt?: string;
+    tags?: string[];
+    important?: boolean;
+    collectionId?: number;
+    cover?: string;
+    media?: string[];
+    type?: string;
+    note?: string;
+    pleaseParse?: boolean;
+  }>): Promise<Bookmark[]> {
+    const payloadItems = items.map((item) => ({
+      link: item.link,
+      ...(item.title && { title: item.title }),
+      ...(item.excerpt && { excerpt: item.excerpt }),
+      ...(item.tags && { tags: item.tags }),
+      ...(item.important !== undefined && { important: item.important }),
+      ...(item.cover && { cover: item.cover }),
+      ...(item.media && { media: item.media }),
+      ...(item.type && { type: item.type }),
+      ...(item.note && { note: item.note }),
+      ...(item.pleaseParse && { pleaseParse: {} }),
+      ...(item.collectionId !== undefined && { collection: { $id: item.collectionId } }),
+    }));
+
+    const { data, error } = await (this.client as any).POST('/raindrops', {
+      body: { items: payloadItems },
+    });
+
+    if (error) {
+      throw new Error(`Failed to create multiple bookmarks: ${error}`);
+    }
+
+    return data?.items || [];
+  }
+
   /**
    * Get AI-powered suggestions for collections and tags for a URL
    * Perfect for auto-categorization before creating a bookmark
@@ -249,6 +404,19 @@ export class RaindropService {
     }
 
     logger.info(`Got suggestions for ${link}`);
+    return data.item;
+  }
+
+  async getSuggestionsForBookmark(id: number): Promise<{ collections?: Array<{ $id: number }>; tags?: string[] }> {
+    const { data, error } = await this.client.GET('/raindrop/{id}/suggest', {
+      params: { path: { id } },
+    });
+
+    if (error || !data?.item) {
+      throw new Error(`Failed to get suggestions for bookmark ${id}: ${error}`);
+    }
+
+    logger.info(`Got suggestions for bookmark ${id}`);
     return data.item;
   }
 
@@ -282,6 +450,31 @@ export class RaindropService {
     }
     
     logger.info(`Deleted bookmark ${id}`);
+  }
+
+  async bulkDeleteBookmarks(
+    collectionId: number,
+    params: { ids?: number[]; search?: string; nested?: boolean }
+  ): Promise<{ modified: number }> {
+    const url = new URL(`${this.baseUrl}/raindrops/${collectionId}`);
+    if (params.search) url.searchParams.set('search', params.search);
+    if (params.nested !== undefined) url.searchParams.set('nested', String(params.nested));
+
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: JSON.stringify({ ids: params.ids }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete bookmarks: ${response.status}`);
+    }
+
+    const data = await response.json() as { modified?: number };
+    return { modified: data.modified || 0 };
   }
 
   /**
@@ -626,6 +819,60 @@ export class RaindropService {
     }
   }
 
+  async uploadRaindropCover(
+    id: number,
+    fileBase64: string,
+    fileName: string,
+    mimeType?: string
+  ): Promise<void> {
+    const bytes = Buffer.from(fileBase64, 'base64');
+    const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+    const form = new FormData();
+    form.append('cover', blob, fileName);
+
+    const response = await fetch(`${this.baseUrl}/raindrop/${id}/cover`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to upload raindrop cover: ${response.status}`);
+    }
+  }
+
+  async uploadRaindropFile(
+    fileBase64: string,
+    fileName: string,
+    mimeType?: string,
+    collectionId?: number
+  ): Promise<Bookmark> {
+    const bytes = Buffer.from(fileBase64, 'base64');
+    const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+    const form = new FormData();
+    form.append('file', blob, fileName);
+    if (collectionId !== undefined) {
+      form.append('collectionId', String(collectionId));
+    }
+
+    const response = await fetch(`${this.baseUrl}/raindrop/file`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: form,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to upload file: ${response.status}`);
+    }
+
+    const result = await response.json() as { item: Bookmark };
+    return result.item;
+  }
+
   // ==================== User ====================
 
   /**
@@ -639,6 +886,17 @@ export class RaindropService {
     }
     
     return data.user;
+  }
+
+  async getUserStats(): Promise<{ items: Array<{ _id: number; count: number }>; meta?: Record<string, unknown> }> {
+    const { data, error } = await (this.client as any).GET('/user/stats');
+    if (error || !data) {
+      throw new Error(`Failed to fetch user stats: ${error}`);
+    }
+    return {
+      items: data.items || [],
+      meta: data.meta,
+    };
   }
 }
 

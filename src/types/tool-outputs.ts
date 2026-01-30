@@ -83,6 +83,25 @@ export const BulkEditOutputSchema = z.object({
   bookmarkIds: z.array(z.number()),
 });
 
+// Bulk delete output schema
+export const BulkDeleteOutputSchema = z.object({
+  modified: z.number(),
+});
+
+// User stats output schema
+export const UserStatsOutputSchema = z.object({
+  items: z.array(z.object({
+    _id: z.number(),
+    count: z.number(),
+  })),
+  meta: z.object({
+    pro: z.boolean().optional(),
+    _id: z.number().optional(),
+    changedBookmarksDate: z.string().optional(),
+    duplicates: z.object({ count: z.number().optional() }).optional(),
+    broken: z.object({ count: z.number().optional() }).optional(),
+  }).optional(),
+});
 // Statistics output schema
 export const StatisticsOutputSchema = z.object({
   broken: z.number().optional(),

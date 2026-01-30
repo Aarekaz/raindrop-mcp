@@ -20,11 +20,26 @@ import {
   BookmarkManageInputSchema,
   BookmarkSearchInputSchema,
   CollectionManageInputSchema,
+  CollectionChildrenInputSchema,
+  CollectionBulkDeleteInputSchema,
+  CollectionReorderInputSchema,
+  CollectionExpandInputSchema,
+  CollectionMergeInputSchema,
+  CollectionCleanInputSchema,
+  CollectionCoverUploadInputSchema,
+  EmptyTrashInputSchema,
+  UserStatsInputSchema,
   TagInputSchema,
   TagManageInputSchema,
   HighlightManageInputSchema,
   BulkEditInputSchema,
   FilterStatsInputSchema,
+  RaindropCacheInputSchema,
+  RaindropSuggestExistingInputSchema,
+  RaindropBulkCreateInputSchema,
+  RaindropBulkDeleteInputSchema,
+  RaindropFileUploadInputSchema,
+  RaindropCoverUploadInputSchema,
 } from "../src/types/raindrop-zod.schemas.js";
 import {
   CollectionListOutputSchema,
@@ -32,7 +47,9 @@ import {
   TagListOutputSchema,
   HighlightListOutputSchema,
   BulkEditOutputSchema,
+  BulkDeleteOutputSchema,
   StatisticsOutputSchema,
+  UserStatsOutputSchema,
   OperationResultSchema,
 } from '../src/types/tool-outputs.js';
 
@@ -394,6 +411,35 @@ const baseHandler = async (req: Request): Promise<Response> => {
         }
       );
 
+      server.registerTool(
+        'collection_children_list',
+        {
+          title: 'Collection Children List',
+          description: 'List all nested (child) collections',
+          inputSchema: CollectionChildrenInputSchema.shape,
+          outputSchema: CollectionListOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
+        },
+        async () => {
+          const collections = await raindropService.getChildCollections();
+          return {
+            content: [
+              textContent(`Found ${collections.length} child collections`),
+              ...collections.map(makeCollectionLink),
+            ],
+            structuredContent: {
+              collections,
+              total: collections.length,
+            },
+          };
+        }
+      );
+
       // Tool 2: Manage Collections
       server.registerTool(
         'collection_manage',
@@ -477,6 +523,218 @@ const baseHandler = async (req: Request): Promise<Response> => {
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
           }
+        }
+      );
+
+      server.registerTool(
+        'collection_bulk_delete',
+        {
+          title: 'Collection Bulk Delete',
+          description: 'Delete multiple collections by ID',
+          inputSchema: CollectionBulkDeleteInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof CollectionBulkDeleteInputSchema>) => {
+          await raindropService.deleteCollections(args.ids);
+          return {
+            content: [textContent(`Deleted ${args.ids.length} collections`)],
+            structuredContent: {
+              success: true,
+              message: `Deleted ${args.ids.length} collections`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_reorder',
+        {
+          title: 'Collection Reorder',
+          description: 'Reorder all collections by title or count',
+          inputSchema: CollectionReorderInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof CollectionReorderInputSchema>) => {
+          await raindropService.reorderCollections(args.sort);
+          return {
+            content: [textContent(`Reordered collections by ${args.sort}`)],
+            structuredContent: {
+              success: true,
+              message: `Reordered collections by ${args.sort}`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_expand',
+        {
+          title: 'Collection Expand/Collapse',
+          description: 'Expand or collapse all collections',
+          inputSchema: CollectionExpandInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof CollectionExpandInputSchema>) => {
+          await raindropService.setCollectionsExpanded(args.expanded);
+          return {
+            content: [textContent(`${args.expanded ? 'Expanded' : 'Collapsed'} all collections`)],
+            structuredContent: {
+              success: true,
+              message: `${args.expanded ? 'Expanded' : 'Collapsed'} all collections`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_merge',
+        {
+          title: 'Collection Merge',
+          description: 'Merge multiple collections into one',
+          inputSchema: CollectionMergeInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof CollectionMergeInputSchema>) => {
+          await raindropService.mergeCollections(args.to, args.ids);
+          return {
+            content: [textContent(`Merged ${args.ids.length} collections into ${args.to}`)],
+            structuredContent: {
+              success: true,
+              message: `Merged ${args.ids.length} collections into ${args.to}`,
+              resourceUri: `raindrop://collection/${args.to}`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_clean',
+        {
+          title: 'Collection Clean',
+          description: 'Remove all empty collections',
+          inputSchema: CollectionCleanInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async () => {
+          const result = await raindropService.cleanCollections();
+          return {
+            content: [textContent(`Removed ${result.count} empty collections`)],
+            structuredContent: {
+              success: true,
+              message: `Removed ${result.count} empty collections`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_empty_trash',
+        {
+          title: 'Collection Empty Trash',
+          description: 'Permanently delete all bookmarks in Trash',
+          inputSchema: EmptyTrashInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async () => {
+          await raindropService.emptyTrash();
+          return {
+            content: [textContent('Emptied Trash collection')],
+            structuredContent: {
+              success: true,
+              message: 'Emptied Trash collection',
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'collection_cover_upload',
+        {
+          title: 'Collection Cover Upload',
+          description: 'Upload a cover image for a collection (base64)',
+          inputSchema: CollectionCoverUploadInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof CollectionCoverUploadInputSchema>) => {
+          await raindropService.uploadCollectionCover(
+            args.id,
+            args.fileBase64,
+            args.fileName,
+            args.mimeType
+          );
+          return {
+            content: [textContent(`Uploaded cover for collection ${args.id}`)],
+            structuredContent: {
+              success: true,
+              message: `Uploaded cover for collection ${args.id}`,
+              resourceUri: `raindrop://collection/${args.id}`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'user_stats',
+        {
+          title: 'User Stats',
+          description: 'Get system collection counts and metadata',
+          inputSchema: UserStatsInputSchema.shape,
+          outputSchema: UserStatsOutputSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
+        },
+        async () => {
+          const stats = await raindropService.getUserStats();
+          return {
+            content: [textContent('Fetched user stats')],
+            structuredContent: stats,
+          };
         }
       );
 
@@ -647,6 +905,180 @@ const baseHandler = async (req: Request): Promise<Response> => {
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
           }
+        }
+      );
+
+      server.registerTool(
+        'bookmark_cache',
+        {
+          title: 'Bookmark Cache',
+          description: 'Get permanent cache URL for a bookmark (PRO)',
+          inputSchema: RaindropCacheInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropCacheInputSchema>) => {
+          const url = await raindropService.getRaindropCacheUrl(args.id);
+          return {
+            content: [textContent(`Cache URL: ${url}`)],
+            structuredContent: {
+              success: true,
+              message: url,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'bookmark_suggest_existing',
+        {
+          title: 'Bookmark Suggest Existing',
+          description: 'Get collection/tag suggestions for an existing bookmark',
+          inputSchema: RaindropSuggestExistingInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropSuggestExistingInputSchema>) => {
+          const suggestions = await raindropService.getSuggestionsForBookmark(args.id);
+          return {
+            content: [textContent('Suggestions ready')],
+            structuredContent: {
+              success: true,
+              message: JSON.stringify(suggestions),
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'bookmark_bulk_create',
+        {
+          title: 'Bookmark Bulk Create',
+          description: 'Create multiple bookmarks in a single request',
+          inputSchema: RaindropBulkCreateInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropBulkCreateInputSchema>) => {
+          const created = await raindropService.bulkCreateBookmarks(args.items);
+          return {
+            content: [textContent(`Created ${created.length} bookmarks`)],
+            structuredContent: {
+              success: true,
+              message: `Created ${created.length} bookmarks`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'bookmark_bulk_delete',
+        {
+          title: 'Bookmark Bulk Delete',
+          description: 'Delete multiple bookmarks in a collection',
+          inputSchema: RaindropBulkDeleteInputSchema.shape,
+          outputSchema: BulkDeleteOutputSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropBulkDeleteInputSchema>) => {
+          const result = await raindropService.bulkDeleteBookmarks(
+            args.collectionId,
+            {
+              ids: args.ids,
+              search: args.search,
+              nested: args.nested,
+            }
+          );
+          return {
+            content: [textContent(`Deleted ${result.modified} bookmarks`)],
+            structuredContent: {
+              modified: result.modified,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'bookmark_file_upload',
+        {
+          title: 'Bookmark File Upload',
+          description: 'Upload a file as a bookmark (base64)',
+          inputSchema: RaindropFileUploadInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropFileUploadInputSchema>) => {
+          const item = await raindropService.uploadRaindropFile(
+            args.fileBase64,
+            args.fileName,
+            args.mimeType,
+            args.collectionId
+          );
+          return {
+            content: [textContent(`Uploaded file bookmark ${item._id}`)],
+            structuredContent: {
+              success: true,
+              message: `Uploaded file bookmark ${item._id}`,
+              resourceUri: `raindrop://bookmark/${item._id}`,
+            },
+          };
+        }
+      );
+
+      server.registerTool(
+        'bookmark_cover_upload',
+        {
+          title: 'Bookmark Cover Upload',
+          description: 'Upload a cover image for a bookmark (base64)',
+          inputSchema: RaindropCoverUploadInputSchema.shape,
+          outputSchema: OperationResultSchema.shape,
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false,
+          },
+        },
+        async (args: z.infer<typeof RaindropCoverUploadInputSchema>) => {
+          await raindropService.uploadRaindropCover(
+            args.id,
+            args.fileBase64,
+            args.fileName,
+            args.mimeType
+          );
+          return {
+            content: [textContent(`Uploaded cover for bookmark ${args.id}`)],
+            structuredContent: {
+              success: true,
+              message: `Uploaded cover for bookmark ${args.id}`,
+              resourceUri: `raindrop://bookmark/${args.id}`,
+            },
+          };
         }
       );
 

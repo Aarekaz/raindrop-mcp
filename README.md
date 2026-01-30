@@ -584,6 +584,27 @@ Update collection 12345 to have description "Machine learning papers"
 Delete collection 12345
 ```
 
+### 2a. collection_children_list
+List nested (child) collections.
+
+**Example:**
+```
+List all child collections
+```
+
+### 2b. Collection maintenance tools
+Advanced collection operations.
+
+**Tools:**
+- `collection_bulk_delete` - Delete multiple collections by ID
+- `collection_reorder` - Reorder all collections by title or count
+- `collection_expand` - Expand/collapse all collections
+- `collection_merge` - Merge collections into a target collection
+- `collection_clean` - Remove empty collections
+- `collection_empty_trash` - Permanently empty Trash
+- `collection_cover_upload` - Upload collection cover (base64)
+- `user_stats` - Get system collection counts
+
 ### 3. bookmark_search
 Search bookmarks with advanced filters.
 
@@ -612,6 +633,16 @@ Add bookmark https://example.com to collection 12345 with title "Example Site"
 Update bookmark 67890 to add tags "reference" and "docs"
 Delete bookmark 67890
 ```
+
+### 4a. Bookmark advanced tools
+
+**Tools:**
+- `bookmark_cache` - Get permanent cache URL (PRO)
+- `bookmark_suggest_existing` - Suggestions for an existing bookmark
+- `bookmark_bulk_create` - Create multiple bookmarks
+- `bookmark_bulk_delete` - Delete multiple bookmarks in a collection
+- `bookmark_file_upload` - Upload a file as a bookmark (base64)
+- `bookmark_cover_upload` - Upload a cover image (base64)
 
 ### 5. tag_list
 List all tags with usage counts.

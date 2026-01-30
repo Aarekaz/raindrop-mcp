@@ -27,6 +27,38 @@ export const CollectionManageInputSchema = z.object({
   public: z.boolean().optional(),
 });
 
+export const CollectionChildrenInputSchema = z.object({});
+
+export const CollectionBulkDeleteInputSchema = z.object({
+  ids: z.array(z.number()).min(1),
+});
+
+export const CollectionReorderInputSchema = z.object({
+  sort: z.enum(['title', '-title', '-count']),
+});
+
+export const CollectionExpandInputSchema = z.object({
+  expanded: z.boolean(),
+});
+
+export const CollectionMergeInputSchema = z.object({
+  to: z.number(),
+  ids: z.array(z.number()).min(1),
+});
+
+export const CollectionCleanInputSchema = z.object({});
+
+export const CollectionCoverUploadInputSchema = z.object({
+  id: z.number(),
+  fileBase64: z.string(),
+  fileName: z.string(),
+  mimeType: z.string().optional(),
+});
+
+export const EmptyTrashInputSchema = z.object({});
+
+export const UserStatsInputSchema = z.object({});
+
 // ==================== Bookmark Schemas ====================
 
 export const BookmarkOutputSchema = z.object({
@@ -162,6 +194,51 @@ export const FilterStatsInputSchema = z.object({
   collectionId: z.number().describe('Collection ID to get statistics for (use 0 for all bookmarks)'),
   tagsSort: z.enum(['-count', '_id']).optional().describe('Sort tags by count (descending) or alphabetically'),
   search: z.string().optional().describe('Filter statistics by search query'),
+});
+
+export const RaindropCacheInputSchema = z.object({
+  id: z.number(),
+});
+
+export const RaindropSuggestExistingInputSchema = z.object({
+  id: z.number(),
+});
+
+export const RaindropBulkCreateInputSchema = z.object({
+  items: z.array(z.object({
+    link: z.string().url(),
+    title: z.string().optional(),
+    excerpt: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    important: z.boolean().optional(),
+    collectionId: z.number().optional(),
+    cover: z.string().optional(),
+    media: z.array(z.string()).optional(),
+    type: z.string().optional(),
+    note: z.string().optional(),
+    pleaseParse: z.boolean().optional(),
+  })).min(1),
+});
+
+export const RaindropBulkDeleteInputSchema = z.object({
+  collectionId: z.number(),
+  ids: z.array(z.number()).optional(),
+  search: z.string().optional(),
+  nested: z.boolean().optional(),
+});
+
+export const RaindropFileUploadInputSchema = z.object({
+  fileBase64: z.string(),
+  fileName: z.string(),
+  mimeType: z.string().optional(),
+  collectionId: z.number().optional(),
+});
+
+export const RaindropCoverUploadInputSchema = z.object({
+  id: z.number(),
+  fileBase64: z.string(),
+  fileName: z.string(),
+  mimeType: z.string().optional(),
 });
 
 // ==================== Bulk Edit Schemas ====================
