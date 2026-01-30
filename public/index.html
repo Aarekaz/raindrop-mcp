@@ -543,11 +543,12 @@
         <h1>Your AI should remember what you saved.</h1>
         <p>Connect your Raindrop.io bookmarks to any AI assistant. When Claude, ChatGPT, or your coding copilot needs context, they'll cite your curated sources instead of making things up.</p>
         <div class="cta-row">
-          <button class="btn btn-primary" onclick="navigator.clipboard.writeText('https://raindrop-mcp.anuragd.me/mcp')">Copy MCP Endpoint</button>
+          <button class="btn btn-primary" id="copy-endpoint">Copy MCP Endpoint</button>
+          <span id="copy-status" style="color: var(--color-muted); font-size: 12px;"></span>
         </div>
         <div class="trust">
           <span>OAuth-ready</span>
-          <span>Streaming SSE</span>
+          <span>Streamable HTTP</span>
           <span>Zero storage</span>
         </div>
       </div>
@@ -594,7 +595,7 @@
 
     <section id="showcase" class="reveal">
       <h2 class="section-title">See what your AI can do.</h2>
-      <p class="section-lead">Once connected, your AI assistant gets 8 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
+      <p class="section-lead">Once connected, your AI assistant gets 26 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
       <div class="showcase">
         <div class="interactive">
           <div class="interactive-buttons">
@@ -655,7 +656,7 @@
       <div class="badge-row">
         <span class="badge">Zero Storage</span>
         <span class="badge">OAuth Login</span>
-        <span class="badge">Read-Only Access</span>
+        <span class="badge">Read + Write Access</span>
         <span class="badge">Revocable</span>
       </div>
     </section>
@@ -678,7 +679,7 @@
   }
 }</pre>
       </div>
-      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cline, and other MCP-compatible apps. Your bookmarks, your AI, connected.</p>
+      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cline, and other MCP-compatible apps. OAuth required for first-time access.</p>
     </section>
 
     <footer>
@@ -691,7 +692,7 @@
         <input type="email" placeholder="Newsletter email" aria-label="Newsletter email" />
         <button>Join the Drop</button>
       </div>
-      <small style="color: var(--color-muted);">© 2024 Raindrop MCP Server. Built for people who actually save their research.</small>
+      <small style="color: var(--color-muted);">© 2026 Raindrop MCP Server. Built for people who actually save their research.</small>
     </footer>
   </div>
 
@@ -705,16 +706,32 @@
 }`,
       metadata: `{
   "resource": "https://raindrop-mcp.anuragd.me/mcp",
-  "authorization_servers": ["https://raindrop.io"],
+  "authorization_servers": ["https://raindrop-mcp.anuragd.me"],
   "scopes_supported": ["raindrop:read", "raindrop:write"],
   "grant_types_supported": ["authorization_code"]
 }`,
       tools: `[
   "collection_list",
+  "collection_children_list",
   "collection_manage",
+  "collection_bulk_delete",
+  "collection_reorder",
+  "collection_expand",
+  "collection_merge",
+  "collection_clean",
+  "collection_empty_trash",
+  "collection_cover_upload",
+  "user_stats",
   "bookmark_search",
   "bookmark_manage",
+  "bookmark_cache",
+  "bookmark_suggest_existing",
+  "bookmark_bulk_create",
+  "bookmark_bulk_delete",
+  "bookmark_file_upload",
+  "bookmark_cover_upload",
   "tag_list",
+  "tag_manage",
   "highlight_manage",
   "bulk_edit_bookmarks",
   "bookmark_statistics"
@@ -752,6 +769,23 @@
     );
 
     revealElements.forEach((el) => observer.observe(el));
+
+    const copyButton = document.getElementById('copy-endpoint');
+    const copyStatus = document.getElementById('copy-status');
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('https://raindrop-mcp.anuragd.me/mcp');
+        copyStatus.textContent = 'Copied!';
+        setTimeout(() => {
+          copyStatus.textContent = '';
+        }, 2000);
+      } catch (error) {
+        copyStatus.textContent = 'Copy failed';
+        setTimeout(() => {
+          copyStatus.textContent = '';
+        }, 2000);
+      }
+    });
   </script>
 </body>
 </html>
