@@ -1234,9 +1234,9 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 },
               };
             case 'update':
-              if (!args.id) {
+              if (!args.bookmarkId || !args.id) {
                 throw new Error(
-                  'id required for update. ' +
+                  'bookmarkId and id required for update. ' +
                   'Use highlight_manage list with bookmarkId to see existing highlights. ' +
                   'Highlight IDs are string values (e.g., "65abc123def456").'
                 );
@@ -1245,7 +1245,7 @@ const baseHandler = async (req: Request): Promise<Response> => {
               if (args.text !== undefined) updates.text = args.text;
               if (args.color !== undefined) updates.color = args.color;
               if (args.note !== undefined) updates.note = args.note;
-              await raindropService.updateHighlight(args.id, updates);
+              await raindropService.updateHighlight(args.bookmarkId, args.id, updates);
               return {
                 content: [textContent(`Updated highlight ${args.id}`)],
                 structuredContent: {
@@ -1254,14 +1254,14 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 },
               };
             case 'delete':
-              if (!args.id) {
+              if (!args.bookmarkId || !args.id) {
                 throw new Error(
-                  'id required for delete. ' +
+                  'bookmarkId and id required for delete. ' +
                   'Use highlight_manage list to find highlight IDs. ' +
                   'Deleting a highlight removes the annotation permanently from the bookmark.'
                 );
               }
-              await raindropService.deleteHighlight(args.id);
+              await raindropService.deleteHighlight(args.bookmarkId, args.id);
               return {
                 content: [textContent(`Deleted highlight ${args.id}`)],
                 structuredContent: {

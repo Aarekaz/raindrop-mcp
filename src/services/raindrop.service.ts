@@ -736,105 +736,81 @@ export class RaindropService {
       color?: string;
     }
   ): Promise<Highlight> {
-    const url = `${this.baseUrl}/highlights`;
-    
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.accessToken}`,
-        },
-        body: JSON.stringify({
-          text: highlight.text,
-          note: highlight.note,
-          color: highlight.color || 'yellow',
-          raindrop: { $id: bookmarkId },
-        }),
-      });
+    const { data, error } = await this.client.PUT('/raindrop/{id}', {
+      params: { path: { id: bookmarkId } },
+      body: {
+        highlights: [
+          {
+            text: highlight.text,
+            note: highlight.note,
+            color: highlight.color || 'yellow',
+          },
+        ],
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to create highlight: ${response.status}`);
-      }
-
-      const result = await response.json() as { item: Highlight };
-      
-      if (!result.item) {
-        throw new Error('Failed to create highlight');
-      }
-
-      logger.info(`Created highlight for bookmark ${bookmarkId}`);
-      return result.item;
-    } catch (error) {
-      logger.error('Error creating highlight:', error);
-      throw error;
+    if (error || !data?.item?.highlights?.length) {
+      throw new Error(`Failed to create highlight: ${error}`);
     }
+
+    logger.info(`Created highlight for bookmark ${bookmarkId}`);
+    return data.item.highlights[data.item.highlights.length - 1];
   }
 
   /**
    * Update an existing highlight
    */
   async updateHighlight(
+    bookmarkId: number,
     id: string,
     updates: {
       text?: string;
       note?: string;
       color?: string;
     }
-  ): Promise<Highlight> {
-    const url = `${this.baseUrl}/highlights/${id}`;
-    
-    try {
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.accessToken}`,
-        },
-        body: JSON.stringify(updates),
-      });
+  ): Promise<void> {
+    const { error } = await this.client.PUT('/raindrop/{id}', {
+      params: { path: { id: bookmarkId } },
+      body: {
+        highlights: [
+          {
+            _id: id,
+            ...(updates.text !== undefined && { text: updates.text }),
+            ...(updates.note !== undefined && { note: updates.note }),
+            ...(updates.color !== undefined && { color: updates.color }),
+          },
+        ],
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to update highlight: ${response.status}`);
-      }
-
-      const result = await response.json() as { item: Highlight };
-      
-      if (!result.item) {
-        throw new Error('Failed to update highlight');
-      }
-
-      logger.info(`Updated highlight ${id}`);
-      return result.item;
-    } catch (error) {
-      logger.error('Error updating highlight:', error);
-      throw error;
+    if (error) {
+      throw new Error(`Failed to update highlight: ${error}`);
     }
+
+    logger.info(`Updated highlight ${id} for bookmark ${bookmarkId}`);
   }
 
   /**
    * Delete a highlight
    */
-  async deleteHighlight(id: string): Promise<void> {
-    const url = `${this.baseUrl}/highlights/${id}`;
-    
-    try {
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-        },
-      });
+  async deleteHighlight(bookmarkId: number, id: string): Promise<void> {
+    const { error } = await this.client.PUT('/raindrop/{id}', {
+      params: { path: { id: bookmarkId } },
+      body: {
+        highlights: [
+          {
+            _id: id,
+            text: '',
+          },
+        ],
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete highlight: ${response.status}`);
-      }
-
-      logger.info(`Deleted highlight ${id}`);
-    } catch (error) {
-      logger.error('Error deleting highlight:', error);
-      throw error;
+    if (error) {
+      throw new Error(`Failed to delete highlight: ${error}`);
     }
+
+    logger.info(`Deleted highlight ${id} for bookmark ${bookmarkId}`);
   }
 
   async uploadRaindropCover(
