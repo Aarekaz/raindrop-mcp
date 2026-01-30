@@ -637,11 +637,22 @@ export class RaindropService {
     }
 
     logger.info(`Fetched filter statistics for collection ${collectionId}`);
+    const normalizeCount = (value: unknown): number | undefined => {
+      if (typeof value === 'number') {
+        return value;
+      }
+      if (value && typeof value === 'object' && 'count' in value) {
+        const countValue = (value as { count?: unknown }).count;
+        return typeof countValue === 'number' ? countValue : undefined;
+      }
+      return undefined;
+    };
+
     return {
-      broken: data?.broken,
-      duplicates: data?.duplicates,
-      important: data?.important,
-      notag: data?.notag,
+      broken: normalizeCount(data?.broken),
+      duplicates: normalizeCount(data?.duplicates),
+      important: normalizeCount(data?.important),
+      notag: normalizeCount(data?.notag),
       tags: data?.tags,
       types: data?.types,
     };

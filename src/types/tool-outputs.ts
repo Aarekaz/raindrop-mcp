@@ -12,7 +12,7 @@ export const BookmarkOutputSchema = z.object({
   collection: z.object({
     $id: z.number(),
   }).optional(),
-});
+}).passthrough();
 
 // Collection output schema
 export const CollectionOutputSchema = z.object({
@@ -22,7 +22,7 @@ export const CollectionOutputSchema = z.object({
   count: z.number().optional(),
   color: z.string().optional(),
   public: z.boolean().optional(),
-});
+}).passthrough();
 
 // Search results output schema
 export const BookmarkSearchOutputSchema = z.object({
@@ -42,7 +42,7 @@ export const CollectionListOutputSchema = z.object({
 export const TagOutputSchema = z.object({
   _id: z.string(),
   count: z.number(),
-});
+}).passthrough();
 
 // Tag list output schema
 export const TagListOutputSchema = z.object({
@@ -62,7 +62,7 @@ export const HighlightOutputSchema = z.object({
   tags: z.array(z.string()).optional(),
   link: z.string().optional(),
   raindropRef: z.number().optional(),
-});
+}).passthrough();
 
 // Highlight list output schema
 export const HighlightListOutputSchema = z.object({
