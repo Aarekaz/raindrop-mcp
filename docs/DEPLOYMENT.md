@@ -8,7 +8,10 @@ This repository is designed to be hosted on Vercel using the `mcp-handler` patte
 - Health: `GET /health` (rewritten to `GET /api/health`)
 - OAuth init: `GET /auth/init` (served from `api/auth/init.ts`)
 - OAuth callback: `GET /auth/callback` (served from `api/auth/callback.ts`)
-- OAuth metadata: `GET /.well-known/oauth-protected-resource/mcp` (served from `api/.well-known/oauth-protected-resource.ts` via rewrite)
+- OAuth metadata: `GET /.well-known/oauth-protected-resource` (served from `public/.well-known/oauth-protected-resource`)
+- OAuth auth server metadata: `GET /.well-known/oauth-authorization-server` (served from `public/.well-known/oauth-authorization-server`)
+
+Note: `.well-known` metadata is served as static files. For preview or local dev URLs, update the JSON files in `public/.well-known/` to match the deployed origin.
 
 ## Deploy
 

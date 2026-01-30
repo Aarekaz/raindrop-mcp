@@ -38,7 +38,7 @@ import {
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
 
-const RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource/mcp';
+const RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
 
 /**
  * Validate Origin header to prevent DNS rebinding attacks

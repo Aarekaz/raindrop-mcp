@@ -1,0 +1,17 @@
+{
+  "issuer": "https://raindrop-mcp.anuragd.me",
+  "authorization_endpoint": "https://raindrop-mcp.anuragd.me/authorize",
+  "token_endpoint": "https://raindrop-mcp.anuragd.me/token",
+  "registration_endpoint": "https://raindrop-mcp.anuragd.me/register",
+  "scopes_supported": ["raindrop:read", "raindrop:write"],
+  "response_types_supported": ["code"],
+  "grant_types_supported": ["authorization_code", "refresh_token"],
+  "token_endpoint_auth_methods_supported": ["client_secret_post", "none"],
+  "code_challenge_methods_supported": ["S256"],
+  "token_endpoint_auth_signing_alg_values_supported": ["HS256"],
+  "service_documentation": "https://github.com/Aarekaz/raindrop-mcp#readme",
+  "ui_locales_supported": ["en"],
+  "require_request_uri_registration": false,
+  "require_signed_request_object": false,
+  "pkce_code_challenge_methods_supported": ["S256"]
+}

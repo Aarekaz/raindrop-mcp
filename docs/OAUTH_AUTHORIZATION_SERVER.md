@@ -120,7 +120,7 @@ Returns authorization server metadata (RFC 8414):
 }
 ```
 
-#### GET /.well-known/oauth-protected-resource/mcp
+#### GET /.well-known/oauth-protected-resource
 
 Returns protected resource metadata (RFC 9728):
 
