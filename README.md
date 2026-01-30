@@ -605,6 +605,14 @@ Advanced collection operations.
 - `collection_cover_upload` - Upload collection cover (base64)
 - `user_stats` - Get system collection counts
 
+**Examples:**
+```
+Merge collections 1001 and 1002 into 2000
+Expand all collections
+Remove all empty collections
+Empty Trash permanently
+```
+
 ### 3. bookmark_search
 Search bookmarks with advanced filters.
 
@@ -643,6 +651,14 @@ Delete bookmark 67890
 - `bookmark_bulk_delete` - Delete multiple bookmarks in a collection
 - `bookmark_file_upload` - Upload a file as a bookmark (base64)
 - `bookmark_cover_upload` - Upload a cover image (base64)
+
+**Examples:**
+```
+Get cache URL for bookmark 12345
+Suggest tags for bookmark 12345
+Bulk create 3 bookmarks in collection 100
+Delete bookmarks in collection 100 that match "old tag:archive"
+```
 
 ### 5. tag_list
 List all tags with usage counts.
