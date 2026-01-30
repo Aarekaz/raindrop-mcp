@@ -385,6 +385,10 @@ const baseHandler = async (req: Request): Promise<Response> => {
               textContent(`Found ${collections.length} collections`),
               ...collections.map(makeCollectionLink),
             ],
+            structuredContent: {
+              collections,
+              total: collections.length,
+            },
           };
         }
       );
@@ -421,6 +425,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   textContent(`Created collection: ${created.title}`),
                   makeCollectionLink(created),
                 ],
+                structuredContent: {
+                  success: true,
+                  message: `Created collection: ${created.title}`,
+                  resourceUri: `raindrop://collection/${created._id}`,
+                },
               };
             case 'update':
               if (!args.id) {
@@ -441,6 +450,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   textContent(`Updated collection ${args.id}`),
                   makeCollectionLink(updated),
                 ],
+                structuredContent: {
+                  success: true,
+                  message: `Updated collection ${args.id}`,
+                  resourceUri: `raindrop://collection/${updated._id}`,
+                },
               };
             case 'delete':
               if (!args.id) {
@@ -452,7 +466,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 );
               }
               await raindropService.deleteCollection(args.id);
-              return { content: [textContent(`Deleted collection ${args.id}`)] };
+              return {
+                content: [textContent(`Deleted collection ${args.id}`)],
+                structuredContent: {
+                  success: true,
+                  message: `Deleted collection ${args.id}`,
+                },
+              };
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
           }
@@ -484,11 +504,20 @@ const baseHandler = async (req: Request): Promise<Response> => {
             perPage: args.perPage,
             sort: args.sort,
           });
+          const page = args.page ?? 1;
+          const perPage = args.perPage ?? 25;
+          const hasMore = result.count > page * perPage;
           return {
             content: [
               textContent(`Found ${result.items.length} bookmarks (total: ${result.count})`),
               ...result.items.map(makeBookmarkLink),
             ],
+            structuredContent: {
+              bookmarks: result.items,
+              total: result.count,
+              page,
+              hasMore,
+            },
           };
         }
       );
@@ -534,6 +563,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   textContent(`Created: ${created.title || created.link}`),
                   makeBookmarkLink(created),
                 ],
+                structuredContent: {
+                  success: true,
+                  message: `Created: ${created.title || created.link}`,
+                  resourceUri: `raindrop://bookmark/${created._id}`,
+                },
               };
             case 'update':
               if (!args.id) {
@@ -555,6 +589,11 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   textContent(`Updated bookmark ${args.id}`),
                   makeBookmarkLink(updated),
                 ],
+                structuredContent: {
+                  success: true,
+                  message: `Updated bookmark ${args.id}`,
+                  resourceUri: `raindrop://bookmark/${updated._id}`,
+                },
               };
             case 'suggest':
               if (!args.url) {
@@ -582,6 +621,10 @@ const baseHandler = async (req: Request): Promise<Response> => {
 
               return {
                 content: [textContent(suggestionText.join('\n'))],
+                structuredContent: {
+                  success: true,
+                  message: suggestionText.join('\n'),
+                },
               };
             case 'delete':
               if (!args.id) {
@@ -593,7 +636,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 );
               }
               await raindropService.deleteBookmark(args.id);
-              return { content: [textContent(`Deleted bookmark ${args.id}`)] };
+              return {
+                content: [textContent(`Deleted bookmark ${args.id}`)],
+                structuredContent: {
+                  success: true,
+                  message: `Deleted bookmark ${args.id}`,
+                },
+              };
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
           }
@@ -618,7 +667,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
         async (args: z.infer<typeof TagInputSchema>) => {
           const tags = await raindropService.getTags(args.collectionId);
           const tagList = tags.map((tag) => `${tag._id} (${tag.count})`).join(', ');
-          return { content: [textContent(`Tags: ${tagList}`)] };
+          return {
+            content: [textContent(`Tags: ${tagList}`)],
+            structuredContent: {
+              tags,
+              total: tags.length,
+            },
+          };
         }
       );
 
@@ -656,7 +711,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   note: args.note,
                 }
               );
-              return { content: [textContent(`Created highlight: ${created._id}`)] };
+              return {
+                content: [textContent(`Created highlight: ${created._id}`)],
+                structuredContent: {
+                  highlights: [created],
+                  total: 1,
+                },
+              };
             case 'update':
               if (!args.id) {
                 throw new Error(
@@ -670,7 +731,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
               if (args.color !== undefined) updates.color = args.color;
               if (args.note !== undefined) updates.note = args.note;
               await raindropService.updateHighlight(args.id, updates);
-              return { content: [textContent(`Updated highlight ${args.id}`)] };
+              return {
+                content: [textContent(`Updated highlight ${args.id}`)],
+                structuredContent: {
+                  highlights: [],
+                  total: 0,
+                },
+              };
             case 'delete':
               if (!args.id) {
                 throw new Error(
@@ -680,7 +747,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
                 );
               }
               await raindropService.deleteHighlight(args.id);
-              return { content: [textContent(`Deleted highlight ${args.id}`)] };
+              return {
+                content: [textContent(`Deleted highlight ${args.id}`)],
+                structuredContent: {
+                  highlights: [],
+                  total: 0,
+                },
+              };
             case 'list':
               if (!args.bookmarkId) {
                 throw new Error(
@@ -695,6 +768,10 @@ const baseHandler = async (req: Request): Promise<Response> => {
                   textContent(`Found ${highlights.length} highlights`),
                   textContent(JSON.stringify(highlights, null, 2)),
                 ],
+                structuredContent: {
+                  highlights,
+                  total: highlights.length,
+                },
               };
             default:
               throw new Error(`Unknown operation: ${args.operation}`);
@@ -753,7 +830,13 @@ const baseHandler = async (req: Request): Promise<Response> => {
           if (args.moveToCollection) updates.collection = { $id: args.moveToCollection };
 
           const result = await raindropService.bulkUpdateBookmarks(args.collectionId, updates);
-          return { content: [textContent(`Bulk updated ${result.modified} bookmarks`)] };
+          return {
+            content: [textContent(`Bulk updated ${result.modified} bookmarks`)],
+            structuredContent: {
+              modified: result.modified,
+              bookmarkIds: args.ids,
+            },
+          };
         }
       );
 
@@ -780,7 +863,10 @@ const baseHandler = async (req: Request): Promise<Response> => {
               tagsSort: args.tagsSort,
             }
           );
-          return { content: [textContent(JSON.stringify(stats, null, 2))] };
+          return {
+            content: [textContent(JSON.stringify(stats, null, 2))],
+            structuredContent: stats,
+          };
         }
       );
     },
