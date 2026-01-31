@@ -133,24 +133,24 @@ graph TB
     end
 
     subgraph "Transport Layer"
-        Vercel[Vercel Functions<br/>api/raindrop.ts]
+        Vercel["Vercel Functions\napi/raindrop.ts"]
     end
 
     subgraph "Authentication Layer"
-        OAuth[OAuth Service<br/>PKCE Flow]
-        TokenStorage[Token Storage<br/>AES-256 Encrypted]
-        VercelKV[(Vercel KV<br/>Redis)]
+        OAuth["OAuth Service\nPKCE Flow"]
+        TokenStorage["Token Storage\nAES-256 Encrypted"]
+        VercelKV["Vercel KV\nRedis"]
 
         OAuth --> TokenStorage
         TokenStorage --> VercelKV
     end
 
     subgraph "MCP Protocol Layer"
-        MCPService[MCP Server<br/>(mcp-handler)]
+        MCPService["MCP Server\n(mcp-handler)"]
     end
 
     subgraph "Service Layer"
-        RaindropService[RaindropService<br/>API Client<br/>openapi-fetch]
+        RaindropService["RaindropService\nAPI Client\nopenapi-fetch"]
     end
 
     subgraph "External Services"
@@ -211,13 +211,13 @@ sequenceDiagram
 ```mermaid
 graph LR
     subgraph "Shared Server Instance"
-        Endpoint[MCP Endpoint<br/>/mcp]
+        Endpoint["MCP Endpoint\n/mcp"]
         Auth[Auth Layer]
 
         subgraph "Request-Scoped Services"
-            Service1[RaindropService<br/>User 1 Token]
-            Service2[RaindropService<br/>User 2 Token]
-            Service3[RaindropService<br/>User 3 Token]
+            Service1["RaindropService\nUser 1 Token"]
+            Service2["RaindropService\nUser 2 Token"]
+            Service3["RaindropService\nUser 3 Token"]
         end
     end
 
@@ -228,7 +228,7 @@ graph LR
     end
 
     subgraph "Storage"
-        KV[(Vercel KV)]
+        KV["Vercel KV"]
     end
 
     User1 -->|Cookie| Endpoint
