@@ -123,6 +123,130 @@ Tags:
 Highlights:
 - `highlight_manage`
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Browser[Web Browser]
+        MCPClient[MCP Client SDK]
+    end
+
+    subgraph "Transport Layer"
+        Vercel[Vercel Functions<br/>api/raindrop.ts]
+    end
+
+    subgraph "Authentication Layer"
+        OAuth[OAuth Service<br/>PKCE Flow]
+        TokenStorage[Token Storage<br/>AES-256 Encrypted]
+        VercelKV[(Vercel KV<br/>Redis)]
+
+        OAuth --> TokenStorage
+        TokenStorage --> VercelKV
+    end
+
+    subgraph "MCP Protocol Layer"
+        MCPService[MCP Server<br/>(mcp-handler)]
+    end
+
+    subgraph "Service Layer"
+        RaindropService[RaindropService<br/>API Client<br/>openapi-fetch]
+    end
+
+    subgraph "External Services"
+        RaindropAPI[Raindrop.io API]
+    end
+
+    Browser -->|HTTPS| Vercel
+    MCPClient -->|HTTP| Vercel
+
+    Vercel -->|withMcpAuth| OAuth
+    OAuth -->|Validated Token| MCPService
+    MCPService -->|Per-User Token| RaindropService
+    RaindropService -->|HTTP Requests| RaindropAPI
+```
+
+## OAuth Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client as Client App
+    participant Vercel as Vercel Function
+    participant OAuth as OAuth Service
+    participant KV as Vercel KV
+    participant Raindrop as Raindrop.io
+
+    User->>Client: Connect Raindrop
+    Client->>Vercel: GET /auth/init?redirect_uri=/dashboard
+    Vercel->>OAuth: initFlow()
+    OAuth->>OAuth: Generate state + PKCE challenge
+    OAuth->>KV: Store state & code_verifier
+    OAuth->>Vercel: Return auth URL
+    Vercel->>Client: Redirect to Raindrop OAuth
+    Client->>Raindrop: Authorization request
+    Raindrop->>User: Consent
+    User->>Raindrop: Approve access
+    Raindrop->>Vercel: GET /auth/callback?code=XXX&state=YYY
+    Vercel->>OAuth: handleCallback(code, state)
+    OAuth->>KV: Verify state
+    OAuth->>Raindrop: POST /oauth/access_token
+    Raindrop->>OAuth: access_token + refresh_token
+    OAuth->>Raindrop: GET /user
+    Raindrop->>OAuth: User details
+    OAuth->>KV: Store encrypted session
+    OAuth->>Vercel: Return session ID
+    Vercel->>Client: Set-Cookie: mcp_session=XXX
+    Client->>Vercel: POST /mcp (Cookie: mcp_session)
+    Vercel->>OAuth: verifyToken(session_id)
+    OAuth->>KV: Fetch encrypted session
+    OAuth->>Vercel: Valid access_token
+    Vercel->>Raindrop: MCP operation with token
+    Raindrop->>Vercel: Response
+    Vercel->>Client: MCP result
+```
+
+## Multi-Tenant Model
+
+```mermaid
+graph LR
+    subgraph "Shared Server Instance"
+        Endpoint[MCP Endpoint<br/>/mcp]
+        Auth[Auth Layer]
+
+        subgraph "Request-Scoped Services"
+            Service1[RaindropService<br/>User 1 Token]
+            Service2[RaindropService<br/>User 2 Token]
+            Service3[RaindropService<br/>User 3 Token]
+        end
+    end
+
+    subgraph "Users"
+        User1[User 1]
+        User2[User 2]
+        User3[User 3]
+    end
+
+    subgraph "Storage"
+        KV[(Vercel KV)]
+    end
+
+    User1 -->|Cookie| Endpoint
+    User2 -->|X-Raindrop-Token| Endpoint
+    User3 -->|Cookie| Endpoint
+
+    Endpoint --> Auth
+    Auth --> KV
+
+    Auth -->|Token A| Service1
+    Auth -->|Token B| Service2
+    Auth -->|Token C| Service3
+
+    Service1 --> API[Raindrop.io API]
+    Service2 --> API
+    Service3 --> API
+```
+
 ## Development
 
 ```bash
