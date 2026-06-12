@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ExecutionContext, KVNamespace } from '@cloudflare/workers-types';
+import ts from 'typescript';
 
 import type { Env, Fetcher } from '../src/worker/env.js';
 import { Router } from '../src/worker/router.js';
@@ -53,6 +54,23 @@ type ProtectedResourceMetadata = {
 type ErrorResponse = {
   error: string;
 };
+
+type WranglerConfig = {
+  assets?: {
+    not_found_handling?: string;
+    run_worker_first?: string[];
+  };
+};
+
+async function readWranglerConfig(): Promise<WranglerConfig> {
+  const configUrl = new URL('../wrangler.jsonc', import.meta.url);
+  const configText = await Bun.file(configUrl).text();
+  const parsed = ts.parseConfigFileTextToJson(configUrl.pathname, configText);
+
+  expect(parsed.error).toBeUndefined();
+
+  return parsed.config as WranglerConfig;
+}
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -187,6 +205,22 @@ describe('worker routes', () => {
 
     expect(response.status).toBe(404);
     expect(await response.text()).toBe('asset not found');
+  });
+
+  test('wrangler asset routing does not SPA-fallback over protocol routes', async () => {
+    const config = await readWranglerConfig();
+
+    expect(config.assets?.not_found_handling).toBe('none');
+    expect(config.assets?.run_worker_first).toEqual(
+      expect.arrayContaining([
+        '/.well-known/*',
+        '/auth/*',
+        '/authorize',
+        '/mcp',
+        '/register',
+        '/token',
+      ])
+    );
   });
 
   test('POST /health returns method_not_allowed', async () => {

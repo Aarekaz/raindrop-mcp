@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raindrop MCP Docs</title>
+  <meta name="description" content="Setup and reference notes for the Raindrop MCP Cloudflare Worker." />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8f9;
+      --text: #172027;
+      --muted: #52606b;
+      --line: #d9e1e7;
+      --panel: #ffffff;
+      --code: #eef3f6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1317;
+        --text: #eef3f6;
+        --muted: #a0acb7;
+        --line: #27313a;
+        --panel: #151b20;
+        --code: #202932;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    main {
+      max-width: 840px;
+      margin: 0 auto;
+      padding: 48px 20px 72px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+    }
+
+    h1,
+    h2 {
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      letter-spacing: -0.03em;
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      margin-top: 32px;
+    }
+
+    p {
+      color: var(--muted);
+      margin: 12px 0;
+    }
+
+    a {
+      color: inherit;
+      font-weight: 650;
+    }
+
+    code,
+    pre {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--code);
+    }
+
+    code {
+      font-size: 0.95em;
+    }
+
+    ul {
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 16px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Raindrop MCP Docs</h1>
+      <p>
+        Raindrop MCP exposes a Cloudflare Worker endpoint that lets MCP clients
+        connect to Raindrop.io bookmarks through OAuth and Streamable HTTP.
+      </p>
+    </header>
+
+    <section>
+      <h2>Client Setup</h2>
+      <p>Use the deployed MCP endpoint as the server URL in a client that supports Streamable HTTP.</p>
+      <pre><code>https://raindrop-mcp.anuragd.me/mcp</code></pre>
+      <p>
+        The client should discover OAuth metadata from the well-known endpoints,
+        complete authorization, and then call the MCP endpoint with the issued access token.
+      </p>
+    </section>
+
+    <section>
+      <h2>Reference Routes</h2>
+      <ul>
+        <li><code>GET /health</code> returns service health.</li>
+        <li><code>GET /.well-known/oauth-authorization-server</code> returns OAuth authorization server metadata.</li>
+        <li><code>GET /.well-known/oauth-protected-resource</code> returns protected resource metadata.</li>
+        <li><code>POST /register</code> registers dynamic OAuth clients.</li>
+        <li><code>GET /authorize</code> and <code>POST /token</code> handle OAuth authorization and token exchange.</li>
+        <li><code>GET|POST|DELETE /mcp</code> serves the MCP Streamable HTTP transport.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Operational Notes</h2>
+      <p>
+        Static assets are served from <code>public/</code>. Protocol routes stay worker-first in
+        <code>wrangler.jsonc</code>, and missing assets should return 404 instead of falling back
+        to a single-page app shell.
+      </p>
+      <div class="note">
+        This page is intentionally small. It exists so <code>/docs/</code> is a real deployable
+        asset; fuller product docs can build on it later.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
