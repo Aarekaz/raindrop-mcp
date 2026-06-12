@@ -17,5 +17,6 @@ export interface Env {
   JWT_ACCESS_TOKEN_EXPIRY?: string;
   JWT_REFRESH_TOKEN_EXPIRY?: string;
   RAINDROP_ACCESS_TOKEN?: string;
+  ALLOW_ENV_TOKEN_AUTH?: string;
   NODE_ENV?: string;
 }

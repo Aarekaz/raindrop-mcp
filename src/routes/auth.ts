@@ -16,7 +16,7 @@ const OAUTH_CONFIG_ENDPOINTS = {
 const SESSION_MAX_AGE = 14 * 24 * 60 * 60;
 
 function createTokenStorage(env: Env): TokenStorage {
-  return new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV));
+  return new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV), env.TOKEN_ENCRYPTION_KEY);
 }
 
 function createOAuthService(env: Env, tokenStorage: TokenStorage): OAuthService {
@@ -186,7 +186,10 @@ export async function authCallback(request: Request, env: Env): Promise<Response
     const session = await oauthService.handleCallback(code, state);
 
     try {
-      await tokenStorage.saveUserRaindropToken(session.userId, encrypt(session.accessToken));
+      await tokenStorage.saveUserRaindropToken(
+        session.userId,
+        encrypt(session.accessToken, env.TOKEN_ENCRYPTION_KEY)
+      );
     } catch (error) {
       console.error('Failed to store user Raindrop token:', error);
     }

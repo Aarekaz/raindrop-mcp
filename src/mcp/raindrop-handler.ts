@@ -116,7 +116,11 @@ function validateOrigin(req: Request, env: Env): void {
 }
 
 function createTokenStorage(env: Env): TokenStorage {
-  return new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV));
+  return new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV), env.TOKEN_ENCRYPTION_KEY);
+}
+
+function allowsEnvTokenAuth(env: Env): boolean {
+  return env.ALLOW_ENV_TOKEN_AUTH === 'true' || env.NODE_ENV !== 'production';
 }
 
 function createOAuthService(env: Env, tokenStorage: TokenStorage): OAuthService {
@@ -167,7 +171,7 @@ function createVerifyToken(
           return undefined;
         }
 
-        const raindropToken = decrypt(encryptedToken);
+        const raindropToken = decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY);
 
         return {
           token: raindropToken,
@@ -218,7 +222,7 @@ function createVerifyToken(
     }
 
     // Method 4: Environment token (development fallback)
-    const envToken = env.RAINDROP_ACCESS_TOKEN;
+    const envToken = allowsEnvTokenAuth(env) ? env.RAINDROP_ACCESS_TOKEN : undefined;
     if (envToken) {
       if (env.NODE_ENV === 'production') {
         console.warn(
@@ -269,7 +273,7 @@ async function verifyHeadAuth(
       }
 
       return {
-        token: decrypt(encryptedToken),
+        token: decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY),
         scopes: payload.scope.split(' '),
         clientId: payload.client_id,
         extra: {
@@ -311,7 +315,7 @@ async function verifyHeadAuth(
     };
   }
 
-  if (env.RAINDROP_ACCESS_TOKEN) {
+  if (allowsEnvTokenAuth(env) && env.RAINDROP_ACCESS_TOKEN) {
     return {
       token: env.RAINDROP_ACCESS_TOKEN,
       scopes: ['raindrop:read', 'raindrop:write'],
@@ -336,7 +340,7 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
   try {
     validateOrigin(req, env);
   } catch (error) {
-    console.error('Origin validation failed:', error);
+    console.warn('Origin validation failed:', error instanceof Error ? error.message : String(error));
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -1565,7 +1569,7 @@ export function createRaindropMcpHeadHandler(env: Env): (request: Request) => Pr
     try {
       validateOrigin(request, env);
     } catch (error) {
-      console.error('Origin validation failed:', error);
+      console.warn('Origin validation failed:', error instanceof Error ? error.message : String(error));
       return addMcpCorsHeaders(request, new Response(null, { status: 403 }), null);
     }
 

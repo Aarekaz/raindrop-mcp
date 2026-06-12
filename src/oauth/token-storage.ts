@@ -24,7 +24,10 @@ export interface KeyValueStore {
 }
 
 export class TokenStorage {
-  constructor(private readonly store: KeyValueStore) {}
+  constructor(
+    private readonly store: KeyValueStore,
+    private readonly encryptionKey?: string
+  ) {}
 
   /**
    * Save a session with encrypted tokens
@@ -32,8 +35,8 @@ export class TokenStorage {
   async saveSession(session: StoredSession): Promise<void> {
     const encrypted = {
       ...session,
-      accessToken: encrypt(session.accessToken),
-      refreshToken: encrypt(session.refreshToken),
+      accessToken: encrypt(session.accessToken, this.encryptionKey),
+      refreshToken: encrypt(session.refreshToken, this.encryptionKey),
     };
 
     await this.store.set(`session:${session.sessionId}`, encrypted, { ex: SESSION_TTL });
@@ -49,8 +52,8 @@ export class TokenStorage {
 
     return {
       ...data,
-      accessToken: decrypt(data.accessToken),
-      refreshToken: decrypt(data.refreshToken),
+      accessToken: decrypt(data.accessToken, this.encryptionKey),
+      refreshToken: decrypt(data.refreshToken, this.encryptionKey),
     };
   }
 

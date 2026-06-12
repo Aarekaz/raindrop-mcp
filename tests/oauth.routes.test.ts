@@ -3,6 +3,7 @@ import type { ExecutionContext, KVNamespace } from '@cloudflare/workers-types';
 import crypto from 'crypto';
 import { jwtVerify } from 'jose';
 
+import { decrypt } from '../src/oauth/crypto.utils.js';
 import type { Env, Fetcher } from '../src/worker/env.js';
 import type { AuthorizationCode, OAuthClient } from '../src/types/oauth-server.types.js';
 import worker from '../src/worker.js';
@@ -590,5 +591,78 @@ describe('OAuth Worker routes', () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('Invalid state');
+  });
+
+  test('GET /auth/callback stores user Raindrop token encrypted with Worker env key', async () => {
+    const kv = new InMemoryKVNamespace();
+    const state = 'state-worker-key';
+    const envEncryptionKey = 'a'.repeat(64);
+    const processEncryptionKey = 'b'.repeat(64);
+    const originalEncryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+    const originalFetch = globalThis.fetch;
+
+    await kv.seedJson(`oauth:${state}`, {
+      state,
+      codeVerifier: 'verifier-worker-key',
+      redirectUri: '/after-auth',
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
+    process.env.TOKEN_ENCRYPTION_KEY = processEncryptionKey;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+
+      if (url === 'https://raindrop.io/oauth/access_token') {
+        return new Response(
+          JSON.stringify({
+            access_token: 'worker-env-access-token',
+            refresh_token: 'worker-env-refresh-token',
+            expires_in: 3600,
+            token_type: 'Bearer',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (url === 'https://api.raindrop.io/rest/v1/user') {
+        return new Response(JSON.stringify({ user: { _id: 42 } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response('unexpected fetch', { status: 500 });
+    }) as typeof fetch;
+
+    try {
+      const response = await fetchWorker(
+        `/auth/callback?code=callback-code&state=${state}`,
+        {
+          headers: { Cookie: `oauth_state=${state}` },
+        },
+        createEnv(
+          {
+            TOKEN_ENCRYPTION_KEY: envEncryptionKey,
+            OAUTH_CLIENT_ID: 'client-id',
+            OAUTH_CLIENT_SECRET: 'client-secret',
+            OAUTH_REDIRECT_URI: 'https://example.com/auth/callback',
+          },
+          kv
+        )
+      );
+      const encryptedToken = await kv.get<string>('user_raindrop:42', 'json');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toBe('/after-auth');
+      expect(encryptedToken).toBeString();
+      expect(decrypt(encryptedToken as string, envEncryptionKey)).toBe('worker-env-access-token');
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalEncryptionKey === undefined) {
+        delete process.env.TOKEN_ENCRYPTION_KEY;
+      } else {
+        process.env.TOKEN_ENCRYPTION_KEY = originalEncryptionKey;
+      }
+    }
   });
 });

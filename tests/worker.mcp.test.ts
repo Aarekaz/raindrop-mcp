@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import type { ExecutionContext, KVNamespace } from '@cloudflare/workers-types';
+import { SignJWT } from 'jose';
 
+import { encrypt } from '../src/oauth/crypto.utils.js';
 import type { Env, Fetcher } from '../src/worker/env.js';
 import worker from '../src/worker.js';
 
@@ -32,6 +34,10 @@ class InMemoryKVNamespace {
 
   async delete(key: string): Promise<void> {
     this.values.delete(key);
+  }
+
+  async seedJson(key: string, value: unknown): Promise<void> {
+    this.values.set(key, JSON.stringify(value));
   }
 }
 
@@ -68,14 +74,33 @@ async function fetchWorker(
   return worker.fetch(new Request(`https://example.com${path}`, init), env, requestContext);
 }
 
-async function mcpCall(method: string, id: number): Promise<any> {
+async function mcpCall(
+  method: string,
+  id: number,
+  options: {
+    env?: Env;
+    headers?: HeadersInit;
+    directToken?: string | null;
+  } = {}
+): Promise<any> {
+  const headers = new Headers({
+    accept: 'application/json, text/event-stream',
+    'content-type': 'application/json',
+  });
+  const directToken = options.directToken === undefined ? 'test-token' : options.directToken;
+  if (directToken) {
+    headers.set('x-raindrop-token', directToken);
+  }
+
+  if (options.headers) {
+    for (const [key, value] of new Headers(options.headers)) {
+      headers.set(key, value);
+    }
+  }
+
   const request = new Request('https://example.com/mcp', {
     method: 'POST',
-    headers: {
-      accept: 'application/json, text/event-stream',
-      'content-type': 'application/json',
-      'x-raindrop-token': 'test-token',
-    },
+    headers,
     body: JSON.stringify({
       jsonrpc: '2.0',
       id,
@@ -84,9 +109,40 @@ async function mcpCall(method: string, id: number): Promise<any> {
     }),
   });
 
-  const response = await worker.fetch(request, createEnv(), requestContext);
+  const response = await worker.fetch(request, options.env ?? createEnv(), requestContext);
   const text = await response.text();
   return parseFirstSseDataJson(text);
+}
+
+async function createJwt({
+  signingKey,
+  issuer,
+  userId,
+  clientId,
+  scope,
+}: {
+  signingKey: string;
+  issuer: string;
+  userId: string;
+  clientId: string;
+  scope: string;
+}): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+
+  return await new SignJWT({
+    iss: issuer,
+    sub: userId,
+    aud: 'raindrop-mcp',
+    exp: now + 3600,
+    iat: now,
+    client_id: clientId,
+    scope,
+    raindrop_user_id: userId,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(now)
+    .setExpirationTime(now + 3600)
+    .sign(new TextEncoder().encode(signingKey));
 }
 
 describe('Worker MCP handler', () => {
@@ -110,6 +166,104 @@ describe('Worker MCP handler', () => {
       ])
     );
     expect(toolNames).toHaveLength(24);
+  });
+
+  test('production env token fallback is denied without explicit opt-in', async () => {
+    const response = await fetchWorker(
+      '/mcp',
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 10,
+          method: 'tools/list',
+          params: {},
+        }),
+      },
+      createEnv({
+        NODE_ENV: 'production',
+        RAINDROP_ACCESS_TOKEN: 'deployment-wide-token',
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
+  });
+
+  test('production direct X-Raindrop-Token auth still works', async () => {
+    const msg = await mcpCall('tools/list', 11, {
+      env: createEnv({
+        NODE_ENV: 'production',
+        RAINDROP_ACCESS_TOKEN: 'deployment-wide-token',
+      }),
+    });
+
+    expect(msg).toHaveProperty('result.tools');
+  });
+
+  test('production env token fallback works with explicit opt-in', async () => {
+    const msg = await mcpCall('tools/list', 12, {
+      directToken: null,
+      env: createEnv({
+        NODE_ENV: 'production',
+        RAINDROP_ACCESS_TOKEN: 'deployment-wide-token',
+        ALLOW_ENV_TOKEN_AUTH: 'true',
+      }),
+    });
+
+    expect(msg).toHaveProperty('result.tools');
+  });
+
+  test('JWT auth decrypts user token with Worker env encryption key', async () => {
+    const kv = new InMemoryKVNamespace();
+    const userId = 'user-env-key';
+    const clientId = 'client-env-key';
+    const issuer = 'https://issuer.example';
+    const signingKey = 'worker-jwt-signing-key';
+    const envEncryptionKey = '1'.repeat(64);
+    const processEncryptionKey = '2'.repeat(64);
+    const originalEncryptionKey = process.env.TOKEN_ENCRYPTION_KEY;
+
+    process.env.TOKEN_ENCRYPTION_KEY = processEncryptionKey;
+    try {
+      await kv.seedJson(
+        `user_raindrop:${userId}`,
+        encrypt('jwt-raindrop-token', envEncryptionKey)
+      );
+      const jwt = await createJwt({
+        signingKey,
+        issuer,
+        userId,
+        clientId,
+        scope: 'raindrop:read raindrop:write',
+      });
+      const msg = await mcpCall('tools/list', 13, {
+        directToken: null,
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+        env: createEnv({
+          RAINDROP_AUTH_KV: kv as unknown as KVNamespace,
+          NODE_ENV: 'production',
+          TOKEN_ENCRYPTION_KEY: envEncryptionKey,
+          JWT_SIGNING_KEY: signingKey,
+          JWT_ISSUER: issuer,
+          RAINDROP_ACCESS_TOKEN: undefined,
+        }),
+      });
+
+      expect(msg).toHaveProperty('result.tools');
+    } finally {
+      if (originalEncryptionKey === undefined) {
+        delete process.env.TOKEN_ENCRYPTION_KEY;
+      } else {
+        process.env.TOKEN_ENCRYPTION_KEY = originalEncryptionKey;
+      }
+    }
   });
 
   test('resources/list and resources/templates/list expose Raindrop resources', async () => {
@@ -231,7 +385,7 @@ describe('Worker MCP handler', () => {
     expect(bulkEdit?.annotations?.idempotentHint).toBe(false);
   });
 
-  test('GET /mcp status is less than 500', async () => {
+  test('GET /mcp returns method-not-allowed with CORS headers', async () => {
     const response = await fetchWorker('/mcp', {
       method: 'GET',
       headers: {
@@ -240,10 +394,12 @@ describe('Worker MCP handler', () => {
       },
     });
 
-    expect(response.status).toBeLessThan(500);
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
   });
 
-  test('DELETE /mcp status is less than 500', async () => {
+  test('DELETE /mcp returns method-not-allowed with CORS headers', async () => {
     const response = await fetchWorker('/mcp', {
       method: 'DELETE',
       headers: {
@@ -251,7 +407,9 @@ describe('Worker MCP handler', () => {
       },
     });
 
-    expect(response.status).toBeLessThan(500);
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('Access-Control-Allow-Methods')).toContain('DELETE');
   });
 
   test('authenticated HEAD /mcp returns quickly with empty body', async () => {
