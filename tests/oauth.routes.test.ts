@@ -117,6 +117,14 @@ describe('OAuth Worker routes', () => {
     expect(body.error).toBe('redirect_uri parameter is required');
   });
 
+  test('GET /auth/init with missing OAuth client config fails closed', async () => {
+    const response = await fetchWorker('/auth/init?redirect_uri=/dashboard');
+    const body = await readJson<ErrorResponse>(response);
+
+    expect(response.status).toBe(503);
+    expect(body.error).toBe('oauth_not_configured');
+  });
+
   test('POST /token with empty JSON returns invalid_request', async () => {
     const response = await fetchWorker('/token', {
       method: 'POST',

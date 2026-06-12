@@ -30,6 +30,25 @@ function createOAuthService(env: Env, tokenStorage: TokenStorage): OAuthService 
   return new OAuthService(oauthConfig, tokenStorage);
 }
 
+function hasOAuthClientConfig(env: Env): boolean {
+  return Boolean(
+    env.OAUTH_CLIENT_ID?.trim() &&
+    env.OAUTH_CLIENT_SECRET?.trim() &&
+    env.OAUTH_REDIRECT_URI?.trim()
+  );
+}
+
+function missingOAuthConfigResponse(): Response {
+  return json(
+    {
+      error: 'oauth_not_configured',
+      message:
+        'Raindrop OAuth is not configured. Set OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, and OAUTH_REDIRECT_URI secrets.',
+    },
+    { status: 503 }
+  );
+}
+
 function validateRedirectUri(
   redirectUri: string,
   env: Env,
@@ -108,6 +127,10 @@ export async function authInit(request: Request, env: Env): Promise<Response> {
       );
     }
 
+    if (!hasOAuthClientConfig(env)) {
+      return missingOAuthConfigResponse();
+    }
+
     const validation = validateRedirectUri(redirectUri, env, url.origin);
     if (!validation.valid) {
       console.warn('Invalid redirect_uri rejected:', redirectUri, validation.error);
@@ -170,8 +193,7 @@ export async function authCallback(request: Request, env: Env): Promise<Response
     }
 
     const tokenStorage = createTokenStorage(env);
-    const oauthService = createOAuthService(env, tokenStorage);
-    const storedOAuthState = await oauthService.getStoredState(state);
+    const storedOAuthState = await tokenStorage.getOAuthState(state);
     if (!storedOAuthState) {
       return json(
         {
@@ -182,6 +204,11 @@ export async function authCallback(request: Request, env: Env): Promise<Response
       );
     }
 
+    if (!hasOAuthClientConfig(env)) {
+      return missingOAuthConfigResponse();
+    }
+
+    const oauthService = createOAuthService(env, tokenStorage);
     const redirectUri = storedOAuthState.redirectUri;
     const session = await oauthService.handleCallback(code, state);
 

@@ -11,8 +11,8 @@
   "kv_namespaces": [
     {
       "binding": "RAINDROP_AUTH_KV",
-      "id": "replace-with-production-kv-id",
-      "preview_id": "replace-with-preview-kv-id"
+      "id": "b19e32f4722e4d2a9235342a6ef63946",
+      "preview_id": "d6ecbe4df7724e51ab5e3fe3992babe3"
     }
   ],
   "assets": {
@@ -21,7 +21,7 @@
     "not_found_handling": "single-page-application"
   },
   "vars": {
-    "JWT_ISSUER": "https://raindrop-mcp.anuragd.me",
+    "JWT_ISSUER": "https://raindrop-mcp.aarekaz.workers.dev",
     "JWT_ACCESS_TOKEN_EXPIRY": "3600",
     "JWT_REFRESH_TOKEN_EXPIRY": "2592000"
   }
