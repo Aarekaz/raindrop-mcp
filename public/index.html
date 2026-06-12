@@ -3,40 +3,70 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raindrop MCP Server</title>
-  <meta name="description" content="Raindrop MCP Server connects assistants to your Raindrop.io knowledge base with secure, streaming context." />
+  <title>Raindrop MCP - Turn saved links into AI context</title>
+  <meta name="description" content="Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Raindrop MCP" />
+  <meta property="og:url" content="https://raindrop-mcp.anuragd.me/" />
+  <meta property="og:title" content="Raindrop MCP - Turn saved links into AI context" />
+  <meta property="og:description" content="Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing." />
+  <meta name="twitter:card" content="summary" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --font-display: 'Space Grotesk', sans-serif;
-      --font-body: 'IBM Plex Mono', monospace;
-      --color-bg: #0b0d0f;
-      --color-panel: #12161a;
-      --color-text: #f6f7f9;
-      --color-muted: #93a0ad;
-      --color-accent: #3dff9f;
-      --color-accent-dim: #1fa966;
-      --color-warn: #ffb347;
-      --color-line: #1f2a32;
-      --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+      --bg: #f7fbff;
+      --surface: #ffffff;
+      --surface-soft: #f1f7ff;
+      --ink: #08152f;
+      --ink-2: #53617c;
+      --ink-3: #7b879d;
+      --blue: #0969ff;
+      --blue-2: #dbeaff;
+      --green: #19b878;
+      --green-2: #dcf8ed;
+      --yellow: #f5b735;
+      --yellow-2: #fff6d8;
+      --orange: #ff8a3d;
+      --violet: #7657f5;
+      --border: #dbe4f0;
+      --border-2: #c8d6e8;
+      --shadow: 0 22px 70px rgba(39, 78, 126, 0.14);
+      --shadow-soft: 0 10px 30px rgba(39, 78, 126, 0.08);
+      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
     }
 
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
     }
 
     body {
       margin: 0;
-      font-family: var(--font-body);
-      color: var(--color-text);
-      background: radial-gradient(circle at 20% 20%, #17202a, transparent 55%),
-        radial-gradient(circle at 80% 0%, #0f1c17, transparent 45%),
-        radial-gradient(circle at 80% 80%, #0f1216, transparent 50%),
-        var(--color-bg);
       min-height: 100vh;
-      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(247,251,255,0.96) 42%, #ffffff 100%),
+        radial-gradient(circle at 12% 16%, rgba(9,105,255,0.12), transparent 32%),
+        radial-gradient(circle at 92% 8%, rgba(25,184,120,0.12), transparent 31%),
+        var(--bg);
+      font-family: var(--font-ui);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
     }
 
     a {
@@ -44,531 +74,1048 @@
       text-decoration: none;
     }
 
-    .page {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 32px 20px 80px;
+    :focus-visible {
+      outline: 3px solid rgba(9, 105, 255, 0.36);
+      outline-offset: 3px;
     }
 
-    header {
+    .page {
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .shell {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .site-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 0 24px;
+      gap: 24px;
+      height: 76px;
+      border-bottom: 1px solid rgba(219, 228, 240, 0.78);
     }
 
     .brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 12px;
-      font-family: var(--font-display);
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+      white-space: nowrap;
     }
 
-    .brand-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--color-accent);
-      box-shadow: 0 0 12px rgba(61, 255, 159, 0.6);
+    .brand-mark {
+      width: 28px;
+      height: 34px;
+      display: inline-block;
+      filter: drop-shadow(0 10px 16px rgba(9, 105, 255, 0.24));
     }
 
-    .nav {
+    .top-nav {
       display: flex;
-      gap: 18px;
+      align-items: center;
+      gap: 22px;
+      color: var(--ink-2);
       font-size: 14px;
-      color: var(--color-muted);
+      font-weight: 600;
     }
 
-    .nav a:hover {
-      color: var(--color-text);
+    .top-nav a:hover {
+      color: var(--ink);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+      white-space: nowrap;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      color: #ffffff;
+      background: var(--blue);
+      box-shadow: 0 14px 28px rgba(9, 105, 255, 0.22);
+    }
+
+    .button-primary:hover {
+      box-shadow: 0 16px 34px rgba(9, 105, 255, 0.28);
+    }
+
+    .button-secondary {
+      color: var(--ink);
+      background: rgba(255,255,255,0.78);
+      border-color: var(--border);
+      box-shadow: 0 8px 22px rgba(39, 78, 126, 0.08);
+    }
+
+    .button-secondary:hover {
+      border-color: var(--border-2);
+      background: #ffffff;
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .hero {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 32px;
+      grid-template-columns: minmax(0, 0.78fr) minmax(560px, 1.22fr);
+      gap: 48px;
       align-items: center;
-      padding: 32px 0 48px;
+      min-height: min(700px, calc(100vh - 76px - 160px));
+      padding: 42px 0 34px;
+    }
+
+    .hero-copy {
+      max-width: 540px;
     }
 
     .hero h1 {
-      font-family: var(--font-display);
-      font-size: clamp(32px, 5vw, 54px);
-      line-height: 1.05;
-      margin: 0 0 18px;
-      letter-spacing: -0.02em;
+      margin: 0;
+      font-size: clamp(44px, 5vw, 74px);
+      line-height: 0.98;
+      font-weight: 800;
+      letter-spacing: 0;
     }
 
-    .hero p {
-      color: var(--color-muted);
-      font-size: 16px;
-      line-height: 1.6;
-      margin: 0 0 24px;
+    .hero h1 span {
+      color: var(--blue);
     }
 
-    .cta-row {
+    .hero-lede {
+      margin: 24px 0 0;
+      color: var(--ink-2);
+      font-size: clamp(17px, 1.55vw, 20px);
+      line-height: 1.62;
+      max-width: 550px;
+    }
+
+    .hero-actions {
       display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
       align-items: center;
-    }
-
-    .btn {
-      border: 1px solid transparent;
-      padding: 12px 20px;
-      font-family: var(--font-display);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: transform 0.3s var(--ease-out-expo), border 0.3s var(--ease-out-expo);
-      border-radius: 8px;
-    }
-
-    .btn-primary {
-      background: var(--color-accent);
-      color: #0a0d0b;
-      box-shadow: 0 0 20px rgba(61, 255, 159, 0.3);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px) scale(1.01);
-      border-color: var(--color-accent);
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--color-text);
-      border-color: var(--color-line);
-    }
-
-    .btn-secondary {
-      background: transparent;
-      color: var(--color-text);
-      border-color: var(--color-line);
-    }
-
-    .btn-ghost:hover {
-      border-color: var(--color-accent);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--color-accent);
-    }
-
-    .trust {
-      display: flex;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
-      color: var(--color-muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      margin-top: 20px;
+      margin-top: 28px;
     }
 
-    .terminal {
-      background: var(--color-panel);
-      border: 1px solid var(--color-line);
-      border-radius: 14px;
-      padding: 18px;
+    .endpoint-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: min(100%, 530px);
+      margin-top: 18px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.82);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .endpoint-bar code {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--blue);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .endpoint-ok {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: var(--green);
+      background: var(--green-2);
+      flex: 0 0 auto;
+    }
+
+    .trust-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 560px;
+      margin-top: 24px;
+    }
+
+    .trust-item {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.64);
+      border: 1px solid rgba(219,228,240,0.72);
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .trust-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      color: var(--blue);
+      background: var(--blue-2);
+    }
+
+    .trust-item strong {
+      display: block;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .workspace {
+      position: relative;
+      min-height: 520px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(9,105,255,0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(9,105,255,0.045) 1px, transparent 1px),
+        rgba(255,255,255,0.82);
+      background-size: 24px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .workspace::before {
+      content: "";
+      position: absolute;
+      inset: auto 12% -36px 12%;
+      height: 72px;
+      background: radial-gradient(ellipse at center, rgba(9,105,255,0.18), transparent 70%);
+      z-index: -1;
+    }
+
+    .library-ui {
+      display: grid;
+      grid-template-columns: 160px 1fr 198px;
+      gap: 12px;
+      min-height: 492px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.86);
+      box-shadow: 0 8px 24px rgba(39, 78, 126, 0.07);
+    }
+
+    .sidebar {
+      padding: 16px 13px;
+    }
+
+    .mini-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .drop-mini {
+      width: 17px;
+      height: 22px;
+      color: var(--blue);
+    }
+
+    .side-label {
+      margin: 18px 0 8px;
+      color: var(--ink-3);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .collection-row,
+    .tag-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 33px;
+      border-radius: 8px;
+      color: var(--ink-2);
+      font-size: 12px;
+    }
+
+    .collection-row {
+      justify-content: space-between;
+      padding: 0 9px;
+    }
+
+    .collection-row.active {
+      background: var(--blue-2);
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .collection-name {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .folder {
+      width: 13px;
+      height: 11px;
+      border-radius: 3px;
+      background: var(--blue);
+      flex: 0 0 auto;
+    }
+
+    .folder.green { background: var(--green); }
+    .folder.violet { background: var(--violet); }
+    .folder.orange { background: var(--orange); }
+    .folder.gray { background: #b9c3d1; }
+
+    .count {
+      color: inherit;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .tag-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .tag-pill {
+      min-height: 26px;
+      padding: 0 9px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--ink-2);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .tag-pill.green { color: #087f55; background: var(--green-2); border-color: #c7efdf; }
+    .tag-pill.blue { color: var(--blue); background: var(--blue-2); border-color: #c8dcff; }
+    .tag-pill.yellow { color: #936313; background: var(--yellow-2); border-color: #f6e6a7; }
+
+    .items-panel {
+      position: relative;
+      padding: 16px 16px 118px;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(25,184,120,0.12);
+    }
+
+    .bookmark-card {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 11px;
+      min-height: 84px;
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 5px 16px rgba(39, 78, 126, 0.06);
+    }
+
+    .thumb {
+      width: 62px;
+      height: 62px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.18), transparent 45%),
+        linear-gradient(135deg, #0d1b35, #43516c);
       position: relative;
       overflow: hidden;
     }
 
-    .terminal::after {
-      content: '';
+    .thumb::before,
+    .thumb::after {
+      content: "";
       position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, transparent 30%, rgba(61, 255, 159, 0.08), transparent 70%);
-      animation: scan 4s infinite;
+      left: 10px;
+      right: 10px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.68);
+    }
+
+    .thumb::before { top: 23px; }
+    .thumb::after { top: 31px; right: 19px; }
+    .thumb.gold { background: linear-gradient(135deg, #7e5b27, #e1b35f); }
+    .thumb.mist { background: linear-gradient(135deg, #e7eef8, #8aa5c7); }
+
+    .bookmark-title {
+      margin: 1px 0 2px;
+      color: var(--ink);
+      font-size: 12.5px;
+      font-weight: 800;
+      line-height: 1.32;
+    }
+
+    .bookmark-url {
+      color: var(--ink-3);
+      font-size: 11px;
+    }
+
+    .bookmark-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tiny-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 0 7px;
+      border-radius: 7px;
+      background: var(--green-2);
+      color: #087f55;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .tiny-tag.violet { background: #ebe7ff; color: #5743d2; }
+
+    .highlight-card {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid #e9c85a;
+      border-radius: 8px;
+      background: #fffdf3;
+      box-shadow: 0 10px 30px rgba(245, 183, 53, 0.12);
+    }
+
+    .highlight-card strong {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #6f4b0f;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .highlight-card p {
+      margin: 0;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    mark {
+      padding: 1px 3px;
+      border-radius: 4px;
+      background: var(--yellow-2);
+      color: inherit;
+    }
+
+    .flow-line {
+      position: absolute;
+      top: 196px;
+      right: 198px;
+      width: 118px;
+      height: 176px;
+      color: var(--blue);
       pointer-events: none;
     }
 
-    .terminal-header {
+    .tools-panel {
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      flex-direction: column;
+      padding: 16px 12px 12px;
+      gap: 10px;
     }
 
-    .terminal-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #2a333a;
+    .tool-row {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #ffffff;
+      color: var(--ink-2);
+      font-size: 11px;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      text-align: left;
     }
 
-    .terminal-dot:nth-child(2) { background: var(--color-warn); }
-    .terminal-dot:nth-child(3) { background: var(--color-accent); }
+    .tool-row:hover,
+    .tool-row.active {
+      border-color: rgba(9,105,255,0.38);
+      box-shadow: 0 8px 18px rgba(9,105,255,0.09);
+      transform: translateY(-1px);
+    }
 
-    .terminal pre {
+    .tool-row code {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .answer-panel {
+      margin-top: auto;
+      border: 1px solid #c8dcff;
+      border-radius: 8px;
+      padding: 13px;
+      background: linear-gradient(180deg, #ffffff, #f4f8ff);
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.48;
+    }
+
+    .answer-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--blue);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .answer-lines {
+      display: grid;
+      gap: 7px;
+      margin-top: 11px;
+    }
+
+    .answer-lines span {
+      display: block;
+      height: 7px;
+      border-radius: 999px;
+      background: #d9e4f4;
+    }
+
+    .answer-lines span:nth-child(2) { width: 84%; }
+    .answer-lines span:nth-child(3) { width: 63%; }
+
+    .workflow {
+      padding: 24px 0 72px;
+      background: #ffffff;
+    }
+
+    .section-head {
+      width: min(760px, 100%);
+      margin: 0 auto 28px;
+      text-align: center;
+    }
+
+    .section-head h2 {
       margin: 0;
+      font-size: clamp(28px, 3.6vw, 40px);
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      margin: 12px auto 0;
+      color: var(--ink-2);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 13px;
+      align-items: start;
+      padding: 16px 0;
+      color: var(--ink-2);
       font-size: 13px;
-      line-height: 1.6;
-      color: #d6fbe5;
-      white-space: pre-wrap;
+      line-height: 1.45;
     }
 
-    section {
-      padding: 56px 0;
-      border-top: 1px solid var(--color-line);
+    .step-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      background: var(--blue-2);
+      color: var(--blue);
     }
 
-    .section-title {
-      font-family: var(--font-display);
-      font-size: clamp(24px, 3.5vw, 34px);
-      margin: 0 0 16px;
-    }
+    .step:nth-child(3) .step-icon { background: var(--green-2); color: var(--green); }
+    .step:nth-child(4) .step-icon { background: var(--yellow-2); color: #a66f10; }
 
-    .section-lead {
-      color: var(--color-muted);
-      max-width: 720px;
-      line-height: 1.7;
-      margin: 0 0 24px;
-    }
-
-    .grid {
-      display: grid;
-      gap: 20px;
-    }
-
-    .grid-3 {
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    }
-
-    .card {
-      border: 1px solid var(--color-line);
-      border-radius: 14px;
-      padding: 20px;
-      background: rgba(12, 15, 19, 0.6);
-      transition: transform 0.3s var(--ease-out-expo), border 0.3s var(--ease-out-expo);
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: var(--color-accent-dim);
-    }
-
-    .card h3 {
-      font-family: var(--font-display);
-      margin: 0 0 12px;
-      font-size: 18px;
-    }
-
-    .card p {
-      margin: 0;
-      color: var(--color-muted);
-      line-height: 1.6;
+    .step strong {
+      display: block;
+      color: var(--ink);
       font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 4px;
     }
 
-    .story {
+    .tool-showcase {
+      padding: 72px 0;
+      background:
+        linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    }
+
+    .showcase-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: 0.92fr 1.08fr;
       gap: 28px;
       align-items: start;
     }
 
-    .story-block {
-      padding-left: 18px;
-      border-left: 2px solid var(--color-accent-dim);
-    }
-
-    .showcase {
+    .tool-menu {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
-    }
-
-    .signal {
-      background: var(--color-panel);
-      border-radius: 16px;
-      padding: 20px;
-      border: 1px solid var(--color-line);
-    }
-
-    .signal .label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: var(--color-muted);
-    }
-
-    .signal .value {
-      font-family: var(--font-display);
-      font-size: 28px;
-      margin: 12px 0;
-    }
-
-    .signal .pulse {
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
-      position: relative;
-      overflow: hidden;
-      border-radius: 999px;
-    }
-
-    .signal .pulse::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(61, 255, 159, 0.7), transparent);
-      animation: pulse 2.2s infinite;
-    }
-
-    .interactive {
-      border: 1px solid var(--color-line);
-      border-radius: 16px;
-      padding: 20px;
-      background: rgba(9, 12, 14, 0.8);
-    }
-
-    .interactive-buttons {
-      display: flex;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
     }
 
-    .interactive-buttons button {
-      background: transparent;
-      border: 1px solid var(--color-line);
-      color: var(--color-muted);
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-family: var(--font-body);
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .interactive-buttons button.active {
-      border-color: var(--color-accent);
-      color: var(--color-text);
-      box-shadow: 0 0 12px rgba(61, 255, 159, 0.3);
-    }
-
-    .comparison {
+    .menu-button {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
-    .comparison .card {
-      background: transparent;
-    }
-
-    .badge-row {
-      display: flex;
+      grid-template-columns: 36px 1fr;
       gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 16px;
+      align-items: center;
+      width: 100%;
+      min-height: 70px;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      text-align: left;
+      color: var(--ink-2);
+      box-shadow: 0 8px 20px rgba(39, 78, 126, 0.05);
     }
 
-    .badge {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--color-line);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--color-muted);
+    .menu-button[aria-selected="true"] {
+      border-color: rgba(9,105,255,0.45);
+      background: linear-gradient(180deg, #ffffff, #f2f7ff);
+      box-shadow: 0 12px 24px rgba(9,105,255,0.09);
     }
 
-    .testimonials {
+    .menu-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      color: var(--blue);
+      background: var(--blue-2);
+    }
+
+    .menu-button strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .menu-button span {
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .code-stage {
+      min-height: 376px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0b1730;
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .code-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      color: #b5c5e8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .code-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ff6262;
+    }
+
+    .code-dot:nth-child(2) { background: #ffc24a; }
+    .code-dot:nth-child(3) { background: #33d17a; margin-right: 8px; }
+
+    .code-stage pre {
+      margin: 0;
+      min-height: 332px;
+      padding: 20px;
+      overflow: auto;
+      color: #d9e8ff;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    .token-key { color: #7dd3fc; }
+    .token-str { color: #fed18b; }
+    .token-good { color: #86efac; }
+
+    .security {
+      padding: 72px 0 76px;
+      background: #ffffff;
+    }
+
+    .security-layout {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 42px;
+      align-items: center;
     }
 
-    .testimonial {
-      border: 1px solid var(--color-line);
-      border-radius: 16px;
-      padding: 18px;
-      background: rgba(10, 14, 18, 0.6);
-      transition: border 0.3s var(--ease-out-expo);
+    .security-copy h2 {
+      margin: 0;
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1.08;
+      font-weight: 800;
     }
 
-    .testimonial:hover {
-      border-color: var(--color-accent);
+    .security-copy p {
+      margin: 16px 0 0;
+      color: var(--ink-2);
+      font-size: 16px;
+      line-height: 1.7;
     }
 
-    .testimonial p {
-      color: var(--color-muted);
-      line-height: 1.6;
+    .security-list {
+      display: grid;
+      gap: 13px;
+      margin-top: 24px;
+    }
+
+    .security-row {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: var(--ink-2);
       font-size: 14px;
     }
 
-    .metric {
-      font-family: var(--font-display);
-      font-size: 24px;
-      margin-bottom: 8px;
+    .security-row strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 2px;
     }
 
-    .form {
+    .check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      color: var(--green);
+      background: var(--green-2);
+    }
+
+    .auth-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff, #f7fbff);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .auth-flow {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
-      margin-top: 20px;
     }
 
-    .form input {
-      background: transparent;
-      border: 1px solid var(--color-line);
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: var(--color-text);
-      font-family: var(--font-body);
-    }
-
-    .form button {
-      background: var(--color-accent);
-      color: #0a0d0b;
-      border: none;
-      border-radius: 8px;
-      font-family: var(--font-display);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    footer {
-      padding-top: 32px;
-      border-top: 1px solid var(--color-line);
+    .auth-node {
       display: grid;
-      gap: 16px;
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .auth-node-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      color: var(--blue);
+      background: var(--blue-2);
+    }
+
+    .auth-node strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .auth-node span {
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .start {
+      padding: 72px 0 82px;
+      color: #ffffff;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(9,105,255,0.36), transparent 34%),
+        radial-gradient(circle at 88% 12%, rgba(25,184,120,0.26), transparent 34%),
+        #07122a;
+    }
+
+    .start-grid {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 36px;
+      align-items: center;
+    }
+
+    .start h2 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 50px);
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .start p {
+      margin: 16px 0 0;
+      color: #b9c8e8;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .config-box {
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 8px;
+      background: rgba(7,18,42,0.72);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.26);
+      overflow: hidden;
+    }
+
+    .config-box pre {
+      margin: 0;
+      padding: 20px;
+      overflow: auto;
+      color: #d9e8ff;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    .start-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .site-footer {
+      padding: 28px 0 38px;
+      color: #b9c8e8;
+      background: #07122a;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 13px;
+    }
+
+    .footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
     }
 
     .footer-links {
       display: flex;
+      flex-wrap: wrap;
       gap: 16px;
-      flex-wrap: wrap;
-      color: var(--color-muted);
-      font-size: 13px;
     }
 
-    .newsletter {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .newsletter input {
-      background: transparent;
-      border: 1px solid var(--color-line);
-      border-radius: 999px;
-      padding: 8px 14px;
-      color: var(--color-text);
-      font-family: var(--font-body);
-    }
-
-    .newsletter button {
-      border-radius: 999px;
-      border: 1px solid var(--color-accent);
-      background: transparent;
-      color: var(--color-text);
-      padding: 8px 16px;
-      font-family: var(--font-display);
-      cursor: pointer;
+    .footer-links a:hover {
+      color: #ffffff;
     }
 
     .install-dialog {
-      width: min(720px, calc(100vw - 32px));
-      border: 1px solid var(--color-line);
-      background: var(--color-panel);
-      color: var(--color-text);
+      width: min(760px, calc(100vw - 32px));
+      max-height: min(760px, calc(100vh - 32px));
+      overflow: auto;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
       border-radius: 8px;
       padding: 24px;
+      box-shadow: 0 30px 90px rgba(7, 18, 42, 0.28);
     }
 
     .install-dialog::backdrop {
-      background: rgba(2, 6, 12, 0.72);
+      background: rgba(7, 18, 42, 0.58);
+      backdrop-filter: blur(4px);
     }
 
     .dialog-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
     }
 
     .dialog-header h2 {
-      font-family: var(--font-display);
       margin: 0;
-      font-size: 24px;
-      line-height: 1.2;
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
     }
 
     .dialog-close,
     .copy-snippet {
-      border: 1px solid var(--color-line);
-      color: var(--color-text);
-      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      background: #ffffff;
       border-radius: 8px;
-      padding: 8px 12px;
-      font-family: var(--font-display);
-      cursor: pointer;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 800;
     }
 
     .dialog-close:hover,
     .copy-snippet:hover {
-      border-color: var(--color-accent);
+      border-color: var(--blue);
     }
 
     .dialog-subtitle,
     .tab-help {
-      color: var(--color-muted);
-      margin-top: 10px;
+      color: var(--ink-2);
+      margin: 10px 0 0;
+      line-height: 1.65;
     }
 
     .tab-list {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin: 20px 0 14px;
+      margin: 22px 0 14px;
     }
 
     .tab-list [role="tab"] {
-      border: 1px solid var(--color-line);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 8px 12px;
-      color: var(--color-muted);
-      background: transparent;
-      font-family: var(--font-body);
-      cursor: pointer;
+      padding: 9px 12px;
+      color: var(--ink-2);
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
     }
 
     .tab-list [aria-selected="true"] {
-      color: var(--color-bg);
-      background: var(--color-accent);
-      border-color: var(--color-accent);
+      color: #ffffff;
+      background: var(--blue);
+      border-color: var(--blue);
     }
 
     .tab-panels pre {
-      margin: 0 0 12px;
-      border: 1px solid var(--color-line);
+      margin: 14px 0 12px;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      background: #0b0d0f;
-      color: #d6fbe5;
+      background: #0b1730;
+      color: #d9e8ff;
       overflow: auto;
       padding: 16px;
-      line-height: 1.6;
+      line-height: 1.7;
+      font-family: var(--font-mono);
+      font-size: 13px;
     }
 
     .toast {
       position: fixed;
       right: 20px;
       bottom: 20px;
-      border: 1px solid var(--color-line);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px 14px;
-      background: var(--color-panel);
-      color: var(--color-text);
+      background: var(--ink);
+      color: #ffffff;
       opacity: 0;
       transform: translateY(8px);
       transition: opacity 160ms ease, transform 160ms ease;
       pointer-events: none;
       z-index: 20;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 14px 30px rgba(7, 18, 42, 0.18);
     }
 
     .toast[data-show="true"] {
@@ -577,9 +1124,9 @@
     }
 
     .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+      opacity: 1;
+      transform: none;
+      transition: opacity 520ms ease, transform 520ms ease;
     }
 
     .reveal.is-visible {
@@ -587,206 +1134,450 @@
       transform: translateY(0);
     }
 
-    .stagger > * {
-      opacity: 0;
-      transform: translateY(12px);
-      animation: fadeIn 0.8s var(--ease-out-expo) forwards;
-    }
-
-    .stagger > *:nth-child(1) { animation-delay: 0.2s; }
-    .stagger > *:nth-child(2) { animation-delay: 0.4s; }
-    .stagger > *:nth-child(3) { animation-delay: 0.6s; }
-    .stagger > *:nth-child(4) { animation-delay: 0.8s; }
-
-    @keyframes fadeIn {
-      to {
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+      .reveal {
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
       }
     }
 
-    @keyframes scan {
-      0% { transform: translateX(-120%); }
-      100% { transform: translateX(120%); }
-    }
-
-    @keyframes pulse {
-      0% { transform: translateX(-60%); }
-      100% { transform: translateX(60%); }
-    }
-
-    @media (max-width: 720px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
+    @media (max-width: 1080px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 34px;
+        min-height: auto;
       }
 
-      .nav {
-        flex-wrap: wrap;
+      .hero-copy {
+        max-width: 760px;
       }
 
-      .cta-row {
-        width: 100%;
+      .workspace {
+        min-height: auto;
+      }
+
+      .library-ui {
+        grid-template-columns: 170px 1fr;
+      }
+
+      .tools-panel {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .answer-panel {
+        grid-column: 1 / -1;
+      }
+
+      .flow-line {
+        display: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .top-nav a:not(.nav-docs) {
+        display: none;
+      }
+
+      .trust-row,
+      .workflow-steps,
+      .showcase-grid,
+      .security-layout,
+      .start-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-steps {
+        gap: 2px;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100% - 28px, 1180px);
+      }
+
+      .site-header {
+        height: 66px;
+      }
+
+      .brand {
+        font-size: 16px;
+        gap: 9px;
+      }
+
+      .brand-mark {
+        width: 24px;
+        height: 30px;
+      }
+
+      .top-nav {
+        gap: 10px;
+      }
+
+      .top-nav .button {
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: 13px;
       }
 
       .hero {
-        align-items: start;
+        padding: 34px 0 26px;
+      }
+
+      .hero h1 {
+        font-size: clamp(40px, 13vw, 58px);
+      }
+
+      .hero-lede {
+        font-size: 16px;
+      }
+
+      .hero-actions,
+      .start-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .endpoint-bar {
+        align-items: flex-start;
+      }
+
+      .trust-row {
+        gap: 8px;
+      }
+
+      .library-ui {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .items-panel {
+        padding-bottom: 16px;
+      }
+
+      .highlight-card {
+        position: static;
+        margin-top: 12px;
+      }
+
+      .tools-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow,
+      .tool-showcase,
+      .security,
+      .start {
+        padding: 54px 0;
+      }
+
+      .section-head {
+        text-align: left;
+      }
+
+      .footer-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .top-nav .button {
+        display: none;
+      }
+
+      .endpoint-bar code {
+        font-size: 12px;
+      }
+
+      .bookmark-card {
+        grid-template-columns: 1fr;
+      }
+
+      .thumb {
+        width: 100%;
+        height: 90px;
+      }
+
+      .install-dialog {
+        padding: 18px;
       }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <header>
-      <div class="brand">
-        <span class="brand-dot"></span>
-        Raindrop MCP
-      </div>
-      <nav class="nav">
-        <a href="#why">Why</a>
-        <a href="#showcase">Showcase</a>
-        <a href="#proof">Proof</a>
+    <header class="site-header shell">
+      <a class="brand" href="/" aria-label="Raindrop MCP home">
+        <svg class="brand-mark" viewBox="0 0 56 68" aria-hidden="true">
+          <path fill="#0969ff" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" />
+          <path fill="#54a3ff" d="M28 12C21.6 22.1 14.9 32.4 14.9 42.8C14.9 51 20.3 57.2 28 58.3V12Z" opacity="0.72" />
+        </svg>
+        <span>Raindrop MCP</span>
+      </a>
+      <nav class="top-nav" aria-label="Primary">
+        <a href="#tools">Tools</a>
         <a href="#security">Security</a>
-        <a href="#start">Start</a>
-        <a href="/docs/">Docs</a>
+        <a class="nav-docs" href="/docs/">Docs</a>
+        <button class="button button-primary" type="button" data-open-install>
+          Connect MCP Client
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+        </button>
       </nav>
     </header>
 
-    <section class="hero">
-      <div class="stagger">
-        <h1>Your AI should remember what you saved.</h1>
-        <p>Connect your Raindrop.io bookmarks to any MCP-compatible assistant. Search saved links, collections, tags, and highlights from the tools your client already knows how to use.</p>
-        <div class="cta-row">
-          <button class="btn btn-primary" type="button" data-open-install>Connect MCP Client</button>
-          <button class="btn btn-secondary" id="copy-endpoint" type="button">Copy Endpoint</button>
-          <span id="copy-status" style="color: var(--color-muted); font-size: 12px;"></span>
+    <main>
+      <section class="hero shell">
+        <div class="hero-copy">
+          <h1>Turn your saved links into <span>AI context.</span></h1>
+          <p class="hero-lede">Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing.</p>
+          <div class="hero-actions">
+            <button class="button button-primary" type="button" data-open-install>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" /></svg>
+              Connect MCP Client
+            </button>
+            <button class="button button-secondary" id="copy-endpoint" type="button">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
+              Copy Endpoint
+            </button>
+          </div>
+          <div class="endpoint-bar" aria-label="MCP endpoint">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 0 20" /><path d="M12 2a15.3 15.3 0 0 0 0 20" /></svg>
+            <code>https://raindrop-mcp.anuragd.me/mcp</code>
+            <span class="endpoint-ok" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5" /></svg>
+            </span>
+          </div>
+          <div class="trust-row" aria-label="Trust signals">
+            <div class="trust-item">
+              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /><path d="m9 12 2 2 4-4" /></svg></span>
+              <span><strong>OAuth 2.1</strong>Secure by design</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
+              <span><strong>Your data stays yours</strong>We never store content</span>
+            </div>
+            <div class="trust-item">
+              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" /></svg></span>
+              <span><strong>Cloudflare Worker</strong>Fast hosted endpoint</span>
+            </div>
+          </div>
         </div>
-        <div class="trust">
-          <span>OAuth-ready</span>
-          <span>Streamable HTTP</span>
-          <span>Encrypted token storage</span>
+
+        <div class="workspace" aria-label="Raindrop bookmarks flowing into MCP tools">
+          <div class="library-ui">
+            <aside class="panel sidebar">
+              <div class="mini-brand">
+                <svg class="drop-mini" viewBox="0 0 56 68" aria-hidden="true"><path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" /></svg>
+                Your Raindrop
+              </div>
+              <div class="side-label">Collections</div>
+              <div class="collection-row active"><span class="collection-name"><span class="folder"></span>AI Research</span><span class="count">342</span></div>
+              <div class="collection-row"><span class="collection-name"><span class="folder green"></span>Productivity</span><span class="count">128</span></div>
+              <div class="collection-row"><span class="collection-name"><span class="folder violet"></span>Design Inspo</span><span class="count">84</span></div>
+              <div class="collection-row"><span class="collection-name"><span class="folder orange"></span>Articles</span><span class="count">215</span></div>
+              <div class="collection-row"><span class="collection-name"><span class="folder gray"></span>Read Later</span><span class="count">97</span></div>
+              <div class="side-label">Tags</div>
+              <div class="tag-wrap">
+                <span class="tag-pill green">machine-learning</span>
+                <span class="tag-pill blue">tools</span>
+                <span class="tag-pill">design</span>
+                <span class="tag-pill yellow">web</span>
+                <span class="tag-pill">read-later</span>
+              </div>
+            </aside>
+
+            <section class="panel items-panel" aria-label="Saved bookmarks">
+              <div class="panel-title">
+                <span>Saved Items</span>
+                <span class="status-dot" aria-hidden="true"></span>
+              </div>
+              <article class="bookmark-card">
+                <div class="thumb"></div>
+                <div>
+                  <h3 class="bookmark-title">Transformers Are RNNs: Fast Autoregressive Transformers</h3>
+                  <div class="bookmark-url">arxiv.org</div>
+                  <div class="bookmark-tags"><span class="tiny-tag">machine-learning</span></div>
+                </div>
+              </article>
+              <article class="bookmark-card">
+                <div class="thumb gold"></div>
+                <div>
+                  <h3 class="bookmark-title">Build a second brain, not a todo list</h3>
+                  <div class="bookmark-url">fortelabs.com</div>
+                  <div class="bookmark-tags"><span class="tiny-tag">productivity</span></div>
+                </div>
+              </article>
+              <article class="bookmark-card">
+                <div class="thumb mist"></div>
+                <div>
+                  <h3 class="bookmark-title">Designing high-signal interfaces</h3>
+                  <div class="bookmark-url">every.to</div>
+                  <div class="bookmark-tags"><span class="tiny-tag violet">design</span></div>
+                </div>
+              </article>
+              <article class="highlight-card">
+                <strong>
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" /></svg>
+                  Highlight
+                </strong>
+                <p>The power of a good interface is in <mark>removing the noise</mark>, not adding more features.</p>
+              </article>
+            </section>
+
+            <svg class="flow-line" viewBox="0 0 118 176" aria-hidden="true">
+              <path d="M2 12 C56 12 55 88 116 88" stroke="currentColor" stroke-width="2.4" fill="none" />
+              <path d="M102 81 116 88 102 95" stroke="currentColor" stroke-width="2.4" fill="none" />
+              <path d="M2 164 C56 164 55 88 116 88" stroke="currentColor" stroke-width="2.4" fill="none" opacity="0.45" />
+            </svg>
+
+            <aside class="panel tools-panel" aria-label="MCP tools preview">
+              <div class="panel-title">MCP Tools</div>
+              <button class="tool-row active" type="button" data-hero-tool="bookmark_search"><code>bookmark_search</code>Search titles, descriptions, tags, and highlights</button>
+              <button class="tool-row" type="button" data-hero-tool="collection_list"><code>collection_list</code>Browse your collection tree</button>
+              <button class="tool-row" type="button" data-hero-tool="highlight_manage"><code>highlight_manage</code>Read or create key highlights</button>
+              <button class="tool-row" type="button" data-hero-tool="tag_list"><code>tag_list</code>Explore the labels you already use</button>
+              <div class="answer-panel">
+                <div class="answer-title">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.5L19 10l-5.2 1.5L12 17l-1.8-5.5L5 10l5.2-1.5L12 3Z" /></svg>
+                  AI Answer
+                </div>
+                <div id="hero-answer">Here are 3 saved resources on transformers and interface design, with key takeaways from your highlights.</div>
+                <div class="answer-lines" aria-hidden="true"><span></span><span></span><span></span></div>
+              </div>
+            </aside>
+          </div>
         </div>
-      </div>
-      <div class="terminal">
-        <div class="terminal-header">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
+      </section>
+
+      <section class="workflow reveal" id="workflow">
+        <div class="shell">
+          <div class="section-head">
+            <h2>Your saved knowledge. MCP-ready.</h2>
+            <p>Raindrop MCP turns the library you already maintain into contextual answers your AI client can trust.</p>
+          </div>
+          <div class="workflow-steps">
+            <div class="step">
+              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg></span>
+              <span><strong>1. Your library</strong>Bookmarks, collections, tags, and highlights stay in Raindrop.io.</span>
+            </div>
+            <div class="step">
+              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg></span>
+              <span><strong>2. MCP search</strong>AI clients call secure tools to find what you saved.</span>
+            </div>
+            <div class="step">
+              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span>
+              <span><strong>3. Relevant context</strong>Matched links and highlights return in real time.</span>
+            </div>
+            <div class="step">
+              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.5L19 10l-5.2 1.5L12 17l-1.8-5.5L5 10l5.2-1.5L12 3Z" /></svg></span>
+              <span><strong>4. Better answers</strong>AI responds with sources you already chose to keep.</span>
+            </div>
+          </div>
         </div>
-        <pre>{
-  "mcpServers": {
-    "raindrop": {
-      "url": "https://raindrop-mcp.anuragd.me/mcp",
-      "transport": "streamable-http"
-    }
-  }
+      </section>
+
+      <section class="tool-showcase reveal" id="tools">
+        <div class="shell showcase-grid">
+          <div>
+            <div class="section-head" style="text-align: left; margin-left: 0;">
+              <h2>Tools for bookmarks, not a generic database.</h2>
+              <p>Use natural language to search, organize, and retrieve the exact saved material your workflow depends on.</p>
+            </div>
+            <div class="tool-menu" role="tablist" aria-label="Tool examples">
+              <button class="menu-button" type="button" role="tab" aria-selected="true" data-example="search">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg></span>
+                <span><strong>Search your saved web</strong>Find links by title, description, tags, collection, domain, or highlight.</span>
+              </button>
+              <button class="menu-button" type="button" role="tab" aria-selected="false" data-example="organize">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg></span>
+                <span><strong>Organize collections</strong>Create, merge, reorder, clean, and expand collection structure.</span>
+              </button>
+              <button class="menu-button" type="button" role="tab" aria-selected="false" data-example="highlights">
+                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" /></svg></span>
+                <span><strong>Work with highlights</strong>Retrieve saved quotes and attach new notes without leaving the client.</span>
+              </button>
+            </div>
+          </div>
+          <div class="code-stage">
+            <div class="code-head"><span class="code-dot"></span><span class="code-dot"></span><span class="code-dot"></span><span id="code-title">bookmark_search</span></div>
+            <pre id="tool-output"><span class="token-key">request</span>: {
+  <span class="token-str">"tool"</span>: <span class="token-str">"bookmark_search"</span>,
+  <span class="token-str">"query"</span>: <span class="token-str">"interface design highlights"</span>,
+  <span class="token-str">"collection"</span>: <span class="token-str">"AI Research"</span>
 }
 
-➜ Auto-discovers OAuth endpoint
-➜ Opens browser for authorization
-➜ Connects to your Raindrop.io account
-➜ Ready to use in seconds</pre>
-      </div>
-    </section>
-
-    <section id="why" class="reveal">
-      <h2 class="section-title">Stop pasting bookmarks into chat windows.</h2>
-      <p class="section-lead">You've spent years saving research, articles, and references in Raindrop. Now your AI assistants can access that knowledge directly—no copy-paste, no context limits, no hallucinations about sources you actually saved.</p>
-      <div class="story">
-        <div class="story-block">
-          <h3>Problem</h3>
-          <p>You bookmark hundreds of references, but your AI answers with generic web data. Your carefully curated knowledge stays siloed in Raindrop.</p>
-        </div>
-        <div class="story-block">
-          <h3>Solution</h3>
-          <p>One-time OAuth setup connects your Raindrop account. Your AI can now search your bookmarks, read your highlights, and cite your exact sources on demand.</p>
-        </div>
-        <div class="story-block">
-          <h3>Outcome</h3>
-          <p>Your AI responds using your research, your notes, and your tags—like having a research assistant who actually read your bookmarks.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="showcase" class="reveal">
-      <h2 class="section-title">See what your AI can do.</h2>
-      <p class="section-lead">Once connected, your AI assistant gets 24 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
-      <div class="showcase">
-        <div class="interactive">
-          <div class="interactive-buttons">
-            <button class="active" data-endpoint="mcp">/mcp endpoint</button>
-            <button data-endpoint="metadata">OAuth metadata</button>
-            <button data-endpoint="tools">Available tools</button>
-            <button data-endpoint="resources">Available resources</button>
+<span class="token-good">response</span>: [
+  {
+    <span class="token-str">"title"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
+    <span class="token-str">"source"</span>: <span class="token-str">"every.to"</span>,
+    <span class="token-str">"highlight"</span>: <span class="token-str">"removing the noise, not adding more features"</span>
+  }
+]</pre>
           </div>
-          <pre id="interactive-output">{
-  "transport": "streamable-http",
-  "authentication": "OAuth 2.1 + PKCE",
-  "endpoint": "https://raindrop-mcp.anuragd.me/mcp",
-  "discovery": "/.well-known/oauth-protected-resource"
-}</pre>
         </div>
-        <div class="signal">
-          <div class="label">Real-Time Access</div>
-          <div class="value">Always Current</div>
-          <div class="pulse"></div>
-          <p class="section-lead">No syncing or indexing. Your AI sees new bookmarks the moment you save them to Raindrop.</p>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="proof" class="reveal">
-      <h2 class="section-title">Built for people who save everything.</h2>
-      <p class="section-lead">You save the links. Your AI should use them. Stop explaining your research to your assistant—just connect your bookmarks once.</p>
-      <div class="testimonials" style="margin-top: 20px;">
-        <div class="testimonial">
-          <p>"Find all my bookmarks about React performance optimization. I saved them last month but forgot to tag them."</p>
+      <section class="security reveal" id="security">
+        <div class="shell security-layout">
+          <div class="security-copy">
+            <h2>OAuth in front. Raindrop at the source.</h2>
+            <p>The Worker acts as the MCP bridge. It stores encrypted OAuth session data in Cloudflare KV, then fetches bookmark content live from Raindrop when a tool runs.</p>
+            <div class="security-list">
+              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>No bookmark warehouse</strong>Saved content remains in Raindrop and is fetched only when requested.</span></div>
+              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>Revocable access</strong>OAuth keeps authorization explicit and client-driven.</span></div>
+              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>Streamable HTTP</strong>Works with modern MCP clients that support hosted OAuth flows.</span></div>
+            </div>
+          </div>
+          <div class="auth-card" aria-label="OAuth flow">
+            <div class="auth-flow">
+              <div class="auth-node">
+                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14" /><path d="M5 12h14" /></svg></span>
+                <span><strong>MCP client connects</strong><span>Uses https://raindrop-mcp.anuragd.me/mcp</span></span>
+              </div>
+              <div class="auth-node">
+                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
+                <span><strong>OAuth discovery runs</strong><span>Client follows protected-resource metadata and PKCE login.</span></span>
+              </div>
+              <div class="auth-node">
+                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /></svg></span>
+                <span><strong>Tools call Raindrop live</strong><span>Search, collections, tags, highlights, and bookmark operations stay current.</span></span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="testimonial">
-          <p>"List the articles I bookmarked about distributed systems, with the highlights I made."</p>
-        </div>
-        <div class="testimonial">
-          <p>"I'm writing about API design. Pull quotes from my 'REST' and 'GraphQL' collection bookmarks."</p>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="security" class="reveal">
-      <h2 class="section-title">Your bookmarks stay yours.</h2>
-      <p class="section-lead">Standard OAuth login. The Worker stores encrypted OAuth session data in Cloudflare KV so MCP clients can call Raindrop on your behalf. Bookmark content is fetched live from Raindrop when tools run.</p>
-      <div class="comparison">
-        <div class="card">
-          <h3>✓ With Raindrop MCP</h3>
-          <p>OAuth once. Bookmark in Raindrop. AI has instant access when you ask. Revoke anytime.</p>
-        </div>
-        <div class="card">
-          <h3>✗ Copy-paste everything</h3>
-          <p>Manually paste URLs into every chat. Hit token limits. Lose your highlights and tags.</p>
-        </div>
-        <div class="card">
-          <h3>✗ Export to CSV</h3>
-          <p>Download static files. Import to vector DB. Re-export when you add bookmarks. Data gets stale.</p>
-        </div>
-      </div>
-      <div class="badge-row">
-        <span class="badge">Encrypted token storage</span>
-        <span class="badge">OAuth Login</span>
-        <span class="badge">Read + Write Access</span>
-        <span class="badge">Revocable</span>
-      </div>
-    </section>
-
-    <section id="start" class="reveal">
-      <h2 class="section-title">Add to any MCP-compatible app.</h2>
-      <p class="section-lead">Use the MCP endpoint with Claude Desktop, Cursor, Codex, or any OAuth-aware Streamable HTTP client. Your client discovers OAuth, opens Raindrop authorization, and then calls the Worker with the issued token.</p>
-      <div class="terminal" style="margin-top: 24px;">
-        <div class="terminal-header">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-        </div>
-        <pre>{
+      <section class="start reveal" id="start">
+        <div class="shell start-grid">
+          <div>
+            <h2>Add your bookmark memory to an MCP client.</h2>
+            <p>Paste the hosted endpoint into Claude Desktop, Cursor, Codex, or any OAuth-aware Streamable HTTP MCP client. The client handles discovery and opens the Raindrop authorization flow.</p>
+            <div class="start-actions">
+              <button class="button button-primary" type="button" data-open-install>Connect MCP Client</button>
+              <a class="button button-secondary" href="/docs/">Read Docs</a>
+            </div>
+          </div>
+          <div class="config-box">
+            <div class="code-head"><span class="code-dot"></span><span class="code-dot"></span><span class="code-dot"></span><span>mcp.json</span></div>
+            <pre>{
   "mcpServers": {
     "raindrop": {
       "url": "https://raindrop-mcp.anuragd.me/mcp",
@@ -794,19 +1585,22 @@
     }
   }
 }</pre>
-      </div>
-      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cursor, Codex, and other OAuth-aware MCP clients. OAuth is required for first-time access.</p>
-    </section>
+          </div>
+        </div>
+      </section>
+    </main>
 
-    <footer>
-      <div class="footer-links">
-        <a href="/mcp">MCP Endpoint</a>
-        <a href="/.well-known/oauth-protected-resource">OAuth Metadata</a>
-        <a href="/info">Info</a>
-        <a href="/docs/">Docs</a>
-        <a href="/health">Health</a>
+    <footer class="site-footer">
+      <div class="shell footer-row">
+        <div>Built for people who save the web on purpose.</div>
+        <div class="footer-links">
+          <a href="/mcp">MCP Endpoint</a>
+          <a href="/.well-known/oauth-protected-resource">OAuth Metadata</a>
+          <a href="/info">Info</a>
+          <a href="/docs/">Docs</a>
+          <a href="/health">Health</a>
+        </div>
       </div>
-      <small style="color: var(--color-muted);">© 2026 Raindrop MCP Server. Built for people who actually save their research.</small>
     </footer>
   </div>
 
@@ -866,81 +1660,60 @@
   <div class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    const endpoints = {
-      mcp: `{
-  "transport": "streamable-http",
-  "authentication": "OAuth 2.1 + PKCE",
-  "endpoint": "https://raindrop-mcp.anuragd.me/mcp",
-  "discovery": "/.well-known/oauth-protected-resource"
-}`,
-      metadata: `{
-  "resource": "https://raindrop-mcp.anuragd.me/mcp",
-  "authorization_servers": ["https://raindrop-mcp.anuragd.me"],
-  "scopes_supported": ["raindrop:read", "raindrop:write"],
-  "grant_types_supported": ["authorization_code"]
-}`,
-      tools: `[
-  "collection_list",
-  "collection_children_list",
-  "collection_manage",
-  "collection_bulk_delete",
-  "collection_reorder",
-  "collection_expand",
-  "collection_merge",
-  "collection_clean",
-  "collection_empty_trash",
-  "collection_cover_upload",
-  "user_stats",
-  "bookmark_search",
-  "bookmark_manage",
-  "bookmark_cache",
-  "bookmark_suggest_existing",
-  "bookmark_bulk_create",
-  "bookmark_bulk_delete",
-  "bookmark_file_upload",
-  "bookmark_cover_upload",
-  "tag_list",
-  "tag_manage",
-  "highlight_manage",
-  "bulk_edit_bookmarks",
-  "bookmark_statistics"
-]`,
-      resources: `[
-  "raindrop://user/profile",
-  "raindrop://collections",
-  "raindrop://collection/{id}",
-  "raindrop://bookmark/{id}"
-]`
+    const endpoint = 'https://raindrop-mcp.anuragd.me/mcp';
+    const heroAnswers = {
+      bookmark_search: 'Here are 3 saved resources on transformers and interface design, with key takeaways from your highlights.',
+      collection_list: 'Your AI Research collection has 342 saved items, with nested folders for papers, tools, and design references.',
+      highlight_manage: 'I found your saved quote about removing noise from interfaces and can attach it to a new note.',
+      tag_list: 'Your most relevant tags are machine-learning, tools, design, web, and read-later.'
     };
 
-    const buttons = document.querySelectorAll('.interactive-buttons button');
-    const output = document.getElementById('interactive-output');
+    const examples = {
+      search: {
+        title: 'bookmark_search',
+        output: `<span class="token-key">request</span>: {
+  <span class="token-str">"tool"</span>: <span class="token-str">"bookmark_search"</span>,
+  <span class="token-str">"query"</span>: <span class="token-str">"interface design highlights"</span>,
+  <span class="token-str">"collection"</span>: <span class="token-str">"AI Research"</span>
+}
 
-    buttons.forEach((button) => {
-      button.addEventListener('click', () => {
-        buttons.forEach((btn) => btn.classList.remove('active'));
-        button.classList.add('active');
-        const endpoint = button.dataset.endpoint;
-        output.textContent = endpoints[endpoint];
-      });
-    });
-
-    const revealElements = document.querySelectorAll('.reveal');
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
+<span class="token-good">response</span>: [
+  {
+    <span class="token-str">"title"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
+    <span class="token-str">"source"</span>: <span class="token-str">"every.to"</span>,
+    <span class="token-str">"highlight"</span>: <span class="token-str">"removing the noise, not adding more features"</span>
+  }
+]`
       },
-      { threshold: 0.2 }
-    );
+      organize: {
+        title: 'collection_manage',
+        output: `<span class="token-key">request</span>: {
+  <span class="token-str">"tool"</span>: <span class="token-str">"collection_manage"</span>,
+  <span class="token-str">"operation"</span>: <span class="token-str">"create"</span>,
+  <span class="token-str">"title"</span>: <span class="token-str">"Agent Infrastructure"</span>,
+  <span class="token-str">"parent"</span>: <span class="token-str">"AI Research"</span>
+}
 
-    revealElements.forEach((el) => observer.observe(el));
+<span class="token-good">response</span>: {
+  <span class="token-str">"status"</span>: <span class="token-str">"created"</span>,
+  <span class="token-str">"collection"</span>: <span class="token-str">"Agent Infrastructure"</span>
+}`
+      },
+      highlights: {
+        title: 'highlight_manage',
+        output: `<span class="token-key">request</span>: {
+  <span class="token-str">"tool"</span>: <span class="token-str">"highlight_manage"</span>,
+  <span class="token-str">"bookmark"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
+  <span class="token-str">"operation"</span>: <span class="token-str">"list"</span>
+}
+
+<span class="token-good">response</span>: [
+  <span class="token-str">"The power of a good interface is in removing the noise."</span>
+]`
+      }
+    };
 
     const installDialog = document.getElementById('install-dialog');
-    const openInstallButtons = document.querySelectorAll('[data-open-install]');
     const closeInstallButton = document.querySelector('[data-close-install]');
     const toast = document.querySelector('.toast');
 
@@ -954,7 +1727,7 @@
       }, 1400);
     };
 
-    openInstallButtons.forEach((button) => {
+    document.querySelectorAll('[data-open-install]').forEach((button) => {
       button.addEventListener('click', () => {
         installDialog?.showModal();
       });
@@ -964,12 +1737,36 @@
       installDialog?.close();
     });
 
+    document.querySelectorAll('.tool-row[data-hero-tool]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.tool-row[data-hero-tool]').forEach((item) => item.classList.remove('active'));
+        button.classList.add('active');
+        const answer = heroAnswers[button.dataset.heroTool];
+        const heroAnswer = document.getElementById('hero-answer');
+        if (heroAnswer && answer) heroAnswer.textContent = answer;
+      });
+    });
+
+    document.querySelectorAll('.menu-button[data-example]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.menu-button[data-example]').forEach((item) => {
+          item.setAttribute('aria-selected', String(item === button));
+        });
+        const example = examples[button.dataset.example];
+        const title = document.getElementById('code-title');
+        const output = document.getElementById('tool-output');
+        if (title && output && example) {
+          title.textContent = example.title;
+          output.innerHTML = example.output;
+        }
+      });
+    });
+
     document.querySelectorAll('[role="tab"][data-tab]').forEach((tab) => {
       tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
         document.querySelectorAll('[role="tab"][data-tab]').forEach((candidate) => {
-          const selected = candidate === tab;
-          candidate.setAttribute('aria-selected', String(selected));
+          candidate.setAttribute('aria-selected', String(candidate === tab));
         });
         document.querySelectorAll('[role="tabpanel"]').forEach((panel) => {
           panel.hidden = panel.id !== `tab-${target}`;
@@ -989,22 +1786,26 @@
       });
     });
 
-    const copyButton = document.getElementById('copy-endpoint');
-    const copyStatus = document.getElementById('copy-status');
-    copyButton.addEventListener('click', async () => {
+    document.getElementById('copy-endpoint')?.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText('https://raindrop-mcp.anuragd.me/mcp');
-        copyStatus.textContent = 'Copied!';
-        setTimeout(() => {
-          copyStatus.textContent = '';
-        }, 2000);
-      } catch (error) {
-        copyStatus.textContent = 'Copy failed';
-        setTimeout(() => {
-          copyStatus.textContent = '';
-        }, 2000);
+        await navigator.clipboard.writeText(endpoint);
+        showToast('Endpoint copied');
+      } catch {
+        showToast('Copy failed');
       }
     });
+
+    const revealElements = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add('is-visible');
+        });
+      }, { threshold: 0.14 });
+      revealElements.forEach((el) => observer.observe(el));
+    } else {
+      revealElements.forEach((el) => el.classList.add('is-visible'));
+    }
   </script>
 </body>
 </html>
