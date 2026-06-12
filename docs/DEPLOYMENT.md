@@ -1,116 +1,135 @@
-# Deployment (Vercel)
+# Deployment (Cloudflare Workers)
 
-This repository is designed to be hosted on Vercel using the `mcp-handler` pattern.
+This project deploys as a Cloudflare Worker. The Worker entrypoint is `src/worker.ts`, routes are served directly from the Worker, and OAuth/session state is stored in Workers KV through the `RAINDROP_AUTH_KV` binding.
 
 ## Endpoints
 
-- MCP endpoint: `POST /mcp` (rewritten to `POST /api/raindrop` via `vercel.json`)
-- Health: `GET /health` (rewritten to `GET /api/health`)
-- OAuth init: `GET /auth/init` (served from `api/auth/init.ts`)
-- OAuth callback: `GET /auth/callback` (served from `api/auth/callback.ts`)
-- OAuth metadata: `GET /.well-known/oauth-protected-resource` (served from `public/.well-known/oauth-protected-resource`)
-- OAuth auth server metadata: `GET /.well-known/oauth-authorization-server` (served from `public/.well-known/oauth-authorization-server`)
+- `POST /mcp` - MCP Streamable HTTP endpoint
+- `GET /health` - service health
+- `GET /auth/init` and `GET /auth/callback` - Raindrop OAuth flow
+- `GET /authorize`, `POST /authorize`, `POST /token`, `POST /register` - OAuth authorization server endpoints
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
 
-Note: `.well-known` metadata is served as static files. For preview or local dev URLs, update the JSON files in `public/.well-known/` to match the deployed origin.
+## Prerequisites
+
+- Bun 1.0+
+- Cloudflare account with Workers enabled
+- Raindrop.io OAuth app for production OAuth
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+Authenticate Wrangler:
+
+```bash
+bunx wrangler login
+```
+
+## Create Workers KV
+
+Create production and preview KV namespaces:
+
+```bash
+bun run cf:kv:create
+```
+
+Wrangler prints namespace IDs for `RAINDROP_AUTH_KV`. Copy the production `id` and preview `preview_id` into `wrangler.jsonc`:
+
+```jsonc
+"kv_namespaces": [
+  {
+    "binding": "RAINDROP_AUTH_KV",
+    "id": "your-production-kv-id",
+    "preview_id": "your-preview-kv-id"
+  }
+]
+```
+
+## Configure Secrets
+
+Set required production secrets with Wrangler:
+
+```bash
+bunx wrangler secret put OAUTH_CLIENT_ID
+bunx wrangler secret put OAUTH_CLIENT_SECRET
+bunx wrangler secret put OAUTH_REDIRECT_URI
+bunx wrangler secret put OAUTH_ALLOWED_REDIRECT_URIS
+bunx wrangler secret put TOKEN_ENCRYPTION_KEY
+bunx wrangler secret put JWT_SIGNING_KEY
+```
+
+Notes:
+
+- `OAUTH_REDIRECT_URI` should point to your deployed callback URL, for example `https://raindrop-mcp.example.com/auth/callback`.
+- `OAUTH_ALLOWED_REDIRECT_URIS` is a comma-separated allowlist for post-auth redirects.
+- `TOKEN_ENCRYPTION_KEY` must be 64 hex characters. Generate one with `openssl rand -hex 32`.
+- `JWT_SIGNING_KEY` should be a high-entropy secret.
+- `JWT_ISSUER`, `JWT_ACCESS_TOKEN_EXPIRY`, and `JWT_REFRESH_TOKEN_EXPIRY` are configured in `wrangler.jsonc`.
+
+## Optional Direct Token Fallback
+
+For development or a single-user private deployment, the Worker can read a Raindrop token from the environment:
+
+```bash
+bunx wrangler secret put RAINDROP_ACCESS_TOKEN
+bunx wrangler secret put ALLOW_ENV_TOKEN_AUTH
+```
+
+Set `ALLOW_ENV_TOKEN_AUTH` to `true` to opt in. This fallback is not recommended for production because it uses one deployment-wide Raindrop token instead of per-user OAuth.
+
+Requests can also send a direct token per request with `X-Raindrop-Token`; that is useful for smoke tests and local MCP clients.
+
+## Local Development
+
+Start the Worker locally:
+
+```bash
+bun run dev
+```
+
+Wrangler serves the Worker at `http://localhost:8787` by default.
 
 ## Deploy
 
+Deploy to Cloudflare Workers:
+
 ```bash
-npm install
-npm run deploy:vercel
+bun run deploy:cloudflare
 ```
 
-## Environment Variables
+## Smoke Tests
 
-### OAuth (Recommended)
-
-Set these in Vercel → Project → Settings → Environment Variables:
-
-- `OAUTH_CLIENT_ID`
-- `OAUTH_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI` (example: `https://your-app.vercel.app/auth/callback`)
-- `OAUTH_ALLOWED_REDIRECT_URIS` (comma-separated allowlist, example: `https://your-app.com/dashboard,/dashboard`)
-- `TOKEN_ENCRYPTION_KEY` (64 hex chars; generate with `openssl rand -hex 32`)
-- `KV_REST_API_URL` and `KV_REST_API_TOKEN` (auto-set when you attach Vercel KV)
-
-Optional:
-
-- `API_KEY` (recommended: protects the MCP endpoint via `X-API-Key`)
-- `NODE_ENV=production`
-
-### Direct Token (No OAuth)
-
-If you don’t want OAuth, you can run single-user with:
-
-- `RAINDROP_ACCESS_TOKEN`
-
-In production, set `API_KEY` too.
-
-## Quick Checks
+Set a base URL and a Raindrop API token:
 
 ```bash
-curl https://your-app.vercel.app/health
+export BASE_URL="https://raindrop-mcp.example.com"
+export RAINDROP_TOKEN="your-raindrop-token"
 ```
 
-To verify MCP is reachable, you should use an MCP client (Streamable HTTP) pointed at:
-
-- `https://your-app.vercel.app/mcp`
-
-## Vercel Best Practices
-
-This deployment follows Vercel MCP server best practices:
-
-### Fluid Compute Enabled
-
-Fluid compute is enabled for optimized performance:
-- 90% cost savings vs traditional serverless
-- 50% CPU reduction vs legacy SSE transport
-- Optimized concurrency for irregular MCP usage patterns
-- Automatic bytecode caching for faster cold starts
-
-Verify in Vercel dashboard: Project → Settings → Functions → Fluid Compute (should be ON)
-
-### Streamable HTTP Transport
-
-The server implements MCP Streamable HTTP specification (2025-03-26):
-- Supports GET, POST, and DELETE methods
-- Optional SSE upgrade for streaming responses
-- Session management via Mcp-Session-Id headers
-- Origin header validation for security
-
-### Security
-
-Critical security features:
-- Origin header validation (prevents DNS rebinding attacks)
-- OAuth 2.0 with PKCE authentication
-- AES-256-GCM token encryption
-- HTTPS-only in production
-
-### Testing
-
-Test all HTTP methods after deployment:
+Check health:
 
 ```bash
-# Test POST (client requests)
-curl -X POST https://your-app.vercel.app/mcp \
+curl "$BASE_URL/health"
+```
+
+Check OAuth protected-resource metadata:
+
+```bash
+curl "$BASE_URL/.well-known/oauth-protected-resource"
+```
+
+Check MCP tool listing with direct request-token auth:
+
+```bash
+curl -X POST "$BASE_URL/mcp" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "X-Raindrop-Token: $RAINDROP_TOKEN" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
-
-# Test GET (server messages)
-curl -X GET https://your-app.vercel.app/mcp \
-  -H "Accept: text/event-stream"
-
-# Test DELETE (session termination)
-curl -X DELETE https://your-app.vercel.app/mcp
 ```
 
-## MCP Compliance
-
-This server implements MCP best practices:
-
-- **Structured outputs**: All tools define output schemas
-- **Tool metadata**: Annotations for read-only, destructive, idempotent operations
-- **Helpful errors**: Error messages include examples and guidance
-- **Evaluations**: 10 test questions in `evaluations/raindrop.xml`
-
-See README.md for full compliance details.
+Expected result: `/health` returns JSON with `"status":"ok"`, metadata returns the deployed resource and authorization server, and `tools/list` returns the registered Raindrop MCP tools.

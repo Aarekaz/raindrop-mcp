@@ -9,14 +9,15 @@ A Model Context Protocol (MCP) server for Raindrop.io. It exposes bookmarks, col
 - Tags: list, rename, merge, delete
 - Highlights: list, create, update, delete
 - OAuth 2.0 + PKCE or direct token auth
-- Vercel serverless deployment
+- Cloudflare Workers deployment with Workers KV-backed OAuth storage
 
 ## Requirements
 
-- Node.js 18+ (or Bun)
+- Bun 1.0+
+- Cloudflare account with Workers enabled
 - Raindrop.io account
 - One auth method:
-  - OAuth app + Vercel KV, or
+  - Raindrop OAuth app + Workers KV, or
   - Raindrop API token
 
 ## Setup
@@ -24,7 +25,7 @@ A Model Context Protocol (MCP) server for Raindrop.io. It exposes bookmarks, col
 Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 ## Environment Variables
@@ -36,21 +37,26 @@ OAuth (recommended for production):
 - `OAUTH_REDIRECT_URI` (e.g. `https://raindrop-mcp.anuragd.me/auth/callback`)
 - `OAUTH_ALLOWED_REDIRECT_URIS` (comma-separated)
 - `TOKEN_ENCRYPTION_KEY` (64 hex chars)
-- `KV_REST_API_URL` and `KV_REST_API_TOKEN` (from Vercel KV)
+- `JWT_SIGNING_KEY`
+- `RAINDROP_AUTH_KV` Workers KV binding configured in `wrangler.jsonc`
 
-Direct token (single-user):
+Direct token fallback (single-user):
 
 - `RAINDROP_ACCESS_TOKEN`
+- `ALLOW_ENV_TOKEN_AUTH=true`
 
-Optional:
+The deployment-wide `RAINDROP_ACCESS_TOKEN` fallback is not recommended for production. It is only active when `ALLOW_ENV_TOKEN_AUTH` is explicitly set to `true`; prefer OAuth or per-request `X-Raindrop-Token` auth for production use.
 
-- `API_KEY` (server protection)
-
-## Deploy (Vercel)
+## Deploy (Cloudflare Workers)
 
 ```bash
-npm run deploy:vercel
+bunx wrangler login
+bun run cf:kv:create
+# copy the printed KV ids into wrangler.jsonc, then set secrets with wrangler
+bun run deploy:cloudflare
 ```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full Cloudflare setup and smoke tests.
 
 ## MCP Client Configuration
 
@@ -133,16 +139,16 @@ graph TB
     end
 
     subgraph "Transport Layer"
-        Vercel["Vercel Functions\napi/raindrop.ts"]
+        Worker["Cloudflare Worker\nsrc/worker.ts"]
     end
 
     subgraph "Authentication Layer"
         OAuth["OAuth Service\nPKCE Flow"]
         TokenStorage["Token Storage\nAES-256 Encrypted"]
-        VercelKV["Vercel KV\nRedis"]
+        WorkersKV["Workers KV\nRAINDROP_AUTH_KV"]
 
         OAuth --> TokenStorage
-        TokenStorage --> VercelKV
+        TokenStorage --> WorkersKV
     end
 
     subgraph "MCP Protocol Layer"
@@ -157,10 +163,10 @@ graph TB
         RaindropAPI[Raindrop.io API]
     end
 
-    Browser -->|HTTPS| Vercel
-    MCPClient -->|HTTP| Vercel
+    MCPClient -->|HTTP| Worker
 
-    Vercel -->|withMcpAuth| OAuth
+    Browser -->|HTTPS| Worker
+    Worker -->|withMcpAuth| OAuth
     OAuth -->|Validated Token| MCPService
     MCPService -->|Per-User Token| RaindropService
     RaindropService -->|HTTP Requests| RaindropAPI
@@ -172,38 +178,38 @@ graph TB
 sequenceDiagram
     participant User
     participant Client as Client App
-    participant Vercel as Vercel Function
+    participant Worker as Cloudflare Worker
     participant OAuth as OAuth Service
-    participant KV as Vercel KV
+    participant KV as Workers KV
     participant Raindrop as Raindrop.io
 
     User->>Client: Connect Raindrop
-    Client->>Vercel: GET /auth/init?redirect_uri=/dashboard
-    Vercel->>OAuth: initFlow()
+    Client->>Worker: GET /auth/init?redirect_uri=/dashboard
+    Worker->>OAuth: initFlow()
     OAuth->>OAuth: Generate state + PKCE challenge
     OAuth->>KV: Store state & code_verifier
-    OAuth->>Vercel: Return auth URL
-    Vercel->>Client: Redirect to Raindrop OAuth
+    OAuth->>Worker: Return auth URL
+    Worker->>Client: Redirect to Raindrop OAuth
     Client->>Raindrop: Authorization request
     Raindrop->>User: Consent
     User->>Raindrop: Approve access
-    Raindrop->>Vercel: GET /auth/callback?code=XXX&state=YYY
-    Vercel->>OAuth: handleCallback(code, state)
+    Raindrop->>Worker: GET /auth/callback?code=XXX&state=YYY
+    Worker->>OAuth: handleCallback(code, state)
     OAuth->>KV: Verify state
     OAuth->>Raindrop: POST /oauth/access_token
     Raindrop->>OAuth: access_token + refresh_token
     OAuth->>Raindrop: GET /user
     Raindrop->>OAuth: User details
     OAuth->>KV: Store encrypted session
-    OAuth->>Vercel: Return session ID
-    Vercel->>Client: Set-Cookie: mcp_session=XXX
-    Client->>Vercel: POST /mcp (Cookie: mcp_session)
-    Vercel->>OAuth: verifyToken(session_id)
+    OAuth->>Worker: Return session ID
+    Worker->>Client: Set-Cookie: mcp_session=XXX
+    Client->>Worker: POST /mcp (Cookie: mcp_session)
+    Worker->>OAuth: verifyToken(session_id)
     OAuth->>KV: Fetch encrypted session
-    OAuth->>Vercel: Valid access_token
-    Vercel->>Raindrop: MCP operation with token
-    Raindrop->>Vercel: Response
-    Vercel->>Client: MCP result
+    OAuth->>Worker: Valid access_token
+    Worker->>Raindrop: MCP operation with token
+    Raindrop->>Worker: Response
+    Worker->>Client: MCP result
 ```
 
 ## Multi-Tenant Model
@@ -228,7 +234,7 @@ graph LR
     end
 
     subgraph "Storage"
-        KV["Vercel KV"]
+        KV["Workers KV"]
     end
 
     User1 -->|Cookie| Endpoint
@@ -250,9 +256,9 @@ graph LR
 ## Development
 
 ```bash
-npm run dev
-npm run type-check
-npm run test
+bun run dev
+bun run type-check
+bun test
 ```
 
 ## Troubleshooting
