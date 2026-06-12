@@ -57,6 +57,7 @@ import {
 
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
+type ResponseBody = ConstructorParameters<typeof Response>[0];
 
 const RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
 const LOCALHOST_ORIGINS = new Set([
@@ -242,6 +243,87 @@ function createVerifyToken(
     return undefined;
   }
   };
+}
+
+function parseBearerToken(req: Request): string | undefined {
+  const authHeader = req.headers.get('Authorization');
+  const [type, token] = authHeader?.split(' ') ?? [];
+  return type?.toLowerCase() === 'bearer' ? token : undefined;
+}
+
+async function verifyHeadAuth(
+  env: Env,
+  tokenStorage: TokenStorage,
+  authServerService: AuthorizationServerService,
+  req: Request
+): Promise<AuthInfo | undefined> {
+  const bearerToken = parseBearerToken(req);
+
+  if (bearerToken?.includes('.')) {
+    try {
+      const payload = await authServerService.verifyJWT(bearerToken);
+      const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
+
+      if (!encryptedToken) {
+        return undefined;
+      }
+
+      return {
+        token: decrypt(encryptedToken),
+        scopes: payload.scope.split(' '),
+        clientId: payload.client_id,
+        extra: {
+          userId: payload.sub,
+          jwtPayload: payload,
+          authMethod: 'jwt',
+        },
+      };
+    } catch (error) {
+      console.error('JWT verification failed:', error);
+    }
+  }
+
+  if (bearerToken && !bearerToken.includes('.')) {
+    const session = await tokenStorage.getSession(bearerToken);
+    if (session && session.expiresAt > Date.now()) {
+      return {
+        token: session.accessToken,
+        scopes: ['raindrop:read', 'raindrop:write'],
+        clientId: 'oauth-session',
+        extra: {
+          sessionId: bearerToken,
+          authMethod: 'session',
+        },
+      };
+    }
+  }
+
+  const directToken = req.headers.get('x-raindrop-token');
+  if (directToken) {
+    return {
+      token: directToken,
+      scopes: ['raindrop:read', 'raindrop:write'],
+      clientId: 'direct-token',
+      extra: {
+        method: 'header',
+        authMethod: 'direct',
+      },
+    };
+  }
+
+  if (env.RAINDROP_ACCESS_TOKEN) {
+    return {
+      token: env.RAINDROP_ACCESS_TOKEN,
+      scopes: ['raindrop:read', 'raindrop:write'],
+      clientId: 'env-token',
+      extra: {
+        method: 'environment',
+        authMethod: 'env',
+      },
+    };
+  }
+
+  return undefined;
 }
 
 /**
@@ -1421,10 +1503,7 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
   };
 }
 
-// Add CORS headers to all responses
-const withCors = (handler: (req: Request) => Promise<Response>) => {
-  return async (req: Request): Promise<Response> => {
-    const response = await handler(req);
+function addMcpCorsHeaders(req: Request, response: Response, body: ResponseBody): Response {
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, HEAD, OPTIONS');
@@ -1434,11 +1513,18 @@ const withCors = (handler: (req: Request) => Promise<Response>) => {
       headers.set('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${resourceMetadataUrl}"`);
     }
 
-    return new Response(response.body, {
+    return new Response(body, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
+}
+
+// Add CORS headers to all responses
+const withCors = (handler: (req: Request) => Promise<Response>) => {
+  return async (req: Request): Promise<Response> => {
+    const response = await handler(req);
+    return addMcpCorsHeaders(req, response, response.body);
   };
 };
 
@@ -1472,14 +1558,30 @@ export function createRaindropMcpHandler(env: Env): (request: Request) => Promis
 }
 
 export function createRaindropMcpHeadHandler(env: Env): (request: Request) => Promise<Response> {
-  const mcpHandler = createRaindropMcpHandler(env);
+  const tokenStorage = createTokenStorage(env);
+  const authServerService = createAuthorizationServerService(env, tokenStorage);
 
   return async (request: Request): Promise<Response> => {
-    const response = await mcpHandler(request);
-    return new Response(null, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    });
+    try {
+      validateOrigin(request, env);
+    } catch (error) {
+      console.error('Origin validation failed:', error);
+      return addMcpCorsHeaders(request, new Response(null, { status: 403 }), null);
+    }
+
+    const authInfo = await verifyHeadAuth(env, tokenStorage, authServerService, request);
+
+    if (!authInfo?.scopes.includes('raindrop:read')) {
+      const resourceMetadataUrl = new URL(RESOURCE_METADATA_PATH, request.url).toString();
+      const unauthorized = new Response(null, {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': `Bearer realm="mcp", resource_metadata="${resourceMetadataUrl}"`,
+        },
+      });
+      return addMcpCorsHeaders(request, unauthorized, null);
+    }
+
+    return addMcpCorsHeaders(request, new Response(null, { status: 200 }), null);
   };
 }

@@ -254,6 +254,39 @@ describe('Worker MCP handler', () => {
     expect(response.status).toBeLessThan(500);
   });
 
+  test('authenticated HEAD /mcp returns quickly with empty body', async () => {
+    const startedAt = Date.now();
+    const response = await fetchWorker('/mcp', {
+      method: 'HEAD',
+      headers: {
+        'x-raindrop-token': 'test-token',
+      },
+    });
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(response.status).toBeLessThan(500);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(await response.text()).toBe('');
+    expect(elapsedMs).toBeLessThan(1000);
+  });
+
+  test('unauthenticated HEAD /mcp returns auth challenge quickly with empty body', async () => {
+    const startedAt = Date.now();
+    const response = await fetchWorker(
+      '/mcp',
+      { method: 'HEAD' },
+      createEnv({ RAINDROP_ACCESS_TOKEN: undefined })
+    );
+    const elapsedMs = Date.now() - startedAt;
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(await response.text()).toBe('');
+    expect(elapsedMs).toBeLessThan(1000);
+  });
+
   test('bad Origin returns 403', async () => {
     const response = await fetchWorker('/mcp', {
       method: 'POST',
