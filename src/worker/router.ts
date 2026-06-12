@@ -11,6 +11,11 @@ export type RouteHandler = (
 
 type RouteTable = Map<string, Map<string, RouteHandler>>;
 
+export interface RouterResult {
+  matched: boolean;
+  response: Response;
+}
+
 export class Router {
   private readonly routes: RouteTable = new Map();
 
@@ -23,20 +28,29 @@ export class Router {
     this.routes.set(path, handlers);
   }
 
-  handle(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> | Response {
+  async handle(request: Request, env: Env, ctx: ExecutionContext): Promise<RouterResult> {
     const url = new URL(request.url);
     const handlers = this.routes.get(url.pathname);
 
     if (!handlers) {
-      return notFound();
+      return {
+        matched: false,
+        response: notFound(),
+      };
     }
 
     const handler = handlers.get(request.method.toUpperCase());
 
     if (!handler) {
-      return methodNotAllowed();
+      return {
+        matched: true,
+        response: methodNotAllowed(),
+      };
     }
 
-    return handler(request, env, ctx);
+    return {
+      matched: true,
+      response: await handler(request, env, ctx),
+    };
   }
 }

@@ -8,6 +8,13 @@ const AUTHORIZATION_SERVER_HEADERS = {
   'Cache-Control': 'public, max-age=3600',
 };
 
+const AUTHORIZATION_SERVER_CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+};
+
 const PROTECTED_RESOURCE_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -16,8 +23,14 @@ const PROTECTED_RESOURCE_HEADERS = {
   'Cache-Control': 'max-age=3600',
 };
 
+const JSON_HEADERS = {
+  'Content-Type': 'application/json',
+};
+
 function issuerFromEnv(env: Env): string {
-  return (env.JWT_ISSUER || DEFAULT_ISSUER).trim();
+  const configuredIssuer = env.JWT_ISSUER?.trim();
+
+  return configuredIssuer && configuredIssuer.length > 0 ? configuredIssuer : DEFAULT_ISSUER;
 }
 
 function firstForwardedHeaderValue(value: string | null): string | undefined {
@@ -69,6 +82,23 @@ export function authorizationServerMetadata(_request: Request, env: Env): Respon
   );
 }
 
+export function authorizationServerMetadataHead(): Response {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      ...AUTHORIZATION_SERVER_HEADERS,
+      ...JSON_HEADERS,
+    },
+  });
+}
+
+export function authorizationServerMetadataOptions(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: AUTHORIZATION_SERVER_CORS_HEADERS,
+  });
+}
+
 export function protectedResourceMetadata(request: Request, env: Env): Response {
   const resource = `${requestOrigin(request)}${resourcePath(request)}`;
 
@@ -82,4 +112,21 @@ export function protectedResourceMetadata(request: Request, env: Env): Response 
       headers: PROTECTED_RESOURCE_HEADERS,
     }
   );
+}
+
+export function protectedResourceMetadataHead(): Response {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      ...PROTECTED_RESOURCE_HEADERS,
+      ...JSON_HEADERS,
+    },
+  });
+}
+
+export function protectedResourceMetadataOptions(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: PROTECTED_RESOURCE_HEADERS,
+  });
 }
