@@ -24,8 +24,8 @@ const DEFAULT_JWT_REFRESH_TOKEN_EXPIRY = 2592000;
 export interface AuthorizationServerConfig {
   issuer?: string;
   signingKey?: string;
-  accessTokenExpiry?: number;
-  refreshTokenExpiry?: number;
+  accessTokenExpiry?: number | string;
+  refreshTokenExpiry?: number | string;
 }
 
 function processEnvValue(name: string): string | undefined {
@@ -33,7 +33,17 @@ function processEnvValue(name: string): string | undefined {
 }
 
 function processEnvInteger(name: string, fallback: number): number {
-  return parseInt(processEnvValue(name) || String(fallback), 10);
+  return normalizePositiveInteger(processEnvValue(name), fallback);
+}
+
+function normalizeIssuer(issuer: string | undefined): string {
+  const trimmed = issuer?.trim();
+  return trimmed ? trimmed : DEFAULT_JWT_ISSUER;
+}
+
+function normalizePositiveInteger(value: number | string | undefined, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
 export class AuthorizationServerService {
@@ -45,11 +55,15 @@ export class AuthorizationServerService {
 
   constructor(storage: TokenStorage, config: AuthorizationServerConfig = {}) {
     this.storage = storage;
-    this.issuer = (config.issuer ?? processEnvValue('JWT_ISSUER') ?? DEFAULT_JWT_ISSUER).trim();
+    this.issuer = normalizeIssuer(config.issuer ?? processEnvValue('JWT_ISSUER'));
     this.accessTokenExpiry =
-      config.accessTokenExpiry ?? processEnvInteger('JWT_ACCESS_TOKEN_EXPIRY', DEFAULT_JWT_ACCESS_TOKEN_EXPIRY);
+      config.accessTokenExpiry === undefined
+        ? processEnvInteger('JWT_ACCESS_TOKEN_EXPIRY', DEFAULT_JWT_ACCESS_TOKEN_EXPIRY)
+        : normalizePositiveInteger(config.accessTokenExpiry, DEFAULT_JWT_ACCESS_TOKEN_EXPIRY);
     this.refreshTokenExpiry =
-      config.refreshTokenExpiry ?? processEnvInteger('JWT_REFRESH_TOKEN_EXPIRY', DEFAULT_JWT_REFRESH_TOKEN_EXPIRY);
+      config.refreshTokenExpiry === undefined
+        ? processEnvInteger('JWT_REFRESH_TOKEN_EXPIRY', DEFAULT_JWT_REFRESH_TOKEN_EXPIRY)
+        : normalizePositiveInteger(config.refreshTokenExpiry, DEFAULT_JWT_REFRESH_TOKEN_EXPIRY);
 
     const key = config.signingKey ?? processEnvValue('JWT_SIGNING_KEY');
     if (key) {
@@ -189,7 +203,7 @@ export class AuthorizationServerService {
     clientId: string,
     codeVerifier: string,
     redirectUri: string
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string; scope: string; expiresIn: number }> {
     // Retrieve and delete authorization code (one-time use)
     const authCode = await this.storage.getAuthCode(code);
     if (!authCode) {
@@ -232,7 +246,12 @@ export class AuthorizationServerService {
       authCode.scope
     );
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      scope: authCode.scope,
+      expiresIn: this.accessTokenExpiry,
+    };
   }
 
   // ============================================================================

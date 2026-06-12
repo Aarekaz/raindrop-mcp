@@ -172,7 +172,17 @@ export async function authCallback(request: Request, env: Env): Promise<Response
     const tokenStorage = createTokenStorage(env);
     const oauthService = createOAuthService(env, tokenStorage);
     const storedOAuthState = await oauthService.getStoredState(state);
-    const redirectUri = storedOAuthState?.redirectUri || '/';
+    if (!storedOAuthState) {
+      return json(
+        {
+          error: 'Invalid state',
+          message: 'State parameter mismatch. Possible CSRF attack.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const redirectUri = storedOAuthState.redirectUri;
     const session = await oauthService.handleCallback(code, state);
 
     try {

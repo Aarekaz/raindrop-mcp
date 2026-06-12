@@ -3,8 +3,15 @@ import { parse as parseCookie } from 'cookie';
 import { AuthorizationServerService } from '../oauth/authorization-server.service.js';
 import { CloudflareKVStore } from '../oauth/cloudflare-kv-store.js';
 import { TokenStorage } from '../oauth/token-storage.js';
-import type { ClientRegistrationRequest, TokenResponse } from '../types/oauth-server.types.js';
+import type {
+  ClientRegistrationRequest,
+  OAuthClient,
+  TokenResponse,
+} from '../types/oauth-server.types.js';
 import type { Env } from '../worker/env.js';
+
+const DEFAULT_SCOPE = 'raindrop:read raindrop:write';
+const SUPPORTED_SCOPES = new Set(['raindrop:read', 'raindrop:write']);
 
 function createAuthorizationServerService(env: Env): AuthorizationServerService {
   return new AuthorizationServerService(
@@ -12,18 +19,14 @@ function createAuthorizationServerService(env: Env): AuthorizationServerService 
     {
       issuer: env.JWT_ISSUER,
       signingKey: env.JWT_SIGNING_KEY,
-      accessTokenExpiry: parseOptionalInteger(env.JWT_ACCESS_TOKEN_EXPIRY),
-      refreshTokenExpiry: parseOptionalInteger(env.JWT_REFRESH_TOKEN_EXPIRY),
+      accessTokenExpiry: env.JWT_ACCESS_TOKEN_EXPIRY,
+      refreshTokenExpiry: env.JWT_REFRESH_TOKEN_EXPIRY,
     }
   );
 }
 
-function parseOptionalInteger(value: string | undefined): number | undefined {
-  return value === undefined ? undefined : parseInt(value, 10);
-}
-
-function accessTokenExpiry(env: Env): number {
-  return parseInt(env.JWT_ACCESS_TOKEN_EXPIRY || '3600', 10);
+function parseScope(scope: string): string[] {
+  return Array.from(new Set(scope.split(/\s+/).map(item => item.trim()).filter(Boolean)));
 }
 
 function oauthErrorResponse(error: string, description: string): Response {
@@ -66,6 +69,72 @@ function authorizationErrorResponse(message: string): Response {
       headers: { 'Content-Type': 'application/json' },
     }
   );
+}
+
+function validateRequestedScope(
+  requestedScope: string,
+  client: OAuthClient
+): { valid: true; scope: string } | { valid: false; message: string } {
+  const requestedScopes = parseScope(requestedScope || DEFAULT_SCOPE);
+  if (requestedScopes.length === 0) {
+    return { valid: false, message: 'Missing scope parameter' };
+  }
+
+  const unsupportedScope = requestedScopes.find(scope => !SUPPORTED_SCOPES.has(scope));
+  if (unsupportedScope) {
+    return { valid: false, message: `Unsupported scope requested: ${unsupportedScope}` };
+  }
+
+  const clientScopes = new Set(parseScope(client.scope || DEFAULT_SCOPE));
+  const unauthorizedScope = requestedScopes.find(scope => !clientScopes.has(scope));
+  if (unauthorizedScope) {
+    return {
+      valid: false,
+      message: `Requested scope exceeds registered client scope: ${unauthorizedScope}`,
+    };
+  }
+
+  return { valid: true, scope: requestedScopes.join(' ') };
+}
+
+function isValidCodeChallenge(codeChallenge: string): boolean {
+  return /^[A-Za-z0-9._~-]{43,128}$/.test(codeChallenge);
+}
+
+async function validateAuthorizationTarget(
+  authServerService: AuthorizationServerService,
+  clientId: string,
+  redirectUri: string,
+  requestedScope: string
+): Promise<
+  | { valid: true; client: OAuthClient; scope: string }
+  | { valid: false; response: Response }
+> {
+  if (!clientId) {
+    return { valid: false, response: authorizationErrorResponse('Missing client_id parameter') };
+  }
+  if (!redirectUri) {
+    return { valid: false, response: authorizationErrorResponse('Missing redirect_uri parameter') };
+  }
+
+  const client = await authServerService.getClient(clientId);
+  if (!client) {
+    return { valid: false, response: authorizationErrorResponse('Invalid client_id') };
+  }
+
+  if (!client.redirect_uris.includes(redirectUri)) {
+    return {
+      valid: false,
+      response: authorizationErrorResponse('Invalid redirect_uri for this client'),
+    };
+  }
+
+  const scopeValidation = validateRequestedScope(requestedScope, client);
+  if (!scopeValidation.valid) {
+    return { valid: false, response: authorizationErrorResponse(scopeValidation.message) };
+  }
+
+  return { valid: true, client, scope: scopeValidation.scope };
 }
 
 export async function registerClient(request: Request, env: Env): Promise<Response> {
@@ -123,7 +192,7 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   const clientId = params.get('client_id');
   const redirectUri = params.get('redirect_uri');
   const responseType = params.get('response_type');
-  const scope = params.get('scope') || 'raindrop:read raindrop:write';
+  const scope = params.get('scope') || DEFAULT_SCOPE;
   const state = params.get('state');
   const codeChallenge = params.get('code_challenge');
   const codeChallengeMethod = params.get('code_challenge_method');
@@ -148,13 +217,13 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   }
 
   const authServerService = createAuthorizationServerService(env);
-  const client = await authServerService.getClient(clientId);
-  if (!client) {
-    return authorizationErrorResponse('Invalid client_id');
+  const target = await validateAuthorizationTarget(authServerService, clientId, redirectUri, scope);
+  if (!target.valid) {
+    return target.response;
   }
 
-  if (!client.redirect_uris.includes(redirectUri)) {
-    return authorizationErrorResponse('Invalid redirect_uri for this client');
+  if (!isValidCodeChallenge(codeChallenge)) {
+    return authorizationErrorResponse('Invalid code_challenge parameter');
   }
 
   const cookies = parseCookie(request.headers.get('cookie') || '');
@@ -167,8 +236,8 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   }
 
   const consentHtml = generateConsentHtml({
-    clientName: client.client_name,
-    scope,
+    clientName: target.client.client_name,
+    scope: target.scope,
     state,
     clientId,
     redirectUri,
@@ -190,7 +259,18 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   const clientId = formData.get('client_id') as string;
   const redirectUri = formData.get('redirect_uri') as string;
   const codeChallenge = formData.get('code_challenge') as string;
-  const scope = formData.get('scope') as string;
+  const scope = (formData.get('scope') as string | null) || DEFAULT_SCOPE;
+  const authServerService = createAuthorizationServerService(env);
+  const target = await validateAuthorizationTarget(
+    authServerService,
+    clientId,
+    redirectUri,
+    scope
+  );
+
+  if (!target.valid) {
+    return target.response;
+  }
 
   if (action === 'deny') {
     const errorUrl = new URL(redirectUri);
@@ -209,13 +289,16 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
     return authorizationErrorResponse('Authentication required');
   }
 
+  if (!isValidCodeChallenge(codeChallenge)) {
+    return authorizationErrorResponse('Invalid code_challenge parameter');
+  }
+
   try {
-    const authServerService = createAuthorizationServerService(env);
     const code = await authServerService.createAuthorizationCode(
       clientId,
       raindropSession,
       redirectUri,
-      scope,
+      target.scope,
       codeChallenge
     );
 
@@ -275,11 +358,11 @@ export async function token(request: Request, env: Env): Promise<Response> {
     }
 
     if (grantType === 'authorization_code') {
-      return await handleAuthorizationCodeGrant(body, clientId, authServerService, env);
+      return await handleAuthorizationCodeGrant(body, clientId, authServerService);
     }
 
     if (grantType === 'refresh_token') {
-      return await handleRefreshTokenGrant(body, clientId, authServerService, env);
+      return await handleRefreshTokenGrant(body, clientId, authServerService);
     }
 
     return oauthErrorResponse('invalid_request', 'Invalid grant_type');
@@ -295,8 +378,7 @@ export async function token(request: Request, env: Env): Promise<Response> {
 async function handleAuthorizationCodeGrant(
   body: Record<string, string>,
   clientId: string,
-  authServerService: AuthorizationServerService,
-  env: Env
+  authServerService: AuthorizationServerService
 ): Promise<Response> {
   const code = body.code;
   const redirectUri = body.redirect_uri;
@@ -318,9 +400,9 @@ async function handleAuthorizationCodeGrant(
     const response: TokenResponse = {
       access_token: tokens.accessToken,
       token_type: 'Bearer',
-      expires_in: accessTokenExpiry(env),
+      expires_in: tokens.expiresIn,
       refresh_token: tokens.refreshToken,
-      scope: 'raindrop:read raindrop:write',
+      scope: tokens.scope,
     };
 
     return tokenResponse(response);
@@ -336,8 +418,7 @@ async function handleAuthorizationCodeGrant(
 async function handleRefreshTokenGrant(
   body: Record<string, string>,
   clientId: string,
-  authServerService: AuthorizationServerService,
-  env: Env
+  authServerService: AuthorizationServerService
 ): Promise<Response> {
   const refreshToken = body.refresh_token;
 
@@ -347,10 +428,7 @@ async function handleRefreshTokenGrant(
 
   try {
     const response = await authServerService.refreshAccessToken(refreshToken, clientId);
-    return tokenResponse({
-      ...response,
-      expires_in: accessTokenExpiry(env),
-    });
+    return tokenResponse(response);
   } catch (error) {
     console.error('Refresh token error:', error);
     return oauthErrorResponse(
