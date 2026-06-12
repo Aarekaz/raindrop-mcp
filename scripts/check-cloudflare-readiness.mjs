@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-const BASE_URL = (process.env.BASE_URL || 'https://raindrop-mcp.aarekaz.workers.dev').replace(
+const BASE_URL = (process.env.BASE_URL || 'https://raindrop-mcp.anuragd.me').replace(
   /\/+$/,
   ''
 );

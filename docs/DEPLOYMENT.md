@@ -137,7 +137,7 @@ Expected result: `/health` returns JSON with `"status":"ok"`, metadata returns t
 You can run the same production readiness checks with:
 
 ```bash
-BASE_URL="https://raindrop-mcp.aarekaz.workers.dev" bun run cf:readiness
+BASE_URL="https://raindrop-mcp.anuragd.me" bun run cf:readiness
 ```
 
 The readiness command exits non-zero if required Worker secrets are missing. While `OAUTH_CLIENT_ID` or `OAUTH_CLIENT_SECRET` are unset, it also verifies that `/auth/init` fails closed with `oauth_not_configured`.

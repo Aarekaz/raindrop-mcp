@@ -49,7 +49,7 @@ export interface RefreshToken {
  */
 export interface JWTPayload {
   // Standard claims (RFC 7519)
-  iss: string;  // Issuer - https://raindrop-mcp.aarekaz.workers.dev
+  iss: string;  // Issuer - https://raindrop-mcp.anuragd.me
   sub: string;  // Subject - Raindrop user_id
   aud: string;  // Audience - 'raindrop-mcp' or resource URI
   exp: number;  // Expiration time (Unix timestamp)

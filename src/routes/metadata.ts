@@ -1,7 +1,7 @@
 import type { Env } from '../worker/env.js';
 import { json } from '../worker/http.js';
 
-const DEFAULT_ISSUER = 'https://raindrop-mcp.aarekaz.workers.dev';
+const DEFAULT_ISSUER = 'https://raindrop-mcp.anuragd.me';
 
 const AUTHORIZATION_SERVER_HEADERS = {
   'Access-Control-Allow-Origin': '*',

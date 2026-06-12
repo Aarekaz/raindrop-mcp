@@ -17,7 +17,7 @@ import {
 } from './oauth.types.js';
 import type { TokenResponse } from '../types/oauth-server.types.js';
 
-const DEFAULT_JWT_ISSUER = 'https://raindrop-mcp.aarekaz.workers.dev';
+const DEFAULT_JWT_ISSUER = 'https://raindrop-mcp.anuragd.me';
 const DEFAULT_JWT_ACCESS_TOKEN_EXPIRY = 3600;
 const DEFAULT_JWT_REFRESH_TOKEN_EXPIRY = 2592000;
 
