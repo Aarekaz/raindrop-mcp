@@ -12,6 +12,7 @@ import type { Env } from '../worker/env.js';
 
 const DEFAULT_SCOPE = 'raindrop:read raindrop:write';
 const SUPPORTED_SCOPES = new Set(['raindrop:read', 'raindrop:write']);
+const SUPPORTED_GRANT_TYPES = new Set(['authorization_code', 'refresh_token']);
 
 function createAuthorizationServerService(env: Env): AuthorizationServerService {
   return new AuthorizationServerService(
@@ -97,6 +98,40 @@ function validateRequestedScope(
   return { valid: true, scope: requestedScopes.join(' ') };
 }
 
+function validateGrantTypes(
+  grantTypes: string[] | undefined
+): { valid: true; grantTypes: string[] } | { valid: false; message: string } {
+  const requestedGrantTypes = grantTypes ?? ['authorization_code', 'refresh_token'];
+  if (requestedGrantTypes.length === 0) {
+    return { valid: false, message: 'At least one grant_type is required' };
+  }
+
+  const unsupportedGrantType = requestedGrantTypes.find(
+    grantType => !SUPPORTED_GRANT_TYPES.has(grantType)
+  );
+  if (unsupportedGrantType) {
+    return { valid: false, message: `Unsupported grant_type requested: ${unsupportedGrantType}` };
+  }
+
+  return { valid: true, grantTypes: Array.from(new Set(requestedGrantTypes)) };
+}
+
+function validateRegistrationScope(
+  scope: string | undefined
+): { valid: true; scope: string } | { valid: false; message: string } {
+  const requestedScopes = parseScope(scope || DEFAULT_SCOPE);
+  if (requestedScopes.length === 0) {
+    return { valid: false, message: 'At least one scope is required' };
+  }
+
+  const unsupportedScope = requestedScopes.find(item => !SUPPORTED_SCOPES.has(item));
+  if (unsupportedScope) {
+    return { valid: false, message: `Unsupported scope requested: ${unsupportedScope}` };
+  }
+
+  return { valid: true, scope: requestedScopes.join(' ') };
+}
+
 function isValidCodeChallenge(codeChallenge: string): boolean {
   return /^[A-Za-z0-9._~-]{43,128}$/.test(codeChallenge);
 }
@@ -166,8 +201,22 @@ export async function registerClient(request: Request, env: Env): Promise<Respon
       }
     }
 
+    const grantTypeValidation = validateGrantTypes(body.grant_types);
+    if (!grantTypeValidation.valid) {
+      return registrationErrorResponse('invalid_client_metadata', grantTypeValidation.message);
+    }
+
+    const scopeValidation = validateRegistrationScope(body.scope);
+    if (!scopeValidation.valid) {
+      return registrationErrorResponse('invalid_client_metadata', scopeValidation.message);
+    }
+
     const authServerService = createAuthorizationServerService(env);
-    const response = await authServerService.registerClient(body);
+    const response = await authServerService.registerClient({
+      ...body,
+      grant_types: grantTypeValidation.grantTypes,
+      scope: scopeValidation.scope,
+    });
 
     return new Response(JSON.stringify(response), {
       status: 201,
@@ -260,6 +309,11 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   const redirectUri = formData.get('redirect_uri') as string;
   const codeChallenge = formData.get('code_challenge') as string;
   const scope = (formData.get('scope') as string | null) || DEFAULT_SCOPE;
+
+  if (action !== 'deny' && action !== 'approve') {
+    return authorizationErrorResponse('Invalid action parameter');
+  }
+
   const authServerService = createAuthorizationServerService(env);
   const target = await validateAuthorizationTarget(
     authServerService,
@@ -357,8 +411,25 @@ export async function token(request: Request, env: Env): Promise<Response> {
       return oauthErrorResponse('invalid_client', 'Client authentication failed');
     }
 
+    const client = await authServerService.getClient(clientId);
+    if (!client) {
+      return oauthErrorResponse('invalid_client', 'Client authentication failed');
+    }
+
+    if (!client.grant_types.includes(grantType)) {
+      return oauthErrorResponse(
+        'unauthorized_client',
+        `Client is not authorized for ${grantType} grant`
+      );
+    }
+
     if (grantType === 'authorization_code') {
-      return await handleAuthorizationCodeGrant(body, clientId, authServerService);
+      return await handleAuthorizationCodeGrant(
+        body,
+        clientId,
+        authServerService,
+        client.grant_types.includes('refresh_token')
+      );
     }
 
     if (grantType === 'refresh_token') {
@@ -378,7 +449,8 @@ export async function token(request: Request, env: Env): Promise<Response> {
 async function handleAuthorizationCodeGrant(
   body: Record<string, string>,
   clientId: string,
-  authServerService: AuthorizationServerService
+  authServerService: AuthorizationServerService,
+  issueRefreshToken: boolean
 ): Promise<Response> {
   const code = body.code;
   const redirectUri = body.redirect_uri;
@@ -395,15 +467,19 @@ async function handleAuthorizationCodeGrant(
   }
 
   try {
-    const tokens = await authServerService.exchangeCode(code, clientId, codeVerifier, redirectUri);
+    const tokens = await authServerService.exchangeCode(code, clientId, codeVerifier, redirectUri, {
+      issueRefreshToken,
+    });
 
     const response: TokenResponse = {
       access_token: tokens.accessToken,
       token_type: 'Bearer',
       expires_in: tokens.expiresIn,
-      refresh_token: tokens.refreshToken,
       scope: tokens.scope,
     };
+    if (tokens.refreshToken) {
+      response.refresh_token = tokens.refreshToken;
+    }
 
     return tokenResponse(response);
   } catch (error) {

@@ -202,8 +202,9 @@ export class AuthorizationServerService {
     code: string,
     clientId: string,
     codeVerifier: string,
-    redirectUri: string
-  ): Promise<{ accessToken: string; refreshToken: string; scope: string; expiresIn: number }> {
+    redirectUri: string,
+    options: { issueRefreshToken?: boolean } = {}
+  ): Promise<{ accessToken: string; refreshToken?: string; scope: string; expiresIn: number }> {
     // Retrieve and delete authorization code (one-time use)
     const authCode = await this.storage.getAuthCode(code);
     if (!authCode) {
@@ -240,11 +241,13 @@ export class AuthorizationServerService {
       clientId,
       authCode.scope
     );
-    const refreshToken = await this.createRefreshToken(
-      authCode.user_id,
-      clientId,
-      authCode.scope
-    );
+    const refreshToken = options.issueRefreshToken === false
+      ? undefined
+      : await this.createRefreshToken(
+        authCode.user_id,
+        clientId,
+        authCode.scope
+      );
 
     return {
       accessToken,

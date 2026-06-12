@@ -261,6 +261,65 @@ describe('OAuth Worker routes', () => {
     expect(payload.exp - payload.iat).toBe(3600);
   });
 
+  test('POST /token omits refresh_token for authorization-code-only clients', async () => {
+    const kv = new InMemoryKVNamespace();
+    const signingKey = 'worker-env-signing-key';
+    const client = createClient({ grant_types: ['authorization_code'] });
+    const authCode = createAuthCode();
+    await seedClient(kv, client);
+    await seedAuthCode(kv, authCode);
+
+    const response = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: client.client_id,
+          code: authCode.code,
+          redirect_uri: authCode.redirect_uri,
+          code_verifier: 'test-code-verifier',
+        }),
+      },
+      createEnv({ JWT_SIGNING_KEY: signingKey }, kv)
+    );
+    const body = (await response.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      scope: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.access_token).toBeString();
+    expect(body.refresh_token).toBeUndefined();
+    expect(body.scope).toBe(authCode.scope);
+  });
+
+  test('POST /token rejects refresh_token grant for authorization-code-only clients', async () => {
+    const kv = new InMemoryKVNamespace();
+    const client = createClient({ grant_types: ['authorization_code'] });
+    await seedClient(kv, client);
+
+    const response = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          client_id: client.client_id,
+          refresh_token: 'refresh-token',
+        }),
+      },
+      createEnv({}, kv)
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ error: 'unauthorized_client' });
+  });
+
   test('POST /register missing client_name returns invalid_client_metadata', async () => {
     const response = await fetchWorker('/register', {
       method: 'POST',
@@ -286,6 +345,40 @@ describe('OAuth Worker routes', () => {
 
     expect(response.status).toBe(400);
     expect(body).toMatchObject({ error: 'invalid_redirect_uri' });
+  });
+
+  test('POST /register rejects unsupported grant_types', async () => {
+    const response = await fetchWorker('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Bad Grant Client',
+        redirect_uris: ['https://client.example/callback'],
+        grant_types: ['authorization_code', 'client_credentials'],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ error: 'invalid_client_metadata' });
+    expect(body.error_description).toContain('Unsupported grant_type');
+  });
+
+  test('POST /register rejects unsupported scope', async () => {
+    const response = await fetchWorker('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_name: 'Bad Scope Client',
+        redirect_uris: ['https://client.example/callback'],
+        scope: 'raindrop:read raindrop:delete',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ error: 'invalid_client_metadata' });
+    expect(body.error_description).toContain('Unsupported scope');
   });
 
   test('GET /authorize without client_id returns missing client_id text', async () => {
@@ -416,6 +509,59 @@ describe('OAuth Worker routes', () => {
     expect(response.status).toBe(400);
     expect(response.headers.get('Location')).toBeNull();
     expect(text).toContain('Requested scope exceeds registered client scope');
+  });
+
+  test('POST /authorize with missing action returns 400 and does not approve', async () => {
+    const kv = new InMemoryKVNamespace();
+    const client = createClient();
+    await seedClient(kv, client);
+    const response = await fetchWorker(
+      '/authorize',
+      {
+        method: 'POST',
+        headers: { Cookie: 'raindrop_session=user-123' },
+        body: new URLSearchParams({
+          state: 'state-123',
+          client_id: client.client_id,
+          redirect_uri: client.redirect_uris[0],
+          scope: 'raindrop:read',
+          code_challenge: createCodeChallenge('test-code-verifier'),
+        }),
+      },
+      createEnv({}, kv)
+    );
+    const text = await response.text();
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(text).toContain('Invalid action parameter');
+  });
+
+  test('POST /authorize with unknown action returns 400 and does not approve', async () => {
+    const kv = new InMemoryKVNamespace();
+    const client = createClient();
+    await seedClient(kv, client);
+    const response = await fetchWorker(
+      '/authorize',
+      {
+        method: 'POST',
+        headers: { Cookie: 'raindrop_session=user-123' },
+        body: new URLSearchParams({
+          action: 'maybe',
+          state: 'state-123',
+          client_id: client.client_id,
+          redirect_uri: client.redirect_uris[0],
+          scope: 'raindrop:read',
+          code_challenge: createCodeChallenge('test-code-verifier'),
+        }),
+      },
+      createEnv({}, kv)
+    );
+    const text = await response.text();
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(text).toContain('Invalid action parameter');
   });
 
   test('GET /auth/callback without code and state returns missing parameters', async () => {
