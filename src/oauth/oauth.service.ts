@@ -5,7 +5,7 @@
 
 import pkceChallenge from 'pkce-challenge';
 import crypto from 'crypto';
-import { OAuthConfig, TokenResponse, StoredSession } from './oauth.types.js';
+import { OAuthConfig, OAuthState, TokenResponse, StoredSession } from './oauth.types.js';
 import { TokenStorage } from './token-storage.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -49,7 +49,7 @@ export class OAuthService {
     return { authUrl: authUrl.toString(), state };
   }
 
-  async getStoredState(state: string) {
+  async getStoredState(state: string): Promise<OAuthState | null> {
     return await this.storage.getOAuthState(state);
   }
 
