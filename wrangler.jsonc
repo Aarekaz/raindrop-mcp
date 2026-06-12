@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "raindrop-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-06-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "kv_namespaces": [
+    {
+      "binding": "RAINDROP_AUTH_KV",
+      "id": "replace-with-production-kv-id",
+      "preview_id": "replace-with-preview-kv-id"
+    }
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "JWT_ISSUER": "https://raindrop-mcp.anuragd.me",
+    "JWT_ACCESS_TOKEN_EXPIRY": "3600",
+    "JWT_REFRESH_TOKEN_EXPIRY": "2592000"
+  }
+}
