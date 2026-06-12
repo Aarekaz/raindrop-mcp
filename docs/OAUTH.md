@@ -59,7 +59,7 @@ Examples:
 - `/`
 - `http://localhost:8080/callback`
 
-## 5. Run the OAuth Flow
+## 5. Run the MCP Client OAuth Flow
 
 Start the Worker locally:
 
@@ -67,13 +67,24 @@ Start the Worker locally:
 bun run dev
 ```
 
-Start auth:
+Use the Worker MCP endpoint in an OAuth-aware Streamable HTTP MCP client:
 
-```text
-http://localhost:8787/auth/init?redirect_uri=/
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "url": "http://localhost:8787/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
 ```
 
-After Raindrop authorization, the Worker sets an httpOnly `mcp_session` cookie.
+The MCP client should discover `/.well-known/oauth-protected-resource`, discover
+`/.well-known/oauth-authorization-server`, register with `/register`, open
+`/authorize` with PKCE, and exchange the authorization code at `/token`. The
+Worker uses `/auth/init` and `/auth/callback` internally only when a Raindrop
+login is needed.
 
 ## 6. Calling the MCP Server
 

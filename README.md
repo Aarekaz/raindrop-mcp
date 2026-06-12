@@ -58,6 +58,24 @@ bun run deploy:cloudflare
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full Cloudflare setup and smoke tests.
 
+### Hosted Server
+
+Use the production MCP endpoint:
+
+```text
+https://raindrop-mcp.anuragd.me/mcp
+```
+
+OAuth-aware MCP clients will:
+
+1. Discover `/.well-known/oauth-protected-resource`.
+2. Discover `/.well-known/oauth-authorization-server`.
+3. Register with `/register`.
+4. Open `/authorize` with PKCE.
+5. Send you through Raindrop OAuth when no Raindrop session exists.
+6. Exchange the authorization code at `/token`.
+7. Call `/mcp` with the issued bearer token.
+
 ## MCP Client Configuration
 
 ```json
@@ -89,11 +107,20 @@ If using direct token auth:
 
 ## Endpoints
 
-- `POST /mcp` (Streamable HTTP)
-- `GET /.well-known/oauth-protected-resource`
-- `GET /.well-known/oauth-authorization-server`
-- `GET /health`
-- `GET /auth/init`, `GET /auth/callback`
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /` | Public landing page |
+| `GET /docs/` | Static setup/reference docs |
+| `GET /info` | Public JSON capability summary |
+| `POST /mcp` | MCP Streamable HTTP endpoint |
+| `GET /.well-known/oauth-protected-resource` | Protected resource metadata |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /register` | Dynamic client registration |
+| `GET /authorize` | MCP OAuth authorization entry |
+| `POST /authorize` | Consent approval/deny |
+| `POST /token` | Authorization code and refresh token exchange |
+| `GET /auth/init` | Internal Raindrop OAuth start |
+| `GET /auth/callback` | Internal Raindrop OAuth callback |
 
 ## Tools
 
@@ -183,31 +210,30 @@ sequenceDiagram
     participant KV as Workers KV
     participant Raindrop as Raindrop.io
 
-    User->>Client: Connect Raindrop
-    Client->>Worker: GET /auth/init?redirect_uri=/
-    Worker->>OAuth: initFlow()
-    OAuth->>OAuth: Generate state + PKCE challenge
-    OAuth->>KV: Store state & code_verifier
-    OAuth->>Worker: Return auth URL
-    Worker->>Client: Redirect to Raindrop OAuth
-    Client->>Raindrop: Authorization request
+    User->>Client: Add MCP endpoint
+    Client->>Worker: GET /.well-known/oauth-protected-resource
+    Worker->>Client: Protected resource metadata
+    Client->>Worker: GET /.well-known/oauth-authorization-server
+    Worker->>Client: Authorization metadata
+    Client->>Worker: POST /register
+    Worker->>KV: Store OAuth client
+    Client->>Worker: GET /authorize with PKCE + resource
+    Worker->>Client: Redirect to /auth/init when no Raindrop session exists
+    Client->>Worker: GET /auth/init
+    Worker->>Raindrop: Authorization request
     Raindrop->>User: Consent
     User->>Raindrop: Approve access
     Raindrop->>Worker: GET /auth/callback?code=XXX&state=YYY
-    Worker->>OAuth: handleCallback(code, state)
-    OAuth->>KV: Verify state
-    OAuth->>Raindrop: POST /oauth/access_token
-    Raindrop->>OAuth: access_token + refresh_token
-    OAuth->>Raindrop: GET /user
-    Raindrop->>OAuth: User details
-    OAuth->>KV: Store encrypted session
-    OAuth->>Worker: Return session ID
-    Worker->>Client: Set-Cookie: mcp_session=XXX
-    Client->>Worker: POST /mcp (Cookie: mcp_session)
-    Worker->>OAuth: verifyToken(session_id)
-    OAuth->>KV: Fetch encrypted session
-    OAuth->>Worker: Valid access_token
-    Worker->>Raindrop: MCP operation with token
+    Worker->>KV: Store encrypted Raindrop token
+    Worker->>Client: Continue /authorize consent
+    User->>Worker: Approve MCP client
+    Worker->>KV: Store authorization code
+    Worker->>Client: Redirect with code
+    Client->>Worker: POST /token
+    Worker->>Client: JWT access token
+    Client->>Worker: POST /mcp (Bearer JWT)
+    Worker->>KV: Fetch encrypted Raindrop token
+    Worker->>Raindrop: MCP operation with Raindrop token
     Raindrop->>Worker: Response
     Worker->>Client: MCP result
 ```
@@ -237,9 +263,9 @@ graph LR
         KV["Workers KV"]
     end
 
-    User1 -->|Cookie| Endpoint
+    User1 -->|Bearer JWT| Endpoint
     User2 -->|X-Raindrop-Token| Endpoint
-    User3 -->|Cookie| Endpoint
+    User3 -->|Bearer JWT| Endpoint
 
     Endpoint --> Auth
     Auth --> KV

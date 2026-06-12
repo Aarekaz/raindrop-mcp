@@ -4,12 +4,20 @@ This project deploys as a Cloudflare Worker. The Worker entrypoint is `src/worke
 
 ## Endpoints
 
-- `POST /mcp` - MCP Streamable HTTP endpoint
-- `GET /health` - service health
-- `GET /auth/init` and `GET /auth/callback` - Raindrop OAuth flow
-- `GET /authorize`, `POST /authorize`, `POST /token`, `POST /register` - OAuth authorization server endpoints
-- `GET /.well-known/oauth-protected-resource`
-- `GET /.well-known/oauth-authorization-server`
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /` | Public landing page |
+| `GET /docs/` | Static setup/reference docs |
+| `GET /info` | Public JSON capability summary |
+| `POST /mcp` | MCP Streamable HTTP endpoint |
+| `GET /.well-known/oauth-protected-resource` | Protected resource metadata |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /register` | Dynamic client registration |
+| `GET /authorize` | MCP OAuth authorization entry |
+| `POST /authorize` | Consent approval/deny |
+| `POST /token` | Authorization code and refresh token exchange |
+| `GET /auth/init` | Internal Raindrop OAuth start |
+| `GET /auth/callback` | Internal Raindrop OAuth callback |
 
 ## Prerequisites
 
@@ -116,6 +124,14 @@ Check health:
 curl "$BASE_URL/health"
 ```
 
+Check public pages and summary:
+
+```bash
+curl -I "$BASE_URL/"
+curl -I "$BASE_URL/docs/"
+curl "$BASE_URL/info"
+```
+
 Check OAuth protected-resource metadata:
 
 ```bash
@@ -138,6 +154,12 @@ You can run the same production readiness checks with:
 
 ```bash
 BASE_URL="https://raindrop-mcp.anuragd.me" bun run cf:readiness
+```
+
+After a browser Raindrop OAuth session exists in Workers KV, run the end-to-end MCP probe:
+
+```bash
+BASE_URL="https://raindrop-mcp.anuragd.me" bun run cf:e2e
 ```
 
 The readiness command exits non-zero if required Worker secrets are missing. While `OAUTH_CLIENT_ID` or `OAUTH_CLIENT_SECRET` are unset, it also verifies that `/auth/init` fails closed with `oauth_not_configured`.

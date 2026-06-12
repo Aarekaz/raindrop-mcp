@@ -8,7 +8,10 @@ Use this checklist for production deployment of the Raindrop MCP Cloudflare Work
 
 - [ ] `bun run type-check`
 - [ ] `bun test`
+- [ ] `bun run cf:types:check`
 - [ ] `bunx wrangler deploy --dry-run`
+- [ ] `bun run cf:readiness`
+- [ ] `bun run cf:e2e`
 - [ ] `git diff --check`
 - [ ] Git status clean
 
@@ -82,7 +85,10 @@ Optional direct-token fallback:
 ```bash
 bun run type-check
 bun test
+bun run cf:types:check
 bunx wrangler deploy --dry-run
+bun run cf:readiness
+bun run cf:e2e
 ```
 
 - [ ] Bundle succeeds

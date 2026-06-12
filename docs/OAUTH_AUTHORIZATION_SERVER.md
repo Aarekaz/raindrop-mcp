@@ -25,13 +25,20 @@ MCP Client -> /authorize -> Raindrop login -> consent -> /token -> JWT -> /mcp
 
 Core endpoints:
 
-- `GET /authorize`
-- `POST /authorize`
-- `POST /token`
-- `POST /register`
-- `GET /.well-known/oauth-authorization-server`
-- `GET /.well-known/oauth-protected-resource`
-- `POST /mcp`
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /` | Public landing page |
+| `GET /docs/` | Static setup/reference docs |
+| `GET /info` | Public JSON capability summary |
+| `POST /mcp` | MCP Streamable HTTP endpoint |
+| `GET /.well-known/oauth-protected-resource` | Protected resource metadata |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /register` | Dynamic client registration |
+| `GET /authorize` | MCP OAuth authorization entry |
+| `POST /authorize` | Consent approval/deny |
+| `POST /token` | Authorization code and refresh token exchange |
+| `GET /auth/init` | Internal Raindrop OAuth start |
+| `GET /auth/callback` | Internal Raindrop OAuth callback |
 
 ## Cloudflare Configuration
 
@@ -97,7 +104,9 @@ Returns authorization server metadata:
   "response_types_supported": ["code"],
   "grant_types_supported": ["authorization_code", "refresh_token"],
   "token_endpoint_auth_methods_supported": ["client_secret_post", "none"],
-  "code_challenge_methods_supported": ["S256"]
+  "code_challenge_methods_supported": ["S256"],
+  "resource_indicators_supported": true,
+  "authorization_response_iss_parameter_supported": false
 }
 ```
 
@@ -108,7 +117,10 @@ Returns protected resource metadata:
 ```json
 {
   "resource": "https://your-worker-domain.example.com/mcp",
-  "authorization_servers": ["https://your-worker-domain.example.com"]
+  "authorization_servers": ["https://your-worker-domain.example.com"],
+  "scopes_supported": ["raindrop:read", "raindrop:write"],
+  "bearer_methods_supported": ["header"],
+  "resource_documentation": "https://your-worker-domain.example.com/docs/"
 }
 ```
 
@@ -125,6 +137,7 @@ Required query parameters:
 - `state`
 - `code_challenge`
 - `code_challenge_method=S256`
+- `resource` (optional, should be the MCP resource URL such as `https://your-worker-domain.example.com/mcp`)
 
 If the user is not authenticated, the Worker redirects to `/auth/init`. If the user is authenticated, the Worker shows a consent screen.
 
