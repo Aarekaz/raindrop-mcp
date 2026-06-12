@@ -8,8 +8,18 @@ import type { Env } from '../worker/env.js';
 
 function createAuthorizationServerService(env: Env): AuthorizationServerService {
   return new AuthorizationServerService(
-    new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV))
+    new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV)),
+    {
+      issuer: env.JWT_ISSUER,
+      signingKey: env.JWT_SIGNING_KEY,
+      accessTokenExpiry: parseOptionalInteger(env.JWT_ACCESS_TOKEN_EXPIRY),
+      refreshTokenExpiry: parseOptionalInteger(env.JWT_REFRESH_TOKEN_EXPIRY),
+    }
   );
+}
+
+function parseOptionalInteger(value: string | undefined): number | undefined {
+  return value === undefined ? undefined : parseInt(value, 10);
 }
 
 function accessTokenExpiry(env: Env): number {

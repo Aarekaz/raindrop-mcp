@@ -17,18 +17,41 @@ import {
 } from './oauth.types.js';
 import type { TokenResponse } from '../types/oauth-server.types.js';
 
-const JWT_ISSUER = (process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me').trim();
-const JWT_ACCESS_TOKEN_EXPIRY = parseInt(process.env.JWT_ACCESS_TOKEN_EXPIRY || '3600', 10); // 1 hour
-const JWT_REFRESH_TOKEN_EXPIRY = parseInt(process.env.JWT_REFRESH_TOKEN_EXPIRY || '2592000', 10); // 30 days
+const DEFAULT_JWT_ISSUER = 'https://raindrop-mcp.anuragd.me';
+const DEFAULT_JWT_ACCESS_TOKEN_EXPIRY = 3600;
+const DEFAULT_JWT_REFRESH_TOKEN_EXPIRY = 2592000;
+
+export interface AuthorizationServerConfig {
+  issuer?: string;
+  signingKey?: string;
+  accessTokenExpiry?: number;
+  refreshTokenExpiry?: number;
+}
+
+function processEnvValue(name: string): string | undefined {
+  return typeof process === 'undefined' ? undefined : process.env[name];
+}
+
+function processEnvInteger(name: string, fallback: number): number {
+  return parseInt(processEnvValue(name) || String(fallback), 10);
+}
 
 export class AuthorizationServerService {
   private storage: TokenStorage;
   private jwtSecret: Uint8Array | null;
+  private issuer: string;
+  private accessTokenExpiry: number;
+  private refreshTokenExpiry: number;
 
-  constructor(storage: TokenStorage) {
+  constructor(storage: TokenStorage, config: AuthorizationServerConfig = {}) {
     this.storage = storage;
+    this.issuer = (config.issuer ?? processEnvValue('JWT_ISSUER') ?? DEFAULT_JWT_ISSUER).trim();
+    this.accessTokenExpiry =
+      config.accessTokenExpiry ?? processEnvInteger('JWT_ACCESS_TOKEN_EXPIRY', DEFAULT_JWT_ACCESS_TOKEN_EXPIRY);
+    this.refreshTokenExpiry =
+      config.refreshTokenExpiry ?? processEnvInteger('JWT_REFRESH_TOKEN_EXPIRY', DEFAULT_JWT_REFRESH_TOKEN_EXPIRY);
 
-    const key = process.env.JWT_SIGNING_KEY;
+    const key = config.signingKey ?? processEnvValue('JWT_SIGNING_KEY');
     if (key) {
       // Convert base64 key to Uint8Array
       this.jwtSecret = new TextEncoder().encode(key);
@@ -86,7 +109,7 @@ export class AuthorizationServerService {
       scope: client.scope,
       created_at: client.created_at,
       registration_access_token: registrationAccessToken,
-      registration_client_uri: `${JWT_ISSUER}/register/${clientId}`,
+      registration_client_uri: `${this.issuer}/register/${clientId}`,
     };
 
     if (clientSecret) {
@@ -230,10 +253,10 @@ export class AuthorizationServerService {
     const now = Math.floor(Date.now() / 1000);
 
     const payload: JWTPayload = {
-      iss: JWT_ISSUER,
+      iss: this.issuer,
       sub: userId,
       aud: 'raindrop-mcp',
-      exp: now + JWT_ACCESS_TOKEN_EXPIRY,
+      exp: now + this.accessTokenExpiry,
       iat: now,
       client_id: clientId,
       scope,
@@ -243,7 +266,7 @@ export class AuthorizationServerService {
     const jwt = await new SignJWT(payload as unknown as Record<string, unknown>)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt(now)
-      .setExpirationTime(now + JWT_ACCESS_TOKEN_EXPIRY)
+      .setExpirationTime(now + this.accessTokenExpiry)
       .sign(this.jwtSecret);
 
     return jwt;
@@ -262,7 +285,7 @@ export class AuthorizationServerService {
 
     try {
       const { payload } = await jwtVerify(token, this.jwtSecret, {
-        issuer: JWT_ISSUER,
+        issuer: this.issuer,
         audience: 'raindrop-mcp',
       });
 
@@ -288,7 +311,7 @@ export class AuthorizationServerService {
       client_id: clientId,
       user_id: userId,
       scope,
-      expires_at: now + JWT_REFRESH_TOKEN_EXPIRY * 1000,
+      expires_at: now + this.refreshTokenExpiry * 1000,
       created_at: now,
     };
 
@@ -324,7 +347,7 @@ export class AuthorizationServerService {
     return {
       access_token: accessToken,
       token_type: 'Bearer',
-      expires_in: JWT_ACCESS_TOKEN_EXPIRY,
+      expires_in: this.accessTokenExpiry,
       scope: token.scope,
     };
   }

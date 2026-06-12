@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { ExecutionContext, KVNamespace } from '@cloudflare/workers-types';
+import crypto from 'crypto';
+import { jwtVerify } from 'jose';
 
 import type { Env, Fetcher } from '../src/worker/env.js';
+import type { AuthorizationCode, OAuthClient } from '../src/types/oauth-server.types.js';
 import worker from '../src/worker.js';
 
 const requestContext = {
@@ -33,19 +36,28 @@ class InMemoryKVNamespace {
   async delete(key: string): Promise<void> {
     this.values.delete(key);
   }
+
+  async seedJson(key: string, value: unknown): Promise<void> {
+    this.values.set(key, JSON.stringify(value));
+  }
 }
 
-function createEnv(): Env {
+function createEnv(overrides: Partial<Env> = {}, kv = new InMemoryKVNamespace()): Env {
   return {
-    RAINDROP_AUTH_KV: new InMemoryKVNamespace() as unknown as KVNamespace,
+    RAINDROP_AUTH_KV: kv as unknown as KVNamespace,
     ASSETS: {
       fetch: () => new Response('asset'),
     } as Fetcher,
+    ...overrides,
   };
 }
 
 async function fetchWorker(path: string, init?: RequestInit, env = createEnv()): Promise<Response> {
   return worker.fetch(new Request(`https://example.com${path}`, init), env, requestContext);
+}
+
+function createCodeChallenge(verifier: string): string {
+  return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
 describe('OAuth Worker routes', () => {
@@ -69,6 +81,108 @@ describe('OAuth Worker routes', () => {
     expect(body).toMatchObject({ error: 'invalid_request' });
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('Pragma')).toBe('no-cache');
+  });
+
+  test('POST /token with unsupported content type returns invalid_request', async () => {
+    const response = await fetchWorker('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: 'grant_type=authorization_code',
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ error: 'invalid_request' });
+  });
+
+  test('POST /token with unsupported grant returns unsupported_grant_type', async () => {
+    const response = await fetchWorker('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'password' }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({ error: 'unsupported_grant_type' });
+  });
+
+  test('POST /token authorization_code exchange uses Worker env JWT config', async () => {
+    const kv = new InMemoryKVNamespace();
+    const signingKey = 'worker-env-signing-key';
+    const issuer = 'https://worker-issuer.example';
+    const clientId = 'client-env';
+    const code = 'code-env';
+    const codeVerifier = 'test-code-verifier';
+    const redirectUri = 'https://client.example/callback';
+    const env = createEnv(
+      {
+        JWT_SIGNING_KEY: signingKey,
+        JWT_ACCESS_TOKEN_EXPIRY: '123',
+        JWT_ISSUER: issuer,
+      },
+      kv
+    );
+    const client: OAuthClient = {
+      client_id: clientId,
+      client_secret_hash: null,
+      client_name: 'Env Client',
+      redirect_uris: [redirectUri],
+      grant_types: ['authorization_code', 'refresh_token'],
+      token_endpoint_auth_method: 'none',
+      scope: 'raindrop:read raindrop:write',
+      created_at: Date.now(),
+      registration_access_token: 'registration-token',
+    };
+    const authCode: AuthorizationCode = {
+      code,
+      client_id: clientId,
+      user_id: 'user-env',
+      redirect_uri: redirectUri,
+      scope: 'raindrop:read raindrop:write',
+      code_challenge: createCodeChallenge(codeVerifier),
+      code_challenge_method: 'S256',
+      expires_at: Date.now() + 5 * 60 * 1000,
+      created_at: Date.now(),
+    };
+    await kv.seedJson(`client:${clientId}`, client);
+    await kv.seedJson(`authcode:${code}`, authCode);
+
+    const response = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: clientId,
+          code,
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier,
+        }),
+      },
+      env
+    );
+    const body = (await response.json()) as {
+      access_token: string;
+      expires_in: number;
+      refresh_token: string;
+    };
+    const { payload } = await jwtVerify(body.access_token, new TextEncoder().encode(signingKey), {
+      issuer,
+      audience: 'raindrop-mcp',
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.expires_in).toBe(123);
+    expect(body.refresh_token).toBeString();
+    expect(payload.client_id).toBe(clientId);
+    expect(payload.sub).toBe('user-env');
+    expect(payload.iss).toBe(issuer);
+    if (typeof payload.exp !== 'number' || typeof payload.iat !== 'number') {
+      throw new Error('JWT is missing numeric exp/iat claims');
+    }
+    expect(payload.exp - payload.iat).toBe(123);
   });
 
   test('POST /register missing client_name returns invalid_client_metadata', async () => {
@@ -106,6 +220,16 @@ describe('OAuth Worker routes', () => {
     expect(text).toContain('Missing client_id parameter');
   });
 
+  test('GET /authorize without state returns missing state text', async () => {
+    const response = await fetchWorker(
+      '/authorize?client_id=client&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&response_type=code&code_challenge=challenge&code_challenge_method=S256'
+    );
+    const text = await response.text();
+
+    expect(response.status).toBe(400);
+    expect(text).toContain('Missing state parameter');
+  });
+
   test('GET /authorize with unknown client_id returns Invalid client_id', async () => {
     const response = await fetchWorker(
       '/authorize?client_id=unknown&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&response_type=code&state=state-123&code_challenge=challenge&code_challenge_method=S256'
@@ -114,5 +238,23 @@ describe('OAuth Worker routes', () => {
 
     expect(response.status).toBe(400);
     expect(text).toContain('Invalid client_id');
+  });
+
+  test('GET /auth/callback without code and state returns missing parameters', async () => {
+    const response = await fetchWorker('/auth/callback');
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Missing required parameters');
+  });
+
+  test('GET /auth/callback with mismatched state cookie returns invalid state', async () => {
+    const response = await fetchWorker('/auth/callback?code=code&state=query-state', {
+      headers: { Cookie: 'oauth_state=cookie-state' },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Invalid state');
   });
 });
