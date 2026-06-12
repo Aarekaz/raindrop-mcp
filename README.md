@@ -184,7 +184,7 @@ sequenceDiagram
     participant Raindrop as Raindrop.io
 
     User->>Client: Connect Raindrop
-    Client->>Worker: GET /auth/init?redirect_uri=/dashboard
+    Client->>Worker: GET /auth/init?redirect_uri=/
     Worker->>OAuth: initFlow()
     OAuth->>OAuth: Generate state + PKCE challenge
     OAuth->>KV: Store state & code_verifier

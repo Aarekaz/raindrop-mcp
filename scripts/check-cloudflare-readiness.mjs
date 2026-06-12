@@ -120,7 +120,7 @@ async function main() {
     fail(`MCP tools/list returned ${tools.response.status}`);
   }
 
-  const authInit = await fetch(`${BASE_URL}/auth/init?redirect_uri=/dashboard`, {
+  const authInit = await fetch(`${BASE_URL}/auth/init?redirect_uri=/`, {
     redirect: 'manual',
   });
   if (missingSecrets.includes('OAUTH_CLIENT_ID') || missingSecrets.includes('OAUTH_CLIENT_SECRET')) {

@@ -55,8 +55,8 @@ openssl rand -base64 32
 
 Examples:
 
-- `https://your-worker-domain.example.com/dashboard`
-- `/dashboard`
+- `https://your-worker-domain.example.com/`
+- `/`
 - `http://localhost:8080/callback`
 
 ## 5. Run the OAuth Flow
@@ -70,7 +70,7 @@ bun run dev
 Start auth:
 
 ```text
-http://localhost:8787/auth/init?redirect_uri=/dashboard
+http://localhost:8787/auth/init?redirect_uri=/
 ```
 
 After Raindrop authorization, the Worker sets an httpOnly `mcp_session` cookie.

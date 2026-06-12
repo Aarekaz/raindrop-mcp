@@ -118,7 +118,7 @@ describe('OAuth Worker routes', () => {
   });
 
   test('GET /auth/init with missing OAuth client config fails closed', async () => {
-    const response = await fetchWorker('/auth/init?redirect_uri=/dashboard');
+    const response = await fetchWorker('/auth/init?redirect_uri=/');
     const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(503);

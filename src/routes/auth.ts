@@ -121,7 +121,7 @@ export async function authInit(request: Request, env: Env): Promise<Response> {
       return json(
         {
           error: 'redirect_uri parameter is required',
-          hint: 'Provide ?redirect_uri=/dashboard or full URL from allowlist',
+          hint: 'Provide ?redirect_uri=/ or a full URL from the allowlist',
         },
         { status: 400 }
       );

@@ -37,7 +37,7 @@ JWT_REFRESH_TOKEN_EXPIRY=2592000
 OAUTH_CLIENT_ID=<your-raindrop-client-id>
 OAUTH_CLIENT_SECRET=<your-raindrop-client-secret>
 OAUTH_REDIRECT_URI=http://localhost:8787/auth/callback
-OAUTH_ALLOWED_REDIRECT_URIS=http://localhost:8080/callback,/dashboard
+OAUTH_ALLOWED_REDIRECT_URIS=http://localhost:8080/callback,/
 
 TOKEN_ENCRYPTION_KEY=<64-char-hex>
 ```
