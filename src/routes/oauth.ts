@@ -1,6 +1,9 @@
 import { parse as parseCookie } from 'cookie';
 
-import { AuthorizationServerService } from '../oauth/authorization-server.service.js';
+import {
+  AuthorizationServerService,
+  canonicalizeResource,
+} from '../oauth/authorization-server.service.js';
 import { CloudflareKVStore } from '../oauth/cloudflare-kv-store.js';
 import { TokenStorage } from '../oauth/token-storage.js';
 import type {
@@ -245,6 +248,8 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   const state = params.get('state');
   const codeChallenge = params.get('code_challenge');
   const codeChallengeMethod = params.get('code_challenge_method');
+  const resource = params.get('resource');
+  let canonicalResource: string | undefined;
 
   if (!clientId) {
     return authorizationErrorResponse('Missing client_id parameter');
@@ -263,6 +268,13 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
   }
   if (codeChallengeMethod !== 'S256') {
     return authorizationErrorResponse('Invalid code_challenge_method. Only "S256" is supported.');
+  }
+  if (resource) {
+    try {
+      canonicalResource = canonicalizeResource(resource);
+    } catch {
+      return authorizationErrorResponse('resource parameter must be an absolute URI');
+    }
   }
 
   const authServerService = createAuthorizationServerService(env);
@@ -291,6 +303,7 @@ export async function authorizeGet(request: Request, env: Env): Promise<Response
     clientId,
     redirectUri,
     codeChallenge,
+    resource: canonicalResource,
   });
 
   return new Response(consentHtml, {
@@ -309,9 +322,18 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
   const redirectUri = formData.get('redirect_uri') as string;
   const codeChallenge = formData.get('code_challenge') as string;
   const scope = (formData.get('scope') as string | null) || DEFAULT_SCOPE;
+  const resource = formData.get('resource') as string | null;
+  let canonicalResource: string | undefined;
 
   if (action !== 'deny' && action !== 'approve') {
     return authorizationErrorResponse('Invalid action parameter');
+  }
+  if (resource) {
+    try {
+      canonicalResource = canonicalizeResource(resource);
+    } catch {
+      return authorizationErrorResponse('resource parameter must be an absolute URI');
+    }
   }
 
   const authServerService = createAuthorizationServerService(env);
@@ -353,7 +375,8 @@ export async function authorizePost(request: Request, env: Env): Promise<Respons
       raindropSession,
       redirectUri,
       target.scope,
-      codeChallenge
+      codeChallenge,
+      canonicalResource
     );
 
     const callbackUrl = new URL(redirectUri);
@@ -532,6 +555,7 @@ function generateConsentHtml(params: {
   clientId: string;
   redirectUri: string;
   codeChallenge: string;
+  resource?: string;
 }): string {
   const scopes = params.scope.split(' ');
   const scopeDescriptions: Record<string, string> = {
@@ -578,6 +602,7 @@ function generateConsentHtml(params: {
       <input type="hidden" name="code_challenge" value="${escapeHtml(params.codeChallenge)}" />
       <input type="hidden" name="redirect_uri" value="${escapeHtml(params.redirectUri)}" />
       <input type="hidden" name="scope" value="${escapeHtml(params.scope)}" />
+      <input type="hidden" name="resource" value="${escapeHtml(params.resource || '')}" />
       <div class="actions">
         <button type="submit" name="action" value="approve" class="btn-approve">Authorize</button>
         <button type="submit" name="action" value="deny" class="btn-deny">Deny</button>

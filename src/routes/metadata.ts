@@ -68,6 +68,8 @@ export function authorizationServerMetadata(_request: Request, env: Env): Respon
       grant_types_supported: ['authorization_code', 'refresh_token'],
       token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
       code_challenge_methods_supported: ['S256'],
+      resource_indicators_supported: true,
+      authorization_response_iss_parameter_supported: false,
       service_documentation: 'https://github.com/Aarekaz/raindrop-mcp#readme',
       ui_locales_supported: ['en'],
       token_endpoint_auth_signing_alg_values_supported: ['HS256'],
@@ -106,6 +108,9 @@ export function protectedResourceMetadata(request: Request, env: Env): Response 
     {
       resource,
       authorization_servers: [issuerFromEnv(env)],
+      scopes_supported: ['raindrop:read', 'raindrop:write'],
+      bearer_methods_supported: ['header'],
+      resource_documentation: `${issuerFromEnv(env)}/docs/`,
     },
     {
       status: 200,

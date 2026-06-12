@@ -46,6 +46,19 @@ function normalizePositiveInteger(value: number | string | undefined, fallback: 
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
+export function canonicalizeResource(resource: string): string {
+  const url = new URL(resource);
+  const pathname = url.pathname.replace(/\/+$/, '') || '/';
+
+  return `${url.protocol}//${url.host.toLowerCase()}${pathname}`;
+}
+
+export function expectedMcpResource(requestUrl: string): string {
+  const url = new URL(requestUrl);
+
+  return `${url.protocol}//${url.host.toLowerCase()}/mcp`;
+}
+
 export class AuthorizationServerService {
   private storage: TokenStorage;
   private jwtSecret: Uint8Array | null;
@@ -174,7 +187,8 @@ export class AuthorizationServerService {
     userId: string,
     redirectUri: string,
     scope: string,
-    codeChallenge: string
+    codeChallenge: string,
+    resource?: string
   ): Promise<string> {
     const code = crypto.randomUUID();
     const now = Date.now();
@@ -187,6 +201,7 @@ export class AuthorizationServerService {
       scope,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
+      resource,
       expires_at: now + 5 * 60 * 1000, // 5 minutes
       created_at: now,
     };
@@ -239,14 +254,16 @@ export class AuthorizationServerService {
     const accessToken = await this.generateJWT(
       authCode.user_id,
       clientId,
-      authCode.scope
+      authCode.scope,
+      authCode.resource
     );
     const refreshToken = options.issueRefreshToken === false
       ? undefined
       : await this.createRefreshToken(
         authCode.user_id,
         clientId,
-        authCode.scope
+        authCode.scope,
+        authCode.resource
       );
 
     return {
@@ -264,7 +281,12 @@ export class AuthorizationServerService {
   /**
    * Generate JWT access token
    */
-  async generateJWT(userId: string, clientId: string, scope: string): Promise<string> {
+  async generateJWT(
+    userId: string,
+    clientId: string,
+    scope: string,
+    audience?: string
+  ): Promise<string> {
     if (!this.jwtSecret) {
       throw new Error(
         'JWT_SIGNING_KEY environment variable not set. ' +
@@ -272,26 +294,24 @@ export class AuthorizationServerService {
       );
     }
 
-    const now = Math.floor(Date.now() / 1000);
-
-    const payload: JWTPayload = {
-      iss: this.issuer,
+    const payload = {
       sub: userId,
-      aud: 'raindrop-mcp',
-      exp: now + this.accessTokenExpiry,
-      iat: now,
       client_id: clientId,
       scope,
       raindrop_user_id: userId,
     };
 
-    const jwt = await new SignJWT(payload as unknown as Record<string, unknown>)
+    const builder = new SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt(now)
-      .setExpirationTime(now + this.accessTokenExpiry)
-      .sign(this.jwtSecret);
+      .setIssuer(this.issuer)
+      .setIssuedAt()
+      .setExpirationTime(`${this.accessTokenExpiry}s`);
 
-    return jwt;
+    if (audience) {
+      builder.setAudience(audience);
+    }
+
+    return await builder.sign(this.jwtSecret);
   }
 
   /**
@@ -308,7 +328,6 @@ export class AuthorizationServerService {
     try {
       const { payload } = await jwtVerify(token, this.jwtSecret, {
         issuer: this.issuer,
-        audience: 'raindrop-mcp',
       });
 
       return payload as unknown as JWTPayload;
@@ -323,7 +342,8 @@ export class AuthorizationServerService {
   async createRefreshToken(
     userId: string,
     clientId: string,
-    scope: string
+    scope: string,
+    resource?: string
   ): Promise<string> {
     const token = crypto.randomUUID();
     const now = Date.now();
@@ -333,6 +353,7 @@ export class AuthorizationServerService {
       client_id: clientId,
       user_id: userId,
       scope,
+      resource,
       expires_at: now + this.refreshTokenExpiry * 1000,
       created_at: now,
     };
@@ -363,7 +384,8 @@ export class AuthorizationServerService {
     const accessToken = await this.generateJWT(
       token.user_id,
       clientId,
-      token.scope
+      token.scope,
+      token.resource
     );
 
     return {

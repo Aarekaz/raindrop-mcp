@@ -217,7 +217,6 @@ describe('OAuth Worker routes', () => {
     };
     const { payload } = await jwtVerify(body.access_token, new TextEncoder().encode(signingKey), {
       issuer,
-      audience: 'raindrop-mcp',
     });
 
     expect(response.status).toBe(200);
@@ -268,7 +267,6 @@ describe('OAuth Worker routes', () => {
     const body = (await response.json()) as { access_token: string; expires_in: number };
     const { payload } = await jwtVerify(body.access_token, new TextEncoder().encode(signingKey), {
       issuer: 'https://raindrop-mcp.anuragd.me',
-      audience: 'raindrop-mcp',
     });
 
     expect(response.status).toBe(200);
@@ -277,6 +275,88 @@ describe('OAuth Worker routes', () => {
       throw new Error('JWT is missing numeric exp/iat claims');
     }
     expect(payload.exp - payload.iat).toBe(3600);
+  });
+
+  test('POST /token includes resource audience when authorization used resource indicator', async () => {
+    const kv = new InMemoryKVNamespace();
+    const signingKey = 'resource-audience-test-secret';
+    const client = createClient();
+    const codeVerifier = 'resource-audience-test-verifier-000000000000000000000000000000';
+    const resource = 'https://example.com/mcp';
+    const authCode = createAuthCode({
+      code: 'resource-code',
+      client_id: client.client_id,
+      user_id: 'user-123',
+      redirect_uri: client.redirect_uris[0],
+      code_challenge: createCodeChallenge(codeVerifier),
+      resource,
+    });
+
+    await seedClient(kv, client);
+    await seedAuthCode(kv, authCode);
+
+    const response = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          client_id: client.client_id,
+          code: authCode.code,
+          redirect_uri: client.redirect_uris[0],
+          code_verifier: codeVerifier,
+        }),
+      },
+      createEnv(
+        {
+          JWT_SIGNING_KEY: signingKey,
+          JWT_ISSUER: 'https://example.com',
+        },
+        kv
+      )
+    );
+
+    const body = await readJson<{ access_token: string; refresh_token: string }>(response);
+    const { payload } = await jwtVerify(body.access_token, new TextEncoder().encode(signingKey), {
+      issuer: 'https://example.com',
+      audience: resource,
+    });
+
+    expect(response.status).toBe(200);
+    expect(payload.aud).toBe(resource);
+
+    const refreshResponse = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          client_id: client.client_id,
+          refresh_token: body.refresh_token,
+        }),
+      },
+      createEnv(
+        {
+          JWT_SIGNING_KEY: signingKey,
+          JWT_ISSUER: 'https://example.com',
+        },
+        kv
+      )
+    );
+    const refreshed = await readJson<{ access_token: string }>(refreshResponse);
+    const { payload: refreshPayload } = await jwtVerify(
+      refreshed.access_token,
+      new TextEncoder().encode(signingKey),
+      {
+        issuer: 'https://example.com',
+        audience: resource,
+      }
+    );
+
+    expect(refreshResponse.status).toBe(200);
+    expect(refreshPayload.aud).toBe(resource);
   });
 
   test('POST /token omits refresh_token for authorization-code-only clients', async () => {
@@ -527,6 +607,45 @@ describe('OAuth Worker routes', () => {
     expect(response.status).toBe(400);
     expect(response.headers.get('Location')).toBeNull();
     expect(text).toContain('Requested scope exceeds registered client scope');
+  });
+
+  test('POST /authorize stores canonical resource on authorization code', async () => {
+    const kv = new InMemoryKVNamespace();
+    const client = createClient();
+    await seedClient(kv, client);
+
+    const response = await fetchWorker(
+      '/authorize',
+      {
+        method: 'POST',
+        headers: { Cookie: 'raindrop_session=user-123' },
+        body: new URLSearchParams({
+          action: 'approve',
+          state: 'state-123',
+          client_id: client.client_id,
+          redirect_uri: client.redirect_uris[0],
+          scope: 'raindrop:read',
+          code_challenge: createCodeChallenge('test-code-verifier'),
+          resource: 'https://EXAMPLE.com/mcp/',
+        }),
+      },
+      createEnv({}, kv)
+    );
+
+    const location = response.headers.get('Location');
+    if (!location) {
+      throw new Error('Expected authorize redirect location');
+    }
+    const code = new URL(location).searchParams.get('code');
+    if (!code) {
+      throw new Error('Expected authorize redirect code');
+    }
+    const authCode = await kv.get<AuthorizationCode>(`authcode:${code}`, 'json') as
+      | AuthorizationCode
+      | null;
+
+    expect(response.status).toBe(302);
+    expect(authCode?.resource).toBe('https://example.com/mcp');
   });
 
   test('POST /authorize with missing action returns 400 and does not approve', async () => {

@@ -10,8 +10,12 @@ import { z } from "zod";
 import { RaindropService } from "../services/raindrop.service.js";
 import { OAuthService } from "../oauth/oauth.service.js";
 import { TokenStorage } from "../oauth/token-storage.js";
-import { OAuthConfig } from "../oauth/oauth.types.js";
-import { AuthorizationServerService } from "../oauth/authorization-server.service.js";
+import { OAuthConfig, type JWTPayload } from "../oauth/oauth.types.js";
+import {
+  AuthorizationServerService,
+  canonicalizeResource,
+  expectedMcpResource,
+} from "../oauth/authorization-server.service.js";
 import { CloudflareKVStore } from "../oauth/cloudflare-kv-store.js";
 import { decrypt } from "../oauth/crypto.utils.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
@@ -164,6 +168,9 @@ function createVerifyToken(
     if (bearerToken && bearerToken.includes('.')) {
       try {
         const payload = await authServerService.verifyJWT(bearerToken);
+        if (!audienceMatches(payload, req.url)) {
+          return undefined;
+        }
 
         // Get user's Raindrop token for backend API calls
         const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
@@ -260,6 +267,26 @@ function getResourceMetadataUrl(req: Request): string {
   return new URL(RESOURCE_METADATA_PATH, req.url).toString();
 }
 
+function audienceMatches(payload: JWTPayload, requestUrl: string): boolean {
+  const audience = payload.aud;
+  if (!audience) {
+    return true;
+  }
+
+  const audienceValues = Array.isArray(audience) ? audience : [audience];
+  return audienceValues.some((value) => {
+    if (value === 'raindrop-mcp') {
+      return true;
+    }
+
+    try {
+      return canonicalizeResource(value) === expectedMcpResource(requestUrl);
+    } catch {
+      return false;
+    }
+  });
+}
+
 function unauthorizedMcpResponse(req: Request, message: string): Response {
   return new Response(JSON.stringify({
     error: 'invalid_token',
@@ -307,6 +334,9 @@ async function verifyHeadAuth(
   if (bearerToken?.includes('.')) {
     try {
       const payload = await authServerService.verifyJWT(bearerToken);
+      if (!audienceMatches(payload, req.url)) {
+        return undefined;
+      }
       const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
 
       if (!encryptedToken) {

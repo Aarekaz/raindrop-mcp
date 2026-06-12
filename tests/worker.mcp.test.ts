@@ -194,6 +194,46 @@ describe('Worker MCP handler', () => {
     expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
   });
 
+  test('JWT auth rejects wrong resource audience', async () => {
+    const signingKey = 'wrong-audience-test-secret';
+    const token = await new SignJWT({
+      sub: 'user-123',
+      client_id: 'client-env-key',
+      scope: 'raindrop:read raindrop:write',
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuer('https://example.com')
+      .setAudience('https://wrong.example/mcp')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(new TextEncoder().encode(signingKey));
+
+    const response = await fetchWorker(
+      '/mcp',
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/event-stream',
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {},
+        }),
+      },
+      createEnv({
+        JWT_SIGNING_KEY: signingKey,
+        JWT_ISSUER: 'https://example.com',
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('invalid_token');
+  });
+
   test('unset NODE_ENV env token fallback is denied without explicit opt-in', async () => {
     const response = await fetchWorker(
       '/mcp',
