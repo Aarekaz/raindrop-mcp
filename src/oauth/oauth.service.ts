@@ -49,6 +49,10 @@ export class OAuthService {
     return { authUrl: authUrl.toString(), state };
   }
 
+  async getStoredState(state: string) {
+    return await this.storage.getOAuthState(state);
+  }
+
   /**
    * Handle OAuth callback after user authorization
    * Exchanges authorization code for access/refresh tokens
