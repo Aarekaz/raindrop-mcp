@@ -152,7 +152,7 @@ graph TB
     end
 
     subgraph "MCP Protocol Layer"
-        MCPService["MCP Server\n(mcp-handler)"]
+        MCPService["MCP Server\nMCP SDK web transport"]
     end
 
     subgraph "Service Layer"
@@ -166,7 +166,7 @@ graph TB
     MCPClient -->|HTTP| Worker
 
     Browser -->|HTTPS| Worker
-    Worker -->|withMcpAuth| OAuth
+    Worker -->|MCP auth wrapper| OAuth
     OAuth -->|Validated Token| MCPService
     MCPService -->|Per-User Token| RaindropService
     RaindropService -->|HTTP Requests| RaindropAPI

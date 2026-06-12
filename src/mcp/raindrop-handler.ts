@@ -1,11 +1,11 @@
 /**
  * Raindrop MCP Server - Cloudflare Worker handler
  *
- * Main MCP endpoint using mcp-handler with Worker env-scoped auth services.
+ * Main MCP endpoint using the MCP SDK's web-standard Streamable HTTP transport
+ * with Worker env-scoped auth services.
  * Provides tools for Raindrop.io bookmark management with OAuth authentication.
  */
 
-import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import { RaindropService } from "../services/raindrop.service.js";
 import { OAuthService } from "../oauth/oauth.service.js";
@@ -15,7 +15,8 @@ import { AuthorizationServerService } from "../oauth/authorization-server.servic
 import { CloudflareKVStore } from "../oauth/cloudflare-kv-store.js";
 import { decrypt } from "../oauth/crypto.utils.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { components as RaindropComponents } from "../types/raindrop.schema.js";
 import type { Env } from "../worker/env.js";
 import {
@@ -255,6 +256,46 @@ function parseBearerToken(req: Request): string | undefined {
   return type?.toLowerCase() === 'bearer' ? token : undefined;
 }
 
+function getResourceMetadataUrl(req: Request): string {
+  return new URL(RESOURCE_METADATA_PATH, req.url).toString();
+}
+
+function unauthorizedMcpResponse(req: Request, message: string): Response {
+  return new Response(JSON.stringify({
+    error: 'invalid_token',
+    error_description: message,
+  }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json',
+      'WWW-Authenticate': `Bearer error="invalid_token", error_description="${message}", resource_metadata="${getResourceMetadataUrl(req)}"`,
+    },
+  });
+}
+
+function forbiddenMcpResponse(req: Request, message: string): Response {
+  return new Response(JSON.stringify({
+    error: 'insufficient_scope',
+    error_description: message,
+  }), {
+    status: 403,
+    headers: {
+      'Content-Type': 'application/json',
+      'WWW-Authenticate': `Bearer error="insufficient_scope", error_description="${message}", resource_metadata="${getResourceMetadataUrl(req)}"`,
+    },
+  });
+}
+
+function mcpMethodNotAllowed(): Response {
+  return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
+    status: 405,
+    headers: {
+      'Content-Type': 'application/json',
+      Allow: 'POST, HEAD, OPTIONS',
+    },
+  });
+}
+
 async function verifyHeadAuth(
   env: Env,
   tokenStorage: TokenStorage,
@@ -344,7 +385,7 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
     return new Response('Forbidden', { status: 403 });
   }
 
-  // Get auth info from request (set by withMcpAuth)
+  // Get auth info from request (set by the Worker auth wrapper)
   const authInfo = (req as unknown as { auth?: AuthInfo }).auth;
 
   if (!authInfo?.token) {
@@ -360,9 +401,19 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
   const raindropToken = authInfo.token as string;
   const raindropService = new RaindropService(raindropToken);
 
-  // Create handler with access to raindropService via closure
-  const handler = createMcpHandler(
-    (server) => {
+  const server = new McpServer(
+    {
+      name: 'raindrop-mcp',
+      version: '0.1.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+      },
+    }
+  );
+
       // Helper functions
       const textContent = (text: string) => ({ type: 'text' as const, text });
       const makeCollectionLink = (collection: Collection) => ({
@@ -1485,25 +1536,19 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
           };
         }
       );
-    },
-    {
-      serverInfo: {
-        name: 'raindrop-mcp',
-        version: '0.1.0',
-      },
-      capabilities: {
-        tools: {},
-        resources: {},
-      },
-    },
-    {
-      streamableHttpEndpoint: '/mcp',
-      disableSse: true,
-      maxDuration: 300,
-    }
-  );
 
-  return handler(req);
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+
+  await server.connect(transport);
+
+  try {
+    return await transport.handleRequest(req, { authInfo });
+  } finally {
+    await server.close();
+  }
   };
 }
 
@@ -1552,11 +1597,28 @@ export function createRaindropMcpHandler(env: Env): (request: Request) => Promis
   const verifyToken = createVerifyToken(env, tokenStorage, oauthService, authServerService);
   const baseHandler = createBaseHandler(env);
 
-  const authHandler = withMcpAuth(baseHandler, verifyToken, {
-    required: true,
-    requiredScopes: ['raindrop:read'],
-    resourceMetadataPath: RESOURCE_METADATA_PATH,
-  });
+  const authHandler = async (request: Request): Promise<Response> => {
+    if (request.method === 'GET' || request.method === 'DELETE') {
+      return mcpMethodNotAllowed();
+    }
+
+    const authInfo = await verifyToken(request, parseBearerToken(request));
+
+    if (!authInfo) {
+      return unauthorizedMcpResponse(request, 'No authorization provided');
+    }
+
+    if (!authInfo.scopes.includes('raindrop:read')) {
+      return forbiddenMcpResponse(request, 'Insufficient scope');
+    }
+
+    if (authInfo.expiresAt && authInfo.expiresAt < Date.now() / 1000) {
+      return unauthorizedMcpResponse(request, 'Token has expired');
+    }
+
+    (request as Request & { auth?: AuthInfo }).auth = authInfo;
+    return baseHandler(request);
+  };
 
   return withCors(authHandler);
 }
