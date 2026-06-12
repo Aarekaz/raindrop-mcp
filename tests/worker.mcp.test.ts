@@ -194,6 +194,31 @@ describe('Worker MCP handler', () => {
     expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
   });
 
+  test('unset NODE_ENV env token fallback is denied without explicit opt-in', async () => {
+    const response = await fetchWorker(
+      '/mcp',
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/event-stream',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 14,
+          method: 'tools/list',
+          params: {},
+        }),
+      },
+      createEnv({
+        RAINDROP_ACCESS_TOKEN: 'deployment-wide-token',
+      })
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
+  });
+
   test('production direct X-Raindrop-Token auth still works', async () => {
     const msg = await mcpCall('tools/list', 11, {
       env: createEnv({

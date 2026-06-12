@@ -120,7 +120,7 @@ function createTokenStorage(env: Env): TokenStorage {
 }
 
 function allowsEnvTokenAuth(env: Env): boolean {
-  return env.ALLOW_ENV_TOKEN_AUTH === 'true' || env.NODE_ENV !== 'production';
+  return env.ALLOW_ENV_TOKEN_AUTH === 'true';
 }
 
 function createOAuthService(env: Env, tokenStorage: TokenStorage): OAuthService {
