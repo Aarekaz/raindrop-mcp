@@ -7,6 +7,8 @@
     "dev": "wrangler dev",
     "type-check": "tsc --noEmit",
     "test": "bun test",
+    "cf:types": "wrangler types --env-file wrangler-types.env",
+    "cf:types:check": "wrangler types --check --env-file wrangler-types.env",
     "clean": "rm -rf build dist",
     "deploy:cloudflare": "wrangler deploy",
     "cf:kv:create": "wrangler kv namespace create RAINDROP_AUTH_KV && wrangler kv namespace create RAINDROP_AUTH_KV --preview",
