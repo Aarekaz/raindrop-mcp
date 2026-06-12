@@ -12,7 +12,8 @@
     "clean": "rm -rf build dist",
     "deploy:cloudflare": "wrangler deploy",
     "cf:kv:create": "wrangler kv namespace create RAINDROP_AUTH_KV && wrangler kv namespace create RAINDROP_AUTH_KV --preview",
-    "cf:readiness": "node scripts/check-cloudflare-readiness.mjs"
+    "cf:readiness": "node scripts/check-cloudflare-readiness.mjs",
+    "cf:e2e": "node scripts/check-cloudflare-e2e.mjs"
   },
   "keywords": [
     "mcp",

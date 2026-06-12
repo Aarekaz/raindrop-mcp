@@ -65,6 +65,30 @@ async function main() {
     fail(`/health returned ${health.response.status}`);
   }
 
+  const landing = await fetch(`${BASE_URL}/`, { redirect: 'manual' });
+  if (landing.status === 200 && landing.headers.get('content-type')?.includes('text/html')) {
+    pass('/ serves landing HTML');
+  } else {
+    ready = false;
+    fail(`/ returned ${landing.status}`);
+  }
+
+  const fakeRoute = await fetch(`${BASE_URL}/dashboard`, { redirect: 'manual' });
+  if (fakeRoute.status === 404) {
+    pass('/dashboard is not a fake landing route');
+  } else {
+    ready = false;
+    fail(`/dashboard returned ${fakeRoute.status}`);
+  }
+
+  const info = await getJson('/info');
+  if (info.response.status === 200 && info.body?.endpoints?.mcp === '/mcp') {
+    pass('/info returns MCP summary');
+  } else {
+    ready = false;
+    fail(`/info returned ${info.response.status}`);
+  }
+
   const authMetadata = await getJson('/.well-known/oauth-authorization-server?probe=readiness');
   if (
     authMetadata.response.status === 200 &&
