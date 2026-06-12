@@ -12,7 +12,7 @@ function parseFirstSseDataJson(text: string): unknown {
 }
 
 async function mcpCall(method: string, id: number): Promise<any> {
-  const request = new Request('https://example.com/api/raindrop', {
+  const request = new Request('https://example.com/mcp', {
     method: 'POST',
     headers: {
       accept: 'application/json, text/event-stream',
@@ -76,8 +76,34 @@ describe('Vercel MCP handler', () => {
     const msg = await mcpCall('tools/list', 4);
     const tools = msg.result.tools as Array<{ name: string; outputSchema?: any }>;
 
-    // Verify all 8 tools have output schemas
-    expect(tools).toHaveLength(8);
+    const expectedTools = [
+      'collection_list',
+      'collection_children_list',
+      'collection_manage',
+      'collection_bulk_delete',
+      'collection_reorder',
+      'collection_expand',
+      'collection_merge',
+      'collection_clean',
+      'collection_empty_trash',
+      'collection_cover_upload',
+      'user_stats',
+      'bookmark_search',
+      'bookmark_manage',
+      'bookmark_cache',
+      'bookmark_suggest_existing',
+      'bookmark_bulk_create',
+      'bookmark_bulk_delete',
+      'bookmark_file_upload',
+      'bookmark_cover_upload',
+      'tag_list',
+      'tag_manage',
+      'highlight_manage',
+      'bulk_edit_bookmarks',
+      'bookmark_statistics',
+    ];
+
+    expect(tools).toHaveLength(expectedTools.length);
 
     // Check that every tool has an outputSchema defined
     for (const tool of tools) {
@@ -87,18 +113,6 @@ describe('Vercel MCP handler', () => {
       // Output schema should not be empty
       expect(Object.keys(tool.outputSchema).length).toBeGreaterThan(0);
     }
-
-    // Verify key tools have output schemas (existence check)
-    const expectedTools = [
-      'collection_list',
-      'collection_manage',
-      'bookmark_search',
-      'bookmark_manage',
-      'tag_list',
-      'highlight_manage',
-      'bulk_edit_bookmarks',
-      'bookmark_statistics'
-    ];
 
     for (const toolName of expectedTools) {
       const tool = tools.find(t => t.name === toolName);
@@ -168,7 +182,7 @@ describe('Vercel MCP handler', () => {
   });
 
   it('supports GET method for SSE streams', async () => {
-    const request = new Request('https://example.com/api/raindrop', {
+    const request = new Request('https://example.com/mcp', {
       method: 'GET',
       headers: {
         accept: 'text/event-stream',
@@ -182,7 +196,7 @@ describe('Vercel MCP handler', () => {
   });
 
   it('supports DELETE method for session termination', async () => {
-    const request = new Request('https://example.com/api/raindrop', {
+    const request = new Request('https://example.com/mcp', {
       method: 'DELETE',
       headers: {
         'x-raindrop-token': 'test-token',
@@ -195,7 +209,7 @@ describe('Vercel MCP handler', () => {
   });
 
   it('validates Origin header to prevent DNS rebinding', async () => {
-    const request = new Request('https://example.com/api/raindrop', {
+    const request = new Request('https://example.com/mcp', {
       method: 'POST',
       headers: {
         accept: 'application/json, text/event-stream',

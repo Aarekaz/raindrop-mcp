@@ -16,7 +16,7 @@ const handler = (req: Request): Response => {
     const url = new URL(req.url);
     const requestedPath = url.searchParams.get('path');
     const resourcePath = requestedPath
-      ? `/${requestedPath.replace(/^\\//, '')}`
+      ? `/${requestedPath.replace(/^\/+/, '')}`
       : '/mcp';
 
     const forwardedHost = req.headers.get('x-forwarded-host');

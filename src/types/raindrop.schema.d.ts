@@ -136,6 +136,20 @@ export interface paths {
       };
     };
   };
+  '/collections/childrens': {
+    get: {
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              result: boolean;
+              items: components['schemas']['Collection'][];
+            };
+          };
+        };
+      };
+    };
+  };
   '/collection': {
     post: {
       requestBody: {
@@ -293,6 +307,25 @@ export interface paths {
           content: {
             'application/json': {
               result: boolean;
+            };
+          };
+        };
+      };
+    };
+  };
+  '/raindrop/{id}/suggest': {
+    get: {
+      parameters: {
+        path: {
+          id: number;
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              result: boolean;
+              item: components['schemas']['SuggestionResult'];
             };
           };
         };
