@@ -34,7 +34,7 @@ OAuth (recommended for production):
 
 - `OAUTH_CLIENT_ID`
 - `OAUTH_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI` (e.g. `https://raindrop-mcp.anuragd.me/auth/callback`)
+- `OAUTH_REDIRECT_URI` (e.g. `https://raindrop-mcp.aarekaz.workers.dev/auth/callback`)
 - `OAUTH_ALLOWED_REDIRECT_URIS` (comma-separated)
 - `TOKEN_ENCRYPTION_KEY` (64 hex chars)
 - `JWT_SIGNING_KEY`
@@ -64,7 +64,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full Cloudflare setup and s
 {
   "mcpServers": {
     "raindrop": {
-      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "url": "https://raindrop-mcp.aarekaz.workers.dev/mcp",
       "transport": "streamable-http"
     }
   }
@@ -77,7 +77,7 @@ If using direct token auth:
 {
   "mcpServers": {
     "raindrop": {
-      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "url": "https://raindrop-mcp.aarekaz.workers.dev/mcp",
       "transport": "streamable-http",
       "headers": {
         "X-Raindrop-Token": "your_token"

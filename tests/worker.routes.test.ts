@@ -68,8 +68,8 @@ describe('worker routes', () => {
     const body = await readJson<AuthorizationServerMetadata>(response);
 
     expect(response.status).toBe(200);
-    expect(body.authorization_endpoint).toBe('https://raindrop-mcp.anuragd.me/authorize');
-    expect(body.token_endpoint).toBe('https://raindrop-mcp.anuragd.me/token');
+    expect(body.authorization_endpoint).toBe('https://raindrop-mcp.aarekaz.workers.dev/authorize');
+    expect(body.token_endpoint).toBe('https://raindrop-mcp.aarekaz.workers.dev/token');
   });
 
   test('/.well-known/oauth-protected-resource returns default resource', async () => {
@@ -78,7 +78,7 @@ describe('worker routes', () => {
 
     expect(response.status).toBe(200);
     expect(body.resource).toBe('https://example.com/mcp');
-    expect(body.authorization_servers).toEqual(['https://raindrop-mcp.anuragd.me']);
+    expect(body.authorization_servers).toEqual(['https://raindrop-mcp.aarekaz.workers.dev']);
   });
 
   test('/.well-known/oauth-protected-resource normalizes custom resource path', async () => {
@@ -115,7 +115,7 @@ describe('worker routes', () => {
     });
     const body = await readJson<AuthorizationServerMetadata>(response);
 
-    expect(body.issuer).toBe('https://raindrop-mcp.anuragd.me');
+    expect(body.issuer).toBe('https://raindrop-mcp.aarekaz.workers.dev');
   });
 
   test('OPTIONS metadata routes return CORS preflight response', async () => {

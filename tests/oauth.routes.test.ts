@@ -267,7 +267,7 @@ describe('OAuth Worker routes', () => {
     );
     const body = (await response.json()) as { access_token: string; expires_in: number };
     const { payload } = await jwtVerify(body.access_token, new TextEncoder().encode(signingKey), {
-      issuer: 'https://raindrop-mcp.anuragd.me',
+      issuer: 'https://raindrop-mcp.aarekaz.workers.dev',
       audience: 'raindrop-mcp',
     });
 
