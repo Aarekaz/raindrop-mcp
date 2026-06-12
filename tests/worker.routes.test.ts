@@ -51,6 +51,45 @@ type ProtectedResourceMetadata = {
   authorization_servers: string[];
 };
 
+type InfoResponse = {
+  name: string;
+  status: string;
+  links: {
+    website: string;
+    documentation: string;
+    mcpServer: string;
+    protectedResourceMetadata: string;
+    authorizationServerMetadata: string;
+  };
+  endpoints: {
+    landing: string;
+    docs: string;
+    info: string;
+    mcp: string;
+    oauth: {
+      authorize: string;
+      token: string;
+      register: string;
+      raindropLogin: string;
+      raindropCallback: string;
+    };
+  };
+  stats: {
+    toolsAvailable: number;
+    resourcesAvailable: number;
+    resourceTemplatesAvailable: number;
+  };
+  tools: string[];
+  resources: Array<{
+    name: string;
+    uri: string;
+  }>;
+  resourceTemplates: Array<{
+    name: string;
+    uriTemplate: string;
+  }>;
+};
+
 type ErrorResponse = {
   error: string;
 };
@@ -95,6 +134,66 @@ describe('worker routes', () => {
     expect(response.status).toBe(200);
     expect(body.status).toBe('ok');
     expect(body.service).toBe('raindrop-mcp');
+  });
+
+  test('/info returns public server summary JSON', async () => {
+    const response = await fetchWorker('/info');
+    const body = await readJson<InfoResponse>(response);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300');
+    expect(body.status).toBe('operational');
+    expect(body.name).toBe('Raindrop MCP');
+    expect(body.links.website).toBe('https://example.com');
+    expect(body.links.documentation).toBe('https://example.com/docs/');
+    expect(body.links.mcpServer).toBe('https://example.com/mcp');
+    expect(body.links.protectedResourceMetadata).toBe(
+      'https://example.com/.well-known/oauth-protected-resource'
+    );
+    expect(body.links.authorizationServerMetadata).toBe(
+      'https://example.com/.well-known/oauth-authorization-server'
+    );
+    expect(body.endpoints).toEqual({
+      landing: '/',
+      docs: '/docs/',
+      info: '/info',
+      mcp: '/mcp',
+      oauth: {
+        authorize: '/authorize',
+        token: '/token',
+        register: '/register',
+        raindropLogin: '/auth/init',
+        raindropCallback: '/auth/callback',
+      },
+    });
+    expect(body.stats.toolsAvailable).toBe(24);
+    expect(body.tools).toHaveLength(24);
+    expect(body.tools).toEqual(
+      expect.arrayContaining(['collection_list', 'bookmark_search', 'bookmark_statistics'])
+    );
+    expect(body.resources.map((resource) => resource.name)).toEqual([
+      'user_profile',
+      'collections',
+    ]);
+    expect(body.resourceTemplates.map((template) => template.name)).toEqual([
+      'collection',
+      'bookmark',
+    ]);
+  });
+
+  test('/info uses normalized JWT_ISSUER links when configured', async () => {
+    const response = await fetchWorker('/info', undefined, {
+      JWT_ISSUER: '  https://auth.example.test///  ',
+    });
+    const body = await readJson<InfoResponse>(response);
+
+    expect(body.links.website).toBe('https://auth.example.test');
+    expect(body.links.documentation).toBe('https://auth.example.test/docs/');
+    expect(body.links.mcpServer).toBe('https://auth.example.test/mcp');
+    expect(body.links.authorizationServerMetadata).toBe(
+      'https://auth.example.test/.well-known/oauth-authorization-server'
+    );
   });
 
   test('/.well-known/oauth-authorization-server returns default issuer endpoints', async () => {

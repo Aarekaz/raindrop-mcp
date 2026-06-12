@@ -7,6 +7,7 @@ import {
 } from './mcp/raindrop-handler.js';
 import { authCallback, authInit } from './routes/auth.js';
 import { health } from './routes/health.js';
+import { info } from './routes/info.js';
 import {
   authorizationServerMetadata,
   authorizationServerMetadataHead,
@@ -27,6 +28,7 @@ import { Router } from './worker/router.js';
 const router = new Router();
 
 router.on('GET', '/health', () => health());
+router.on('GET', '/info', (request, env) => info(request, env));
 router.on('GET', '/auth/init', (request, env) => authInit(request, env));
 router.on('GET', '/auth/callback', (request, env) => authCallback(request, env));
 router.on('POST', '/register', (request, env) => registerClient(request, env));
