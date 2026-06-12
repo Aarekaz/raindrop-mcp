@@ -1,159 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raindrop MCP Docs</title>
-  <meta name="description" content="Setup and reference notes for the Raindrop MCP Cloudflare Worker." />
+  <meta name="description" content="Connect MCP clients to Raindrop MCP and understand the OAuth, MCP, and Cloudflare routes.">
   <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #f7f8f9;
-      --text: #172027;
-      --muted: #52606b;
-      --line: #d9e1e7;
-      --panel: #ffffff;
-      --code: #eef3f6;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0f1317;
-        --text: #eef3f6;
-        --muted: #a0acb7;
-        --line: #27313a;
-        --panel: #151b20;
-        --code: #202932;
-      }
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b1117;
+      color: #f6f8fb;
       line-height: 1.6;
-      color: var(--text);
-      background: var(--bg);
     }
 
     main {
-      max-width: 840px;
+      width: min(960px, calc(100vw - 32px));
       margin: 0 auto;
-      padding: 48px 20px 72px;
-    }
-
-    header {
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-    }
-
-    h1,
-    h2 {
-      line-height: 1.2;
-      margin: 0;
-    }
-
-    h1 {
-      font-size: clamp(2rem, 4vw, 3rem);
-      letter-spacing: -0.03em;
-    }
-
-    h2 {
-      font-size: 1.35rem;
-      margin-top: 32px;
-    }
-
-    p {
-      color: var(--muted);
-      margin: 12px 0;
+      padding: 56px 0;
     }
 
     a {
-      color: inherit;
-      font-weight: 650;
+      color: #3dff9f;
     }
 
     code,
     pre {
-      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     pre {
-      overflow-x: auto;
-      padding: 16px;
-      border: 1px solid var(--line);
+      overflow: auto;
+      background: #101923;
+      border: 1px solid #243140;
       border-radius: 8px;
-      background: var(--code);
-    }
-
-    code {
-      font-size: 0.95em;
-    }
-
-    ul {
-      padding-left: 1.25rem;
-    }
-
-    li {
-      margin: 8px 0;
-    }
-
-    .note {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
       padding: 16px;
-      margin-top: 20px;
+    }
+
+    section {
+      border-top: 1px solid #243140;
+      padding-top: 28px;
+      margin-top: 28px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid #243140;
+      border-radius: 8px;
+      padding: 16px;
+      background: #0f1822;
+    }
+
+    .card p {
+      color: #aab7c4;
+      margin-bottom: 0;
     }
   </style>
 </head>
 <body>
   <main>
-    <header>
-      <h1>Raindrop MCP Docs</h1>
-      <p>
-        Raindrop MCP exposes a Cloudflare Worker endpoint that lets MCP clients
-        connect to Raindrop.io bookmarks through OAuth and Streamable HTTP.
-      </p>
-    </header>
-
+    <p><a href="/">Raindrop MCP</a></p>
+    <h1>Connect Raindrop MCP</h1>
+    <p>Use the hosted MCP endpoint with any OAuth-aware Streamable HTTP client.</p>
+    <pre><code>{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}</code></pre>
     <section>
-      <h2>Client Setup</h2>
-      <p>Use the deployed MCP endpoint as the server URL in a client that supports Streamable HTTP.</p>
-      <pre><code>https://raindrop-mcp.anuragd.me/mcp</code></pre>
-      <p>
-        The client should discover OAuth metadata from the well-known endpoints,
-        complete authorization, and then call the MCP endpoint with the issued access token.
-      </p>
-    </section>
-
-    <section>
-      <h2>Reference Routes</h2>
-      <ul>
-        <li><code>GET /health</code> returns service health.</li>
-        <li><code>GET /.well-known/oauth-authorization-server</code> returns OAuth authorization server metadata.</li>
-        <li><code>GET /.well-known/oauth-protected-resource</code> returns protected resource metadata.</li>
-        <li><code>POST /register</code> registers dynamic OAuth clients.</li>
-        <li><code>GET /authorize</code> and <code>POST /token</code> handle OAuth authorization and token exchange.</li>
-        <li><code>GET|POST|DELETE /mcp</code> serves the MCP Streamable HTTP transport.</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Operational Notes</h2>
-      <p>
-        Static assets are served from <code>public/</code>. Protocol routes stay worker-first in
-        <code>wrangler.jsonc</code>, and missing assets should return 404 instead of falling back
-        to a single-page app shell.
-      </p>
-      <div class="note">
-        This page is intentionally small. It exists so <code>/docs/</code> is a real deployable
-        asset; fuller product docs can build on it later.
+      <h2>HTTP endpoints</h2>
+      <div class="grid">
+        <div class="card"><strong>GET /</strong><p>Landing page.</p></div>
+        <div class="card"><strong>GET /docs/</strong><p>This setup page.</p></div>
+        <div class="card"><strong>GET /info</strong><p>JSON server summary.</p></div>
+        <div class="card"><strong>POST /mcp</strong><p>Primary MCP Streamable HTTP endpoint.</p></div>
+        <div class="card"><strong>GET /.well-known/oauth-protected-resource</strong><p>MCP protected-resource metadata.</p></div>
+        <div class="card"><strong>GET /.well-known/oauth-authorization-server</strong><p>OAuth authorization server metadata.</p></div>
+        <div class="card"><strong>GET/POST /authorize</strong><p>MCP OAuth authorization and consent.</p></div>
+        <div class="card"><strong>POST /token</strong><p>Authorization code and refresh token exchange.</p></div>
+        <div class="card"><strong>POST /register</strong><p>Dynamic client registration.</p></div>
+        <div class="card"><strong>GET /auth/init</strong><p>Internal Raindrop login step used by /authorize.</p></div>
       </div>
+    </section>
+    <section>
+      <h2>Flow</h2>
+      <ol>
+        <li>The MCP client reads protected-resource metadata from <code>/.well-known/oauth-protected-resource</code>.</li>
+        <li>The client reads authorization server metadata from <code>/.well-known/oauth-authorization-server</code>.</li>
+        <li>The client registers with <code>/register</code>.</li>
+        <li>The client opens <code>/authorize</code> with PKCE and resource metadata.</li>
+        <li>The Worker sends the user to Raindrop when no Raindrop session exists.</li>
+        <li>The Worker stores the encrypted Raindrop token in KV and redirects back to <code>/authorize</code>.</li>
+        <li>The user approves the MCP client.</li>
+        <li>The client exchanges the authorization code at <code>/token</code>.</li>
+        <li>The client calls <code>/mcp</code> with the issued bearer token.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Public metadata</h2>
+      <p><code>/info</code> returns the public server summary, available tools, resource URIs, and canonical links for clients and operators.</p>
+      <pre><code>curl https://raindrop-mcp.anuragd.me/info</code></pre>
     </section>
   </main>
 </body>

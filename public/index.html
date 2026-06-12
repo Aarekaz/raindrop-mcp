@@ -143,7 +143,17 @@
       border-color: var(--color-line);
     }
 
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text);
+      border-color: var(--color-line);
+    }
+
     .btn-ghost:hover {
+      border-color: var(--color-accent);
+    }
+
+    .btn-secondary:hover {
       border-color: var(--color-accent);
     }
 
@@ -462,6 +472,110 @@
       cursor: pointer;
     }
 
+    .install-dialog {
+      width: min(720px, calc(100vw - 32px));
+      border: 1px solid var(--color-line);
+      background: var(--color-panel);
+      color: var(--color-text);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .install-dialog::backdrop {
+      background: rgba(2, 6, 12, 0.72);
+    }
+
+    .dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .dialog-header h2 {
+      font-family: var(--font-display);
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .dialog-close,
+    .copy-snippet {
+      border: 1px solid var(--color-line);
+      color: var(--color-text);
+      background: transparent;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: var(--font-display);
+      cursor: pointer;
+    }
+
+    .dialog-close:hover,
+    .copy-snippet:hover {
+      border-color: var(--color-accent);
+    }
+
+    .dialog-subtitle,
+    .tab-help {
+      color: var(--color-muted);
+      margin-top: 10px;
+    }
+
+    .tab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 20px 0 14px;
+    }
+
+    .tab-list [role="tab"] {
+      border: 1px solid var(--color-line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--color-muted);
+      background: transparent;
+      font-family: var(--font-body);
+      cursor: pointer;
+    }
+
+    .tab-list [aria-selected="true"] {
+      color: var(--color-bg);
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .tab-panels pre {
+      margin: 0 0 12px;
+      border: 1px solid var(--color-line);
+      border-radius: 8px;
+      background: #0b0d0f;
+      color: #d6fbe5;
+      overflow: auto;
+      padding: 16px;
+      line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      border: 1px solid var(--color-line);
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: var(--color-panel);
+      color: var(--color-text);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .toast[data-show="true"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     .reveal {
       opacity: 0;
       transform: translateY(20px);
@@ -516,8 +630,8 @@
         width: 100%;
       }
 
-      .terminal {
-        order: -1;
+      .hero {
+        align-items: start;
       }
     }
   </style>
@@ -535,21 +649,23 @@
         <a href="#proof">Proof</a>
         <a href="#security">Security</a>
         <a href="#start">Start</a>
+        <a href="/docs/">Docs</a>
       </nav>
     </header>
 
     <section class="hero">
       <div class="stagger">
         <h1>Your AI should remember what you saved.</h1>
-        <p>Connect your Raindrop.io bookmarks to any AI assistant. When Claude, ChatGPT, or your coding copilot needs context, they'll cite your curated sources instead of making things up.</p>
+        <p>Connect your Raindrop.io bookmarks to any MCP-compatible assistant. Search saved links, collections, tags, and highlights from the tools your client already knows how to use.</p>
         <div class="cta-row">
-          <button class="btn btn-primary" id="copy-endpoint">Copy MCP Endpoint</button>
+          <button class="btn btn-primary" type="button" data-open-install>Connect MCP Client</button>
+          <button class="btn btn-secondary" id="copy-endpoint" type="button">Copy Endpoint</button>
           <span id="copy-status" style="color: var(--color-muted); font-size: 12px;"></span>
         </div>
         <div class="trust">
           <span>OAuth-ready</span>
           <span>Streamable HTTP</span>
-          <span>Zero storage</span>
+          <span>Encrypted token storage</span>
         </div>
       </div>
       <div class="terminal">
@@ -595,7 +711,7 @@
 
     <section id="showcase" class="reveal">
       <h2 class="section-title">See what your AI can do.</h2>
-      <p class="section-lead">Once connected, your AI assistant gets 26 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
+      <p class="section-lead">Once connected, your AI assistant gets 24 tools for working with your Raindrop bookmarks. Search, create, organize—all from natural language.</p>
       <div class="showcase">
         <div class="interactive">
           <div class="interactive-buttons">
@@ -638,7 +754,7 @@
 
     <section id="security" class="reveal">
       <h2 class="section-title">Your bookmarks stay yours.</h2>
-      <p class="section-lead">Standard OAuth login. Your AI reads directly from Raindrop when it needs context—nothing gets copied, stored, or cached permanently.</p>
+      <p class="section-lead">Standard OAuth login. The Worker stores encrypted OAuth session data in Cloudflare KV so MCP clients can call Raindrop on your behalf. Bookmark content is fetched live from Raindrop when tools run.</p>
       <div class="comparison">
         <div class="card">
           <h3>✓ With Raindrop MCP</h3>
@@ -654,7 +770,7 @@
         </div>
       </div>
       <div class="badge-row">
-        <span class="badge">Zero Storage</span>
+        <span class="badge">Encrypted token storage</span>
         <span class="badge">OAuth Login</span>
         <span class="badge">Read + Write Access</span>
         <span class="badge">Revocable</span>
@@ -663,7 +779,7 @@
 
     <section id="start" class="reveal">
       <h2 class="section-title">Add to any MCP-compatible app.</h2>
-      <p class="section-lead">Copy this config into Claude Desktop, Cline, or any app supporting MCP. Click authorize once—then start using your bookmarks in conversation.</p>
+      <p class="section-lead">Use the MCP endpoint with Claude Desktop, Cursor, Codex, or any OAuth-aware Streamable HTTP client. Your client discovers OAuth, opens Raindrop authorization, and then calls the Worker with the issued token.</p>
       <div class="terminal" style="margin-top: 24px;">
         <div class="terminal-header">
           <span class="terminal-dot"></span>
@@ -679,18 +795,75 @@
   }
 }</pre>
       </div>
-      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cline, and other MCP-compatible apps. OAuth required for first-time access.</p>
+      <p class="section-lead" style="margin-top: 18px;">Works with Claude Desktop, Cursor, Codex, and other OAuth-aware MCP clients. OAuth is required for first-time access.</p>
     </section>
 
     <footer>
       <div class="footer-links">
         <a href="/mcp">MCP Endpoint</a>
         <a href="/.well-known/oauth-protected-resource">OAuth Metadata</a>
+        <a href="/info">Info</a>
+        <a href="/docs/">Docs</a>
         <a href="/health">Health</a>
       </div>
       <small style="color: var(--color-muted);">© 2026 Raindrop MCP Server. Built for people who actually save their research.</small>
     </footer>
   </div>
+
+  <dialog class="install-dialog" id="install-dialog" aria-labelledby="install-title">
+    <div class="dialog-header">
+      <h2 id="install-title">Add Raindrop MCP to your client</h2>
+      <button type="button" class="dialog-close" data-close-install aria-label="Close install dialog">Close</button>
+    </div>
+    <p class="dialog-subtitle">Use the MCP endpoint. Your client discovers OAuth, opens Raindrop authorization, and stores the resulting token.</p>
+    <div class="tab-list" role="tablist" aria-label="Client install snippets">
+      <button role="tab" aria-selected="true" aria-controls="tab-claude" id="tab-btn-claude" data-tab="claude">Claude Desktop</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-cursor" id="tab-btn-cursor" data-tab="cursor">Cursor</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-codex" id="tab-btn-codex" data-tab="codex">Codex CLI</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-generic" id="tab-btn-generic" data-tab="generic">Generic</button>
+    </div>
+    <div class="tab-panels">
+      <div role="tabpanel" id="tab-claude" aria-labelledby="tab-btn-claude">
+        <p class="tab-help">Add to Claude Desktop MCP config.</p>
+        <pre><code>{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}</code></pre>
+        <button type="button" class="copy-snippet">Copy</button>
+      </div>
+      <div role="tabpanel" id="tab-cursor" aria-labelledby="tab-btn-cursor" hidden>
+        <p class="tab-help">Add to Cursor MCP config.</p>
+        <pre><code>{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}</code></pre>
+        <button type="button" class="copy-snippet">Copy</button>
+      </div>
+      <div role="tabpanel" id="tab-codex" aria-labelledby="tab-btn-codex" hidden>
+        <p class="tab-help">Register the hosted MCP endpoint.</p>
+        <pre><code>codex mcp add raindrop https://raindrop-mcp.anuragd.me/mcp</code></pre>
+        <button type="button" class="copy-snippet">Copy</button>
+      </div>
+      <div role="tabpanel" id="tab-generic" aria-labelledby="tab-btn-generic" hidden>
+        <p class="tab-help">Use this with any OAuth-aware Streamable HTTP MCP client.</p>
+        <pre><code>{
+  "name": "raindrop",
+  "url": "https://raindrop-mcp.anuragd.me/mcp",
+  "transport": "streamable-http"
+}</code></pre>
+        <button type="button" class="copy-snippet">Copy</button>
+      </div>
+    </div>
+  </dialog>
+  <div class="toast" role="status" aria-live="polite"></div>
 
   <script>
     const endpoints = {
@@ -765,6 +938,56 @@
     );
 
     revealElements.forEach((el) => observer.observe(el));
+
+    const installDialog = document.getElementById('install-dialog');
+    const openInstallButtons = document.querySelectorAll('[data-open-install]');
+    const closeInstallButton = document.querySelector('[data-close-install]');
+    const toast = document.querySelector('.toast');
+
+    const showToast = (message) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.dataset.show = 'true';
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.dataset.show = 'false';
+      }, 1400);
+    };
+
+    openInstallButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        installDialog?.showModal();
+      });
+    });
+
+    closeInstallButton?.addEventListener('click', () => {
+      installDialog?.close();
+    });
+
+    document.querySelectorAll('[role="tab"][data-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('[role="tab"][data-tab]').forEach((candidate) => {
+          const selected = candidate === tab;
+          candidate.setAttribute('aria-selected', String(selected));
+        });
+        document.querySelectorAll('[role="tabpanel"]').forEach((panel) => {
+          panel.hidden = panel.id !== `tab-${target}`;
+        });
+      });
+    });
+
+    document.querySelectorAll('.copy-snippet').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code = button.parentElement?.querySelector('code')?.textContent?.trim() || '';
+        try {
+          await navigator.clipboard.writeText(code);
+          showToast('Copied');
+        } catch {
+          showToast('Copy failed');
+        }
+      });
+    });
 
     const copyButton = document.getElementById('copy-endpoint');
     const copyStatus = document.getElementById('copy-status');
