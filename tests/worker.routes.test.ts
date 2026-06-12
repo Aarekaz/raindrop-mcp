@@ -14,7 +14,23 @@ const requestContext = {
 const env: Env = {
   RAINDROP_AUTH_KV: {} as KVNamespace,
   ASSETS: {
-    fetch: () => new Response('asset'),
+    fetch: (request: Request) => {
+      const { pathname } = new URL(request.url);
+
+      if (pathname === '/' || pathname === '/index.html') {
+        return new Response('<h1>Raindrop MCP</h1>', {
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      if (pathname === '/docs/' || pathname === '/docs/index.html') {
+        return new Response('<h1>Documentation</h1>', {
+          headers: { 'Content-Type': 'text/html' },
+        });
+      }
+
+      return new Response('asset not found', { status: 404 });
+    },
   } as Fetcher,
 };
 
@@ -150,11 +166,27 @@ describe('worker routes', () => {
     expect(await protectedResponse.text()).toBe('');
   });
 
-  test('unknown paths fall back to static assets', async () => {
-    const response = await fetchWorker('/unknown');
+  test('GET / serves the landing page from static assets', async () => {
+    const response = await fetchWorker('/');
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toBe('asset');
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(await response.text()).toBe('<h1>Raindrop MCP</h1>');
+  });
+
+  test('GET /docs/ serves static documentation', async () => {
+    const response = await fetchWorker('/docs/');
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(await response.text()).toBe('<h1>Documentation</h1>');
+  });
+
+  test('unknown GET paths do not become fake app pages', async () => {
+    const response = await fetchWorker('/dashboard');
+
+    expect(response.status).toBe(404);
+    expect(await response.text()).toBe('asset not found');
   });
 
   test('POST /health returns method_not_allowed', async () => {
