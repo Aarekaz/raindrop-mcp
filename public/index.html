@@ -3,46 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raindrop MCP - Turn saved links into AI context</title>
-  <meta name="description" content="Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing." />
+  <title>Raindrop MCP - Your saved web, available to your AI</title>
+  <meta name="description" content="Raindrop MCP connects OAuth-aware MCP clients to your bookmarks, collections, tags, and highlights without exports or re-indexing." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Raindrop MCP" />
   <meta property="og:url" content="https://raindrop-mcp.anuragd.me/" />
-  <meta property="og:title" content="Raindrop MCP - Turn saved links into AI context" />
-  <meta property="og:description" content="Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing." />
+  <meta property="og:title" content="Raindrop MCP - Your saved web, available to your AI" />
+  <meta property="og:description" content="Connect Raindrop.io bookmarks, collections, tags, and highlights to OAuth-aware MCP clients." />
   <meta name="twitter:card" content="summary" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #f7fbff;
-      --surface: #ffffff;
-      --surface-soft: #f1f7ff;
-      --ink: #08152f;
-      --ink-2: #53617c;
-      --ink-3: #7b879d;
-      --blue: #0969ff;
-      --blue-2: #dbeaff;
-      --green: #19b878;
-      --green-2: #dcf8ed;
-      --yellow: #f5b735;
-      --yellow-2: #fff6d8;
-      --orange: #ff8a3d;
-      --violet: #7657f5;
-      --border: #dbe4f0;
-      --border-2: #c8d6e8;
-      --shadow: 0 22px 70px rgba(39, 78, 126, 0.14);
-      --shadow-soft: 0 10px 30px rgba(39, 78, 126, 0.08);
-      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+      --paper: #fbfcfd;
+      --white: #ffffff;
+      --ink: #101624;
+      --muted: #536073;
+      --faint: #8590a2;
+      --rule: #d8dee8;
+      --rule-strong: #aeb8c8;
+      --blue: #095ee8;
+      --blue-soft: #eaf2ff;
+      --green-soft: #eef7f2;
+      --green-rule: #cadfd3;
+      --warm: #fff8e7;
+      --warm-rule: #ead69b;
+      --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: "Newsreader", Georgia, serif;
     }
 
     * { box-sizing: border-box; }
 
     html {
+      background: var(--paper);
       scroll-behavior: smooth;
-      background: var(--bg);
     }
 
     body {
@@ -50,11 +46,9 @@
       min-height: 100vh;
       color: var(--ink);
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(247,251,255,0.96) 42%, #ffffff 100%),
-        radial-gradient(circle at 12% 16%, rgba(9,105,255,0.12), transparent 32%),
-        radial-gradient(circle at 92% 8%, rgba(25,184,120,0.12), transparent 31%),
-        var(--bg);
-      font-family: var(--font-ui);
+        linear-gradient(180deg, rgba(251,252,253,0.96), rgba(255,255,255,0.98) 52%, #f7f9fc),
+        radial-gradient(circle at 82% 16%, rgba(9,94,232,0.06), transparent 30%);
+      font-family: var(--sans);
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
@@ -75,13 +69,8 @@
     }
 
     :focus-visible {
-      outline: 3px solid rgba(9, 105, 255, 0.36);
+      outline: 2px solid rgba(9, 94, 232, 0.42);
       outline-offset: 3px;
-    }
-
-    .page {
-      min-height: 100vh;
-      overflow: hidden;
     }
 
     .shell {
@@ -94,1042 +83,649 @@
       align-items: center;
       justify-content: space-between;
       gap: 24px;
-      height: 76px;
-      border-bottom: 1px solid rgba(219, 228, 240, 0.78);
+      min-height: 66px;
+      border-bottom: 1px solid var(--rule);
     }
 
     .brand {
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--ink);
+      gap: 11px;
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0;
       white-space: nowrap;
     }
 
     .brand-mark {
-      width: 28px;
-      height: 34px;
-      display: inline-block;
-      filter: drop-shadow(0 10px 16px rgba(9, 105, 255, 0.24));
+      width: 18px;
+      height: 24px;
+      color: var(--blue);
+      flex: 0 0 auto;
     }
 
     .top-nav {
       display: flex;
       align-items: center;
-      gap: 22px;
-      color: var(--ink-2);
-      font-size: 14px;
-      font-weight: 600;
+      gap: 28px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .top-nav a {
+      color: var(--ink);
     }
 
     .top-nav a:hover {
-      color: var(--ink);
+      color: var(--blue);
     }
 
     .button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 9px;
-      min-height: 44px;
+      gap: 8px;
+      min-height: 42px;
       padding: 0 18px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      font-size: 15px;
-      font-weight: 700;
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
       line-height: 1;
-      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
       white-space: nowrap;
     }
 
     .button:hover {
-      transform: translateY(-1px);
+      border-color: var(--blue);
     }
 
     .button-primary {
-      color: #ffffff;
+      border-color: var(--blue);
       background: var(--blue);
-      box-shadow: 0 14px 28px rgba(9, 105, 255, 0.22);
+      color: #ffffff;
     }
 
     .button-primary:hover {
-      box-shadow: 0 16px 34px rgba(9, 105, 255, 0.28);
+      background: #064cbf;
+      border-color: #064cbf;
     }
 
-    .button-secondary {
-      color: var(--ink);
-      background: rgba(255,255,255,0.78);
-      border-color: var(--border);
-      box-shadow: 0 8px 22px rgba(39, 78, 126, 0.08);
-    }
-
-    .button-secondary:hover {
-      border-color: var(--border-2);
-      background: #ffffff;
+    .button-quiet {
+      min-height: 34px;
+      padding: 0 13px;
+      font-size: 12px;
     }
 
     .icon {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       flex: 0 0 auto;
-      stroke: currentColor;
-      stroke-width: 2;
       fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
       stroke-linecap: round;
       stroke-linejoin: round;
     }
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 0.78fr) minmax(560px, 1.22fr);
-      gap: 48px;
+      grid-template-columns: minmax(0, 0.85fr) minmax(520px, 1.15fr);
+      gap: 64px;
       align-items: center;
-      min-height: min(700px, calc(100vh - 76px - 160px));
-      padding: 42px 0 34px;
+      min-height: min(660px, calc(100vh - 66px - 82px));
+      padding: 58px 0 48px;
     }
 
     .hero-copy {
-      max-width: 540px;
+      max-width: 560px;
     }
 
     .hero h1 {
       margin: 0;
-      font-size: clamp(44px, 5vw, 74px);
+      font-family: var(--serif);
+      font-size: clamp(52px, 6.1vw, 84px);
+      font-weight: 500;
       line-height: 0.98;
-      font-weight: 800;
       letter-spacing: 0;
     }
 
-    .hero h1 span {
-      color: var(--blue);
-    }
-
-    .hero-lede {
+    .hero p {
       margin: 24px 0 0;
-      color: var(--ink-2);
-      font-size: clamp(17px, 1.55vw, 20px);
-      line-height: 1.62;
-      max-width: 550px;
+      max-width: 520px;
+      color: var(--muted);
+      font-size: clamp(16px, 1.45vw, 19px);
+      line-height: 1.7;
     }
 
     .hero-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
       flex-wrap: wrap;
+      gap: 12px;
       margin-top: 28px;
     }
 
-    .endpoint-bar {
+    .endpoint-line {
       display: flex;
       align-items: center;
-      gap: 12px;
-      width: min(100%, 530px);
-      margin-top: 18px;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255,255,255,0.82);
-      box-shadow: var(--shadow-soft);
+      gap: 10px;
+      width: min(100%, 450px);
+      margin-top: 14px;
+      padding: 12px 13px;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.72);
+      color: var(--muted);
     }
 
-    .endpoint-bar code {
-      flex: 1;
+    .endpoint-line code {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--blue);
-      font-family: var(--font-mono);
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .endpoint-ok {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      color: var(--green);
-      background: var(--green-2);
-      flex: 0 0 auto;
-    }
-
-    .trust-row {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      max-width: 560px;
-      margin-top: 24px;
-    }
-
-    .trust-item {
-      display: grid;
-      grid-template-columns: 32px 1fr;
-      gap: 10px;
-      align-items: center;
-      padding: 11px 12px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.64);
-      border: 1px solid rgba(219,228,240,0.72);
-      color: var(--ink-2);
-      font-size: 12px;
-      line-height: 1.25;
-    }
-
-    .trust-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      color: var(--blue);
-      background: var(--blue-2);
-    }
-
-    .trust-item strong {
-      display: block;
       color: var(--ink);
-      font-size: 12px;
-      font-weight: 800;
-      margin-bottom: 2px;
-    }
-
-    .workspace {
-      position: relative;
-      min-height: 520px;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background:
-        linear-gradient(90deg, rgba(9,105,255,0.045) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(9,105,255,0.045) 1px, transparent 1px),
-        rgba(255,255,255,0.82);
-      background-size: 24px 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .workspace::before {
-      content: "";
-      position: absolute;
-      inset: auto 12% -36px 12%;
-      height: 72px;
-      background: radial-gradient(ellipse at center, rgba(9,105,255,0.18), transparent 70%);
-      z-index: -1;
-    }
-
-    .library-ui {
-      display: grid;
-      grid-template-columns: 160px 1fr 198px;
-      gap: 12px;
-      min-height: 492px;
-    }
-
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255,255,255,0.86);
-      box-shadow: 0 8px 24px rgba(39, 78, 126, 0.07);
-    }
-
-    .sidebar {
-      padding: 16px 13px;
-    }
-
-    .mini-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 22px;
+      font-family: var(--mono);
       font-size: 13px;
-      font-weight: 800;
-    }
-
-    .drop-mini {
-      width: 17px;
-      height: 22px;
-      color: var(--blue);
-    }
-
-    .side-label {
-      margin: 18px 0 8px;
-      color: var(--ink-3);
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .collection-row,
-    .tag-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 33px;
-      border-radius: 8px;
-      color: var(--ink-2);
-      font-size: 12px;
-    }
-
-    .collection-row {
-      justify-content: space-between;
-      padding: 0 9px;
-    }
-
-    .collection-row.active {
-      background: var(--blue-2);
-      color: var(--blue);
-      font-weight: 800;
-    }
-
-    .collection-name {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .folder {
-      width: 13px;
-      height: 11px;
-      border-radius: 3px;
-      background: var(--blue);
-      flex: 0 0 auto;
-    }
-
-    .folder.green { background: var(--green); }
-    .folder.violet { background: var(--violet); }
-    .folder.orange { background: var(--orange); }
-    .folder.gray { background: #b9c3d1; }
-
-    .count {
-      color: inherit;
-      font-family: var(--font-mono);
-      font-size: 11px;
-    }
-
-    .tag-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-    }
-
-    .tag-pill {
-      min-height: 26px;
-      padding: 0 9px;
-      border: 1px solid var(--border);
-      background: #ffffff;
-      color: var(--ink-2);
-      font-size: 11px;
       white-space: nowrap;
     }
 
-    .tag-pill.green { color: #087f55; background: var(--green-2); border-color: #c7efdf; }
-    .tag-pill.blue { color: var(--blue); background: var(--blue-2); border-color: #c8dcff; }
-    .tag-pill.yellow { color: #936313; background: var(--yellow-2); border-color: #f6e6a7; }
-
-    .items-panel {
-      position: relative;
-      padding: 16px 16px 118px;
-      overflow: hidden;
-    }
-
-    .panel-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 14px;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 4px rgba(25,184,120,0.12);
-    }
-
-    .bookmark-card {
+    .instrument {
       display: grid;
-      grid-template-columns: 62px 1fr;
-      gap: 11px;
-      min-height: 84px;
-      margin-bottom: 12px;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #ffffff;
-      box-shadow: 0 5px 16px rgba(39, 78, 126, 0.06);
+      grid-template-columns: minmax(270px, 1fr) 36px minmax(245px, 0.92fr);
+      align-items: center;
+      gap: 12px;
     }
 
-    .thumb {
-      width: 62px;
-      height: 62px;
-      border-radius: 8px;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,0.18), transparent 45%),
-        linear-gradient(135deg, #0d1b35, #43516c);
-      position: relative;
+    .instrument-label {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .ledger,
+    .exchange-panel {
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.82);
+    }
+
+    .ledger {
       overflow: hidden;
     }
 
-    .thumb::before,
-    .thumb::after {
-      content: "";
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      height: 2px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.68);
+    .bookmark-row {
+      display: grid;
+      grid-template-columns: 42px 1fr 18px;
+      gap: 14px;
+      align-items: start;
+      min-height: 86px;
+      padding: 14px;
+      border-bottom: 1px solid var(--rule);
     }
 
-    .thumb::before { top: 23px; }
-    .thumb::after { top: 31px; right: 19px; }
-    .thumb.gold { background: linear-gradient(135deg, #7e5b27, #e1b35f); }
-    .thumb.mist { background: linear-gradient(135deg, #e7eef8, #8aa5c7); }
+    .bookmark-row:last-child {
+      border-bottom: 0;
+    }
+
+    .mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      background: #111827;
+      color: #ffffff;
+      font-family: Georgia, serif;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .mark.blue { background: var(--blue); font-family: var(--sans); }
+    .mark.orange { background: #ff6b35; font-family: var(--sans); }
 
     .bookmark-title {
-      margin: 1px 0 2px;
-      color: var(--ink);
-      font-size: 12.5px;
-      font-weight: 800;
-      line-height: 1.32;
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.42;
     }
 
-    .bookmark-url {
-      color: var(--ink-3);
-      font-size: 11px;
+    .bookmark-source {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    .bookmark-tags {
+    .tag-row {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 8px;
+      margin-top: 9px;
     }
 
-    .tiny-tag {
+    .tag {
       display: inline-flex;
       align-items: center;
-      min-height: 20px;
+      min-height: 22px;
       padding: 0 7px;
-      border-radius: 7px;
-      background: var(--green-2);
-      color: #087f55;
-      font-size: 10.5px;
-      font-weight: 700;
-    }
-
-    .tiny-tag.violet { background: #ebe7ff; color: #5743d2; }
-
-    .highlight-card {
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
-      min-height: 86px;
-      padding: 14px;
-      border: 1px solid #e9c85a;
-      border-radius: 8px;
-      background: #fffdf3;
-      box-shadow: 0 10px 30px rgba(245, 183, 53, 0.12);
-    }
-
-    .highlight-card strong {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      color: #6f4b0f;
-      font-size: 12px;
-      margin-bottom: 8px;
-    }
-
-    .highlight-card p {
-      margin: 0;
-      color: var(--ink);
-      font-size: 12px;
-      line-height: 1.45;
-    }
-
-    mark {
-      padding: 1px 3px;
+      border: 1px solid var(--rule);
       border-radius: 4px;
-      background: var(--yellow-2);
-      color: inherit;
-    }
-
-    .flow-line {
-      position: absolute;
-      top: 196px;
-      right: 198px;
-      width: 118px;
-      height: 176px;
-      color: var(--blue);
-      pointer-events: none;
-    }
-
-    .tools-panel {
-      display: flex;
-      flex-direction: column;
-      padding: 16px 12px 12px;
-      gap: 10px;
-    }
-
-    .tool-row {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      background: #ffffff;
-      color: var(--ink-2);
+      color: var(--muted);
+      background: #f7f9fc;
       font-size: 11px;
-      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-      text-align: left;
     }
 
-    .tool-row:hover,
-    .tool-row.active {
-      border-color: rgba(9,105,255,0.38);
-      box-shadow: 0 8px 18px rgba(9,105,255,0.09);
-      transform: translateY(-1px);
+    .bookmark-glyph {
+      color: var(--muted);
     }
 
-    .tool-row code {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--ink);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .answer-panel {
-      margin-top: auto;
-      border: 1px solid #c8dcff;
-      border-radius: 8px;
-      padding: 13px;
-      background: linear-gradient(180deg, #ffffff, #f4f8ff);
-      color: var(--ink-2);
-      font-size: 12px;
-      line-height: 1.48;
-    }
-
-    .answer-title {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      color: var(--blue);
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-
-    .answer-lines {
+    .quote-note {
       display: grid;
-      gap: 7px;
-      margin-top: 11px;
-    }
-
-    .answer-lines span {
-      display: block;
-      height: 7px;
-      border-radius: 999px;
-      background: #d9e4f4;
-    }
-
-    .answer-lines span:nth-child(2) { width: 84%; }
-    .answer-lines span:nth-child(3) { width: 63%; }
-
-    .workflow {
-      padding: 24px 0 72px;
-      background: #ffffff;
-    }
-
-    .section-head {
-      width: min(760px, 100%);
-      margin: 0 auto 28px;
-      text-align: center;
-    }
-
-    .section-head h2 {
-      margin: 0;
-      font-size: clamp(28px, 3.6vw, 40px);
-      line-height: 1.08;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
-
-    .section-head p {
-      margin: 12px auto 0;
-      color: var(--ink-2);
-      font-size: 16px;
-      line-height: 1.65;
-    }
-
-    .workflow-steps {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 18px;
-      align-items: stretch;
-    }
-
-    .step {
-      display: grid;
-      grid-template-columns: 46px 1fr;
-      gap: 13px;
-      align-items: start;
-      padding: 16px 0;
-      color: var(--ink-2);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .step-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 46px;
-      height: 46px;
-      border-radius: 8px;
-      background: var(--blue-2);
-      color: var(--blue);
-    }
-
-    .step:nth-child(3) .step-icon { background: var(--green-2); color: var(--green); }
-    .step:nth-child(4) .step-icon { background: var(--yellow-2); color: #a66f10; }
-
-    .step strong {
-      display: block;
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 800;
-      margin-bottom: 4px;
-    }
-
-    .tool-showcase {
-      padding: 72px 0;
-      background:
-        linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-    }
-
-    .showcase-grid {
-      display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 28px;
-      align-items: start;
-    }
-
-    .tool-menu {
-      display: grid;
-      gap: 10px;
-    }
-
-    .menu-button {
-      display: grid;
-      grid-template-columns: 36px 1fr;
+      grid-template-columns: 4px 1fr;
       gap: 12px;
-      align-items: center;
-      width: 100%;
-      min-height: 70px;
-      padding: 13px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #ffffff;
-      text-align: left;
-      color: var(--ink-2);
-      box-shadow: 0 8px 20px rgba(39, 78, 126, 0.05);
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
     }
 
-    .menu-button[aria-selected="true"] {
-      border-color: rgba(9,105,255,0.45);
-      background: linear-gradient(180deg, #ffffff, #f2f7ff);
-      box-shadow: 0 12px 24px rgba(9,105,255,0.09);
+    .quote-note::before {
+      content: "";
+      width: 3px;
+      border-radius: 2px;
+      background: var(--blue);
     }
 
-    .menu-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+    .connector {
       color: var(--blue);
-      background: var(--blue-2);
     }
 
-    .menu-button strong {
-      display: block;
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 800;
-      margin-bottom: 2px;
+    .exchange {
+      display: grid;
+      gap: 10px;
     }
 
-    .menu-button span {
-      font-size: 12px;
-      line-height: 1.35;
+    .exchange-panel {
+      padding: 14px;
     }
 
-    .code-stage {
-      min-height: 376px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b1730;
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
+    .exchange-panel.response {
+      background: var(--green-soft);
+      border-color: var(--green-rule);
     }
 
-    .code-head {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 44px;
-      padding: 0 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      color: #b5c5e8;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .code-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #ff6262;
-    }
-
-    .code-dot:nth-child(2) { background: #ffc24a; }
-    .code-dot:nth-child(3) { background: #33d17a; margin-right: 8px; }
-
-    .code-stage pre {
+    .exchange-panel pre {
       margin: 0;
-      min-height: 332px;
-      padding: 20px;
       overflow: auto;
-      color: #d9e8ff;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      line-height: 1.75;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
       white-space: pre-wrap;
     }
 
-    .token-key { color: #7dd3fc; }
-    .token-str { color: #fed18b; }
-    .token-good { color: #86efac; }
+    .token-muted { color: var(--muted); }
+    .token-blue { color: var(--blue); }
 
-    .security {
-      padding: 72px 0 76px;
-      background: #ffffff;
+    .section {
+      border-top: 1px solid var(--rule);
     }
 
-    .security-layout {
+    .reach {
       display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 42px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+      gap: 48px;
+      padding: 34px 0 30px;
     }
 
-    .security-copy h2 {
-      margin: 0;
-      font-size: clamp(28px, 3.4vw, 42px);
-      line-height: 1.08;
-      font-weight: 800;
+    .section h2 {
+      margin: 0 0 14px;
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0;
     }
 
-    .security-copy p {
-      margin: 16px 0 0;
-      color: var(--ink-2);
-      font-size: 16px;
-      line-height: 1.7;
-    }
-
-    .security-list {
+    .reach-grid {
       display: grid;
-      gap: 13px;
-      margin-top: 24px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-top: 1px solid var(--rule-strong);
     }
 
-    .security-row {
-      display: grid;
-      grid-template-columns: 30px 1fr;
-      gap: 10px;
-      align-items: start;
-      color: var(--ink-2);
-      font-size: 14px;
+    .reach-item {
+      min-height: 150px;
+      padding: 18px 20px 8px 0;
+      border-right: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
     }
 
-    .security-row strong {
-      display: block;
+    .reach-item + .reach-item {
+      padding-left: 18px;
+    }
+
+    .reach-item:last-child {
+      border-right: 0;
+    }
+
+    .reach-icon {
+      width: 30px;
+      height: 30px;
+      margin-bottom: 18px;
       color: var(--ink);
-      margin-bottom: 2px;
     }
 
-    .check {
+    .reach-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .tool-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-top: 1px solid var(--rule-strong);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .tool-table th,
+    .tool-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--rule);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .tool-table th {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .tool-table td:first-child {
+      width: 156px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .security-strip {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) auto;
+      gap: 22px;
+      align-items: center;
+      padding: 25px 0;
+    }
+
+    .shield {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 30px;
-      height: 30px;
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--rule-strong);
       border-radius: 8px;
-      color: var(--green);
-      background: var(--green-2);
+      background: var(--white);
+      color: var(--ink);
     }
 
-    .auth-card {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: linear-gradient(180deg, #ffffff, #f7fbff);
-      box-shadow: var(--shadow);
-      padding: 20px;
+    .security-strip h2 {
+      margin-bottom: 4px;
     }
 
-    .auth-flow {
-      display: grid;
-      gap: 12px;
+    .security-strip p {
+      margin: 0;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
     }
 
-    .auth-node {
-      display: grid;
-      grid-template-columns: 44px 1fr;
-      gap: 14px;
+    .inline-link {
+      display: inline-flex;
       align-items: center;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #ffffff;
+      gap: 8px;
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 13px;
+      white-space: nowrap;
     }
 
-    .auth-node-icon {
+    .install {
+      padding: 28px 0 26px;
+    }
+
+    .install-panel {
+      display: grid;
+      grid-template-columns: 410px 1fr;
+      gap: 28px;
+      padding: 18px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .install-heading {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .terminal-mark {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 44px;
       height: 44px;
-      border-radius: 8px;
-      color: var(--blue);
-      background: var(--blue-2);
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      background: #eef2f7;
+      color: var(--ink);
     }
 
-    .auth-node strong {
-      display: block;
-      font-size: 14px;
-      font-weight: 800;
+    .install h2 {
+      margin: 0 0 12px;
+      font-family: var(--mono);
+      font-size: 19px;
     }
 
-    .auth-node span {
-      color: var(--ink-2);
-      font-size: 13px;
-    }
-
-    .start {
-      padding: 72px 0 82px;
-      color: #ffffff;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(9,105,255,0.36), transparent 34%),
-        radial-gradient(circle at 88% 12%, rgba(25,184,120,0.26), transparent 34%),
-        #07122a;
-    }
-
-    .start-grid {
-      display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 36px;
+    .install-tabs {
+      display: inline-flex;
       align-items: center;
-    }
-
-    .start h2 {
-      margin: 0;
-      font-size: clamp(30px, 4vw, 50px);
-      line-height: 1.05;
-      font-weight: 800;
-    }
-
-    .start p {
-      margin: 16px 0 0;
-      color: #b9c8e8;
-      font-size: 16px;
-      line-height: 1.7;
-    }
-
-    .config-box {
-      border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 8px;
-      background: rgba(7,18,42,0.72);
-      box-shadow: 0 24px 70px rgba(0,0,0,0.26);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
       overflow: hidden;
+      background: var(--white);
     }
 
-    .config-box pre {
+    .install-tabs button {
+      min-width: 72px;
+      min-height: 34px;
+      padding: 0 13px;
+      border: 0;
+      border-right: 1px solid var(--rule);
+      background: var(--white);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .install-tabs button:last-child {
+      border-right: 0;
+    }
+
+    .install-tabs [aria-selected="true"] {
+      color: var(--blue);
+      box-shadow: inset 0 -2px 0 var(--blue);
+    }
+
+    .snippet {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.9);
+    }
+
+    .snippet pre {
       margin: 0;
-      padding: 20px;
+      padding: 18px;
       overflow: auto;
-      color: #d9e8ff;
-      font-family: var(--font-mono);
-      font-size: 13px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
       line-height: 1.75;
       white-space: pre-wrap;
     }
 
-    .start-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 26px;
+    .snippet .copy-snippet {
+      position: absolute;
+      top: 12px;
+      right: 12px;
     }
 
     .site-footer {
-      padding: 28px 0 38px;
-      color: #b9c8e8;
-      background: #07122a;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      font-size: 13px;
-    }
-
-    .footer-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 18px;
-      flex-wrap: wrap;
+      gap: 20px;
+      min-height: 64px;
+      border-top: 1px solid var(--rule);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
     }
 
     .footer-links {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
+      gap: 22px;
     }
 
     .footer-links a:hover {
-      color: #ffffff;
+      color: var(--blue);
     }
 
     .install-dialog {
       width: min(760px, calc(100vw - 32px));
       max-height: min(760px, calc(100vh - 32px));
       overflow: auto;
-      border: 1px solid var(--border);
-      background: var(--surface);
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
+      background: var(--paper);
       color: var(--ink);
-      border-radius: 8px;
       padding: 24px;
-      box-shadow: 0 30px 90px rgba(7, 18, 42, 0.28);
+      box-shadow: 0 28px 80px rgba(16, 22, 36, 0.22);
     }
 
     .install-dialog::backdrop {
-      background: rgba(7, 18, 42, 0.58);
-      backdrop-filter: blur(4px);
+      background: rgba(16, 22, 36, 0.44);
     }
 
     .dialog-header {
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
-      gap: 16px;
+      gap: 18px;
+      align-items: flex-start;
     }
 
     .dialog-header h2 {
       margin: 0;
-      font-size: 26px;
-      line-height: 1.15;
-      font-weight: 800;
-    }
-
-    .dialog-close,
-    .copy-snippet {
-      border: 1px solid var(--border);
-      color: var(--ink);
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 9px 12px;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .dialog-close:hover,
-    .copy-snippet:hover {
-      border-color: var(--blue);
+      font-family: var(--mono);
+      font-size: 20px;
     }
 
     .dialog-subtitle,
     .tab-help {
-      color: var(--ink-2);
-      margin: 10px 0 0;
-      line-height: 1.65;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
     }
 
     .tab-list {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin: 22px 0 14px;
+      margin: 20px 0 14px;
     }
 
     .tab-list [role="tab"] {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--ink-2);
-      background: #ffffff;
-      font-size: 13px;
-      font-weight: 800;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
     }
 
     .tab-list [aria-selected="true"] {
-      color: #ffffff;
-      background: var(--blue);
       border-color: var(--blue);
+      color: var(--blue);
     }
 
     .tab-panels pre {
-      margin: 14px 0 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b1730;
-      color: #d9e8ff;
+      margin: 12px 0;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--white);
       overflow: auto;
       padding: 16px;
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 12px;
       line-height: 1.7;
-      font-family: var(--font-mono);
-      font-size: 13px;
+    }
+
+    .dialog-close,
+    .copy-snippet {
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--ink);
+      min-height: 32px;
+      padding: 0 11px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .dialog-close:hover,
+    .copy-snippet:hover {
+      border-color: var(--blue);
+      color: var(--blue);
     }
 
     .toast {
       position: fixed;
       right: 20px;
       bottom: 20px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 14px;
+      z-index: 20;
+      border: 1px solid var(--rule-strong);
+      border-radius: 6px;
       background: var(--ink);
       color: #ffffff;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
       opacity: 0;
       transform: translateY(8px);
-      transition: opacity 160ms ease, transform 160ms ease;
       pointer-events: none;
-      z-index: 20;
-      font-size: 13px;
-      font-weight: 800;
-      box-shadow: 0 14px 30px rgba(7, 18, 42, 0.18);
+      transition: opacity 150ms ease, transform 150ms ease;
     }
 
     .toast[data-show="true"] {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .reveal {
-      opacity: 1;
-      transform: none;
-      transition: opacity 520ms ease, transform 520ms ease;
-    }
-
-    .reveal.is-visible {
       opacity: 1;
       transform: translateY(0);
     }
@@ -1139,111 +735,66 @@
       *,
       *::before,
       *::after {
+        transition-duration: 1ms !important;
         animation-duration: 1ms !important;
         scroll-behavior: auto !important;
-        transition-duration: 1ms !important;
-      }
-      .reveal {
-        opacity: 1;
-        transform: none;
       }
     }
 
     @media (max-width: 1080px) {
-      .hero {
+      .hero,
+      .reach,
+      .install-panel {
         grid-template-columns: 1fr;
-        gap: 34px;
-        min-height: auto;
+      }
+
+      .instrument {
+        grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
       }
 
       .hero-copy {
-        max-width: 760px;
-      }
-
-      .workspace {
-        min-height: auto;
-      }
-
-      .library-ui {
-        grid-template-columns: 170px 1fr;
-      }
-
-      .tools-panel {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .answer-panel {
-        grid-column: 1 / -1;
-      }
-
-      .flow-line {
-        display: none;
+        max-width: 740px;
       }
     }
 
-    @media (max-width: 900px) {
-      .top-nav a:not(.nav-docs) {
-        display: none;
-      }
-
-      .trust-row,
-      .workflow-steps,
-      .showcase-grid,
-      .security-layout,
-      .start-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .workflow-steps {
-        gap: 2px;
-      }
-    }
-
-    @media (max-width: 680px) {
+    @media (max-width: 760px) {
       .shell {
         width: min(100% - 28px, 1180px);
       }
 
       .site-header {
-        height: 66px;
+        min-height: 58px;
       }
 
       .brand {
-        font-size: 16px;
-        gap: 9px;
-      }
-
-      .brand-mark {
-        width: 24px;
-        height: 30px;
+        font-size: 14px;
       }
 
       .top-nav {
-        gap: 10px;
+        gap: 14px;
       }
 
+      .top-nav a:not(.nav-docs),
       .top-nav .button {
-        min-height: 38px;
-        padding: 0 12px;
-        font-size: 13px;
+        display: none;
       }
 
       .hero {
-        padding: 34px 0 26px;
+        display: block;
+        padding: 34px 0 28px;
+        min-height: 0;
       }
 
       .hero h1 {
-        font-size: clamp(40px, 13vw, 58px);
+        font-size: clamp(42px, 13vw, 62px);
       }
 
-      .hero-lede {
-        font-size: 16px;
+      .hero p {
+        font-size: 15px;
+        line-height: 1.65;
       }
 
-      .hero-actions,
-      .start-actions {
+      .hero-actions {
         align-items: stretch;
         flex-direction: column;
       }
@@ -1252,357 +803,305 @@
         width: 100%;
       }
 
-      .endpoint-bar {
-        align-items: flex-start;
+      .endpoint-line {
+        width: 100%;
       }
 
-      .trust-row {
-        gap: 8px;
-      }
-
-      .library-ui {
+      .instrument {
         grid-template-columns: 1fr;
+        gap: 18px;
+        margin-top: 34px;
       }
 
-      .sidebar {
+      .connector {
         display: none;
       }
 
-      .items-panel {
-        padding-bottom: 16px;
+      .reach {
+        gap: 34px;
+        padding: 30px 0;
       }
 
-      .highlight-card {
-        position: static;
-        margin-top: 12px;
+      .reach-grid {
+        grid-template-columns: 1fr 1fr;
       }
 
-      .tools-panel {
+      .reach-item:nth-child(2) {
+        border-right: 0;
+      }
+
+      .reach-item {
+        min-height: 132px;
+      }
+
+      .security-strip {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .security-strip .inline-link {
+        justify-self: start;
+      }
+
+      .install-heading {
         grid-template-columns: 1fr;
       }
 
-      .workflow,
-      .tool-showcase,
-      .security,
-      .start {
-        padding: 54px 0;
-      }
-
-      .section-head {
-        text-align: left;
-      }
-
-      .footer-row {
+      .site-footer {
         align-items: flex-start;
         flex-direction: column;
+        padding: 20px 0;
       }
     }
 
-    @media (max-width: 420px) {
-      .top-nav .button {
-        display: none;
+    @media (max-width: 460px) {
+      .bookmark-row {
+        grid-template-columns: 36px 1fr 16px;
+        gap: 10px;
+        padding: 12px;
       }
 
-      .endpoint-bar code {
-        font-size: 12px;
+      .mark {
+        width: 34px;
+        height: 34px;
+        font-size: 18px;
       }
 
-      .bookmark-card {
+      .reach-grid {
         grid-template-columns: 1fr;
       }
 
-      .thumb {
-        width: 100%;
-        height: 90px;
+      .reach-item,
+      .reach-item:nth-child(2) {
+        border-right: 0;
+        border-bottom: 1px solid var(--rule);
+        padding-left: 0;
       }
 
-      .install-dialog {
-        padding: 18px;
+      .reach-item:last-child {
+        border-bottom: 0;
+      }
+
+      .tool-table {
+        font-size: 11px;
+      }
+
+      .tool-table td:first-child {
+        width: 132px;
+      }
+
+      .install-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .install-tabs button {
+        border-bottom: 1px solid var(--rule);
       }
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <header class="site-header shell">
-      <a class="brand" href="/" aria-label="Raindrop MCP home">
-        <svg class="brand-mark" viewBox="0 0 56 68" aria-hidden="true">
-          <path fill="#0969ff" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" />
-          <path fill="#54a3ff" d="M28 12C21.6 22.1 14.9 32.4 14.9 42.8C14.9 51 20.3 57.2 28 58.3V12Z" opacity="0.72" />
+  <header class="site-header shell">
+    <a class="brand" href="/" aria-label="Raindrop MCP home">
+      <svg class="brand-mark" viewBox="0 0 56 68" aria-hidden="true">
+        <path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" />
+      </svg>
+      <span>Raindrop MCP</span>
+    </a>
+    <nav class="top-nav" aria-label="Primary">
+      <a href="#tools">Tools</a>
+      <a href="#security">Security</a>
+      <a class="nav-docs" href="/docs/">Docs</a>
+      <button class="button button-primary button-quiet" type="button" data-open-install>Connect</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero-copy">
+        <h1>Your saved web, available to your AI.</h1>
+        <p>Raindrop MCP connects OAuth-aware MCP clients to your bookmarks, collections, tags, and highlights without exports or re-indexing.</p>
+        <div class="hero-actions">
+          <button class="button button-primary" type="button" data-open-install>
+            Connect MCP Client
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </button>
+          <button class="button" id="copy-endpoint" type="button">
+            Copy Endpoint
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
+          </button>
+        </div>
+        <div class="endpoint-line" aria-label="MCP endpoint">
+          <code>https://raindrop-mcp.anuragd.me/mcp</code>
+        </div>
+      </div>
+
+      <div class="instrument" aria-label="Raindrop library to MCP request and response">
+        <div>
+          <p class="instrument-label">Your Raindrop.io library</p>
+          <div class="ledger">
+            <article class="bookmark-row">
+              <span class="mark">T</span>
+              <div>
+                <h2 class="bookmark-title">The secret to great product design</h2>
+                <div class="bookmark-source">nytimes.com</div>
+                <div class="tag-row"><span class="tag">design</span><span class="tag">product</span></div>
+              </div>
+              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
+            </article>
+            <article class="bookmark-row">
+              <span class="mark blue">B</span>
+              <div>
+                <h2 class="bookmark-title">Building with Durable Objects</h2>
+                <div class="bookmark-source">blog.cloudflare.com</div>
+                <div class="tag-row"><span class="tag">cloudflare</span><span class="tag">durable-objects</span></div>
+              </div>
+              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
+            </article>
+            <article class="bookmark-row">
+              <span class="mark orange">Y</span>
+              <div>
+                <h2 class="bookmark-title">Why reading is a superpower</h2>
+                <div class="bookmark-source">paulgraham.com</div>
+                <div class="tag-row"><span class="tag">essays</span></div>
+                <div class="quote-note">Reading lets you borrow knowledge without paying tuition.</div>
+              </div>
+              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
+            </article>
+          </div>
+        </div>
+
+        <svg class="connector" viewBox="0 0 36 80" aria-hidden="true">
+          <path d="M2 40h28" stroke="currentColor" stroke-width="1.6" />
+          <path d="m24 33 7 7-7 7" stroke="currentColor" stroke-width="1.6" fill="none" />
+          <circle cx="2" cy="40" r="2.5" fill="currentColor" />
         </svg>
-        <span>Raindrop MCP</span>
-      </a>
-      <nav class="top-nav" aria-label="Primary">
-        <a href="#tools">Tools</a>
-        <a href="#security">Security</a>
-        <a class="nav-docs" href="/docs/">Docs</a>
-        <button class="button button-primary" type="button" data-open-install>
-          Connect MCP Client
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-        </button>
-      </nav>
-    </header>
 
-    <main>
-      <section class="hero shell">
-        <div class="hero-copy">
-          <h1>Turn your saved links into <span>AI context.</span></h1>
-          <p class="hero-lede">Connect Raindrop.io to any OAuth-aware MCP client. Search bookmarks, collections, tags, and highlights without exporting or re-indexing.</p>
-          <div class="hero-actions">
-            <button class="button button-primary" type="button" data-open-install>
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" /></svg>
-              Connect MCP Client
-            </button>
-            <button class="button button-secondary" id="copy-endpoint" type="button">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
-              Copy Endpoint
-            </button>
-          </div>
-          <div class="endpoint-bar" aria-label="MCP endpoint">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 0 20" /><path d="M12 2a15.3 15.3 0 0 0 0 20" /></svg>
-            <code>https://raindrop-mcp.anuragd.me/mcp</code>
-            <span class="endpoint-ok" aria-hidden="true">
-              <svg class="icon" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5" /></svg>
-            </span>
-          </div>
-          <div class="trust-row" aria-label="Trust signals">
-            <div class="trust-item">
-              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /><path d="m9 12 2 2 4-4" /></svg></span>
-              <span><strong>OAuth 2.1</strong>Secure by design</span>
-            </div>
-            <div class="trust-item">
-              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
-              <span><strong>Your data stays yours</strong>We never store content</span>
-            </div>
-            <div class="trust-item">
-              <span class="trust-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" /></svg></span>
-              <span><strong>Cloudflare Worker</strong>Fast hosted endpoint</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="workspace" aria-label="Raindrop bookmarks flowing into MCP tools">
-          <div class="library-ui">
-            <aside class="panel sidebar">
-              <div class="mini-brand">
-                <svg class="drop-mini" viewBox="0 0 56 68" aria-hidden="true"><path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" /></svg>
-                Your Raindrop
-              </div>
-              <div class="side-label">Collections</div>
-              <div class="collection-row active"><span class="collection-name"><span class="folder"></span>AI Research</span><span class="count">342</span></div>
-              <div class="collection-row"><span class="collection-name"><span class="folder green"></span>Productivity</span><span class="count">128</span></div>
-              <div class="collection-row"><span class="collection-name"><span class="folder violet"></span>Design Inspo</span><span class="count">84</span></div>
-              <div class="collection-row"><span class="collection-name"><span class="folder orange"></span>Articles</span><span class="count">215</span></div>
-              <div class="collection-row"><span class="collection-name"><span class="folder gray"></span>Read Later</span><span class="count">97</span></div>
-              <div class="side-label">Tags</div>
-              <div class="tag-wrap">
-                <span class="tag-pill green">machine-learning</span>
-                <span class="tag-pill blue">tools</span>
-                <span class="tag-pill">design</span>
-                <span class="tag-pill yellow">web</span>
-                <span class="tag-pill">read-later</span>
-              </div>
-            </aside>
-
-            <section class="panel items-panel" aria-label="Saved bookmarks">
-              <div class="panel-title">
-                <span>Saved Items</span>
-                <span class="status-dot" aria-hidden="true"></span>
-              </div>
-              <article class="bookmark-card">
-                <div class="thumb"></div>
-                <div>
-                  <h3 class="bookmark-title">Transformers Are RNNs: Fast Autoregressive Transformers</h3>
-                  <div class="bookmark-url">arxiv.org</div>
-                  <div class="bookmark-tags"><span class="tiny-tag">machine-learning</span></div>
-                </div>
-              </article>
-              <article class="bookmark-card">
-                <div class="thumb gold"></div>
-                <div>
-                  <h3 class="bookmark-title">Build a second brain, not a todo list</h3>
-                  <div class="bookmark-url">fortelabs.com</div>
-                  <div class="bookmark-tags"><span class="tiny-tag">productivity</span></div>
-                </div>
-              </article>
-              <article class="bookmark-card">
-                <div class="thumb mist"></div>
-                <div>
-                  <h3 class="bookmark-title">Designing high-signal interfaces</h3>
-                  <div class="bookmark-url">every.to</div>
-                  <div class="bookmark-tags"><span class="tiny-tag violet">design</span></div>
-                </div>
-              </article>
-              <article class="highlight-card">
-                <strong>
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" /></svg>
-                  Highlight
-                </strong>
-                <p>The power of a good interface is in <mark>removing the noise</mark>, not adding more features.</p>
-              </article>
-            </section>
-
-            <svg class="flow-line" viewBox="0 0 118 176" aria-hidden="true">
-              <path d="M2 12 C56 12 55 88 116 88" stroke="currentColor" stroke-width="2.4" fill="none" />
-              <path d="M102 81 116 88 102 95" stroke="currentColor" stroke-width="2.4" fill="none" />
-              <path d="M2 164 C56 164 55 88 116 88" stroke="currentColor" stroke-width="2.4" fill="none" opacity="0.45" />
-            </svg>
-
-            <aside class="panel tools-panel" aria-label="MCP tools preview">
-              <div class="panel-title">MCP Tools</div>
-              <button class="tool-row active" type="button" data-hero-tool="bookmark_search"><code>bookmark_search</code>Search titles, descriptions, tags, and highlights</button>
-              <button class="tool-row" type="button" data-hero-tool="collection_list"><code>collection_list</code>Browse your collection tree</button>
-              <button class="tool-row" type="button" data-hero-tool="highlight_manage"><code>highlight_manage</code>Read or create key highlights</button>
-              <button class="tool-row" type="button" data-hero-tool="tag_list"><code>tag_list</code>Explore the labels you already use</button>
-              <div class="answer-panel">
-                <div class="answer-title">
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.5L19 10l-5.2 1.5L12 17l-1.8-5.5L5 10l5.2-1.5L12 3Z" /></svg>
-                  AI Answer
-                </div>
-                <div id="hero-answer">Here are 3 saved resources on transformers and interface design, with key takeaways from your highlights.</div>
-                <div class="answer-lines" aria-hidden="true"><span></span><span></span><span></span></div>
-              </div>
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      <section class="workflow reveal" id="workflow">
-        <div class="shell">
-          <div class="section-head">
-            <h2>Your saved knowledge. MCP-ready.</h2>
-            <p>Raindrop MCP turns the library you already maintain into contextual answers your AI client can trust.</p>
-          </div>
-          <div class="workflow-steps">
-            <div class="step">
-              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg></span>
-              <span><strong>1. Your library</strong>Bookmarks, collections, tags, and highlights stay in Raindrop.io.</span>
-            </div>
-            <div class="step">
-              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg></span>
-              <span><strong>2. MCP search</strong>AI clients call secure tools to find what you saved.</span>
-            </div>
-            <div class="step">
-              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span>
-              <span><strong>3. Relevant context</strong>Matched links and highlights return in real time.</span>
-            </div>
-            <div class="step">
-              <span class="step-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.5L19 10l-5.2 1.5L12 17l-1.8-5.5L5 10l5.2-1.5L12 3Z" /></svg></span>
-              <span><strong>4. Better answers</strong>AI responds with sources you already chose to keep.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="tool-showcase reveal" id="tools">
-        <div class="shell showcase-grid">
+        <div class="exchange">
           <div>
-            <div class="section-head" style="text-align: left; margin-left: 0;">
-              <h2>Tools for bookmarks, not a generic database.</h2>
-              <p>Use natural language to search, organize, and retrieve the exact saved material your workflow depends on.</p>
-            </div>
-            <div class="tool-menu" role="tablist" aria-label="Tool examples">
-              <button class="menu-button" type="button" role="tab" aria-selected="true" data-example="search">
-                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg></span>
-                <span><strong>Search your saved web</strong>Find links by title, description, tags, collection, domain, or highlight.</span>
-              </button>
-              <button class="menu-button" type="button" role="tab" aria-selected="false" data-example="organize">
-                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></svg></span>
-                <span><strong>Organize collections</strong>Create, merge, reorder, clean, and expand collection structure.</span>
-              </button>
-              <button class="menu-button" type="button" role="tab" aria-selected="false" data-example="highlights">
-                <span class="menu-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" /></svg></span>
-                <span><strong>Work with highlights</strong>Retrieve saved quotes and attach new notes without leaving the client.</span>
-              </button>
-            </div>
-          </div>
-          <div class="code-stage">
-            <div class="code-head"><span class="code-dot"></span><span class="code-dot"></span><span class="code-dot"></span><span id="code-title">bookmark_search</span></div>
-            <pre id="tool-output"><span class="token-key">request</span>: {
-  <span class="token-str">"tool"</span>: <span class="token-str">"bookmark_search"</span>,
-  <span class="token-str">"query"</span>: <span class="token-str">"interface design highlights"</span>,
-  <span class="token-str">"collection"</span>: <span class="token-str">"AI Research"</span>
-}
-
-<span class="token-good">response</span>: [
-  {
-    <span class="token-str">"title"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
-    <span class="token-str">"source"</span>: <span class="token-str">"every.to"</span>,
-    <span class="token-str">"highlight"</span>: <span class="token-str">"removing the noise, not adding more features"</span>
+            <p class="instrument-label">MCP request / response</p>
+            <div class="exchange-panel">
+              <pre><span class="token-muted">client -> mcp</span>
+{
+  "method": "tools/call",
+  "params": {
+    "name": "bookmark_search",
+    "arguments": { "search": "design" }
   }
-]</pre>
-          </div>
-        </div>
-      </section>
-
-      <section class="security reveal" id="security">
-        <div class="shell security-layout">
-          <div class="security-copy">
-            <h2>OAuth in front. Raindrop at the source.</h2>
-            <p>The Worker acts as the MCP bridge. It stores encrypted OAuth session data in Cloudflare KV, then fetches bookmark content live from Raindrop when a tool runs.</p>
-            <div class="security-list">
-              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>No bookmark warehouse</strong>Saved content remains in Raindrop and is fetched only when requested.</span></div>
-              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>Revocable access</strong>OAuth keeps authorization explicit and client-driven.</span></div>
-              <div class="security-row"><span class="check"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 6-11 11-5-5" /></svg></span><span><strong>Streamable HTTP</strong>Works with modern MCP clients that support hosted OAuth flows.</span></div>
+}</pre>
             </div>
           </div>
-          <div class="auth-card" aria-label="OAuth flow">
-            <div class="auth-flow">
-              <div class="auth-node">
-                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14" /><path d="M5 12h14" /></svg></span>
-                <span><strong>MCP client connects</strong><span>Uses https://raindrop-mcp.anuragd.me/mcp</span></span>
-              </div>
-              <div class="auth-node">
-                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
-                <span><strong>OAuth discovery runs</strong><span>Client follows protected-resource metadata and PKCE login.</span></span>
-              </div>
-              <div class="auth-node">
-                <span class="auth-node-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /></svg></span>
-                <span><strong>Tools call Raindrop live</strong><span>Search, collections, tags, highlights, and bookmark operations stay current.</span></span>
-              </div>
+          <div class="exchange-panel response">
+            <pre><span class="token-muted">mcp -> client</span>
+{
+  "content": [
+    { "type": "text", "text": "3 results" },
+    { "type": "resource", "uri": "raindrop://item/123" }
+  ]
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tools">
+      <div class="shell reach">
+        <div>
+          <h2>What it can reach</h2>
+          <div class="reach-grid">
+            <div class="reach-item">
+              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+              <strong>Bookmarks</strong>
+              Search, fetch, and reference any saved link.
+            </div>
+            <div class="reach-item">
+              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
+              <strong>Collections</strong>
+              Navigate nested collections and their items.
+            </div>
+            <div class="reach-item">
+              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M7.5 7.5h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" /></svg>
+              <strong>Tags</strong>
+              Filter and explore by tags you already use.
+            </div>
+            <div class="reach-item">
+              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" fill="none" stroke="currentColor" stroke-width="1.8" /></svg>
+              <strong>Highlights</strong>
+              Access highlights and notes in context.
             </div>
           </div>
         </div>
-      </section>
+        <div>
+          <h2>How the client sees it</h2>
+          <table class="tool-table">
+            <thead>
+              <tr><th>Tool</th><th>What it does</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>bookmark_search</td><td>Search across saved links, titles, excerpts, tags, and collections</td></tr>
+              <tr><td>bookmark_manage</td><td>Create, update, move, or fetch bookmark details</td></tr>
+              <tr><td>collection_list</td><td>List top-level and nested Raindrop collections</td></tr>
+              <tr><td>highlight_manage</td><td>Read or write highlights attached to a bookmark</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
-      <section class="start reveal" id="start">
-        <div class="shell start-grid">
+    <section class="section" id="security">
+      <div class="shell security-strip">
+        <span class="shield" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /><path d="M12 8v5" /><path d="M12 17h.01" /></svg>
+        </span>
+        <div>
+          <h2>Authorization stays explicit</h2>
+          <p>OAuth 2.1 with PKCE. Bookmark content remains in Raindrop and is fetched live when a tool runs.</p>
+        </div>
+        <a class="inline-link" href="/.well-known/oauth-protected-resource">Security details <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg></a>
+      </div>
+    </section>
+
+    <section class="section install" id="start">
+      <div class="shell install-panel">
+        <div class="install-heading">
+          <span class="terminal-mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6" /><path d="M12 19h8" /></svg>
+          </span>
           <div>
-            <h2>Add your bookmark memory to an MCP client.</h2>
-            <p>Paste the hosted endpoint into Claude Desktop, Cursor, Codex, or any OAuth-aware Streamable HTTP MCP client. The client handles discovery and opens the Raindrop authorization flow.</p>
-            <div class="start-actions">
-              <button class="button button-primary" type="button" data-open-install>Connect MCP Client</button>
-              <a class="button button-secondary" href="/docs/">Read Docs</a>
+            <h2>Install in your MCP client</h2>
+            <div class="install-tabs" role="tablist" aria-label="Install snippet selector">
+              <button role="tab" aria-selected="true" data-install-tab="claude">Claude</button>
+              <button role="tab" aria-selected="false" data-install-tab="cursor">Cursor</button>
+              <button role="tab" aria-selected="false" data-install-tab="codex">Codex</button>
+              <button role="tab" aria-selected="false" data-install-tab="generic">Other</button>
             </div>
           </div>
-          <div class="config-box">
-            <div class="code-head"><span class="code-dot"></span><span class="code-dot"></span><span class="code-dot"></span><span>mcp.json</span></div>
-            <pre>{
+        </div>
+        <div class="snippet">
+          <button type="button" class="copy-snippet" data-copy-active>Copy</button>
+          <pre><code id="active-snippet">{
   "mcpServers": {
     "raindrop": {
       "url": "https://raindrop-mcp.anuragd.me/mcp",
       "transport": "streamable-http"
     }
   }
-}</pre>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div class="shell footer-row">
-        <div>Built for people who save the web on purpose.</div>
-        <div class="footer-links">
-          <a href="/mcp">MCP Endpoint</a>
-          <a href="/.well-known/oauth-protected-resource">OAuth Metadata</a>
-          <a href="/info">Info</a>
-          <a href="/docs/">Docs</a>
-          <a href="/health">Health</a>
+}</code></pre>
         </div>
       </div>
-    </footer>
-  </div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <div>Raindrop MCP</div>
+    <div class="footer-links">
+      <a href="#tools">Tools</a>
+      <a href="#security">Security</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/Aarekaz/raindrop-mcp">Source on GitHub</a>
+    </div>
+  </footer>
 
   <dialog class="install-dialog" id="install-dialog" aria-labelledby="install-title">
     <div class="dialog-header">
@@ -1661,60 +1160,32 @@
 
   <script>
     const endpoint = 'https://raindrop-mcp.anuragd.me/mcp';
-    const heroAnswers = {
-      bookmark_search: 'Here are 3 saved resources on transformers and interface design, with key takeaways from your highlights.',
-      collection_list: 'Your AI Research collection has 342 saved items, with nested folders for papers, tools, and design references.',
-      highlight_manage: 'I found your saved quote about removing noise from interfaces and can attach it to a new note.',
-      tag_list: 'Your most relevant tags are machine-learning, tools, design, web, and read-later.'
-    };
-
-    const examples = {
-      search: {
-        title: 'bookmark_search',
-        output: `<span class="token-key">request</span>: {
-  <span class="token-str">"tool"</span>: <span class="token-str">"bookmark_search"</span>,
-  <span class="token-str">"query"</span>: <span class="token-str">"interface design highlights"</span>,
-  <span class="token-str">"collection"</span>: <span class="token-str">"AI Research"</span>
-}
-
-<span class="token-good">response</span>: [
-  {
-    <span class="token-str">"title"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
-    <span class="token-str">"source"</span>: <span class="token-str">"every.to"</span>,
-    <span class="token-str">"highlight"</span>: <span class="token-str">"removing the noise, not adding more features"</span>
+    const snippets = {
+      claude: `{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
   }
-]`
-      },
-      organize: {
-        title: 'collection_manage',
-        output: `<span class="token-key">request</span>: {
-  <span class="token-str">"tool"</span>: <span class="token-str">"collection_manage"</span>,
-  <span class="token-str">"operation"</span>: <span class="token-str">"create"</span>,
-  <span class="token-str">"title"</span>: <span class="token-str">"Agent Infrastructure"</span>,
-  <span class="token-str">"parent"</span>: <span class="token-str">"AI Research"</span>
-}
-
-<span class="token-good">response</span>: {
-  <span class="token-str">"status"</span>: <span class="token-str">"created"</span>,
-  <span class="token-str">"collection"</span>: <span class="token-str">"Agent Infrastructure"</span>
+}`,
+      cursor: `{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://raindrop-mcp.anuragd.me/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}`,
+      codex: 'codex mcp add raindrop https://raindrop-mcp.anuragd.me/mcp',
+      generic: `{
+  "name": "raindrop",
+  "url": "https://raindrop-mcp.anuragd.me/mcp",
+  "transport": "streamable-http"
 }`
-      },
-      highlights: {
-        title: 'highlight_manage',
-        output: `<span class="token-key">request</span>: {
-  <span class="token-str">"tool"</span>: <span class="token-str">"highlight_manage"</span>,
-  <span class="token-str">"bookmark"</span>: <span class="token-str">"Designing high-signal interfaces"</span>,
-  <span class="token-str">"operation"</span>: <span class="token-str">"list"</span>
-}
-
-<span class="token-good">response</span>: [
-  <span class="token-str">"The power of a good interface is in removing the noise."</span>
-]`
-      }
     };
 
     const installDialog = document.getElementById('install-dialog');
-    const closeInstallButton = document.querySelector('[data-close-install]');
     const toast = document.querySelector('.toast');
 
     const showToast = (message) => {
@@ -1728,38 +1199,41 @@
     };
 
     document.querySelectorAll('[data-open-install]').forEach((button) => {
-      button.addEventListener('click', () => {
-        installDialog?.showModal();
-      });
+      button.addEventListener('click', () => installDialog?.showModal());
     });
 
-    closeInstallButton?.addEventListener('click', () => {
+    document.querySelector('[data-close-install]')?.addEventListener('click', () => {
       installDialog?.close();
     });
 
-    document.querySelectorAll('.tool-row[data-hero-tool]').forEach((button) => {
-      button.addEventListener('click', () => {
-        document.querySelectorAll('.tool-row[data-hero-tool]').forEach((item) => item.classList.remove('active'));
-        button.classList.add('active');
-        const answer = heroAnswers[button.dataset.heroTool];
-        const heroAnswer = document.getElementById('hero-answer');
-        if (heroAnswer && answer) heroAnswer.textContent = answer;
+    document.getElementById('copy-endpoint')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(endpoint);
+        showToast('Endpoint copied');
+      } catch {
+        showToast('Copy failed');
+      }
+    });
+
+    document.querySelectorAll('[data-install-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-install-tab]').forEach((candidate) => {
+          candidate.setAttribute('aria-selected', String(candidate === tab));
+        });
+        const snippet = snippets[tab.dataset.installTab] || snippets.claude;
+        const activeSnippet = document.getElementById('active-snippet');
+        if (activeSnippet) activeSnippet.textContent = snippet;
       });
     });
 
-    document.querySelectorAll('.menu-button[data-example]').forEach((button) => {
-      button.addEventListener('click', () => {
-        document.querySelectorAll('.menu-button[data-example]').forEach((item) => {
-          item.setAttribute('aria-selected', String(item === button));
-        });
-        const example = examples[button.dataset.example];
-        const title = document.getElementById('code-title');
-        const output = document.getElementById('tool-output');
-        if (title && output && example) {
-          title.textContent = example.title;
-          output.innerHTML = example.output;
-        }
-      });
+    document.querySelector('[data-copy-active]')?.addEventListener('click', async () => {
+      const code = document.getElementById('active-snippet')?.textContent?.trim() || '';
+      try {
+        await navigator.clipboard.writeText(code);
+        showToast('Copied');
+      } catch {
+        showToast('Copy failed');
+      }
     });
 
     document.querySelectorAll('[role="tab"][data-tab]').forEach((tab) => {
@@ -1774,7 +1248,7 @@
       });
     });
 
-    document.querySelectorAll('.copy-snippet').forEach((button) => {
+    document.querySelectorAll('.tab-panels .copy-snippet').forEach((button) => {
       button.addEventListener('click', async () => {
         const code = button.parentElement?.querySelector('code')?.textContent?.trim() || '';
         try {
@@ -1785,27 +1259,6 @@
         }
       });
     });
-
-    document.getElementById('copy-endpoint')?.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(endpoint);
-        showToast('Endpoint copied');
-      } catch {
-        showToast('Copy failed');
-      }
-    });
-
-    const revealElements = document.querySelectorAll('.reveal');
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add('is-visible');
-        });
-      }, { threshold: 0.14 });
-      revealElements.forEach((el) => observer.observe(el));
-    } else {
-      revealElements.forEach((el) => el.classList.add('is-visible'));
-    }
   </script>
 </body>
 </html>
