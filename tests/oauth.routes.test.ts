@@ -61,6 +61,15 @@ function createCodeChallenge(verifier: string): string {
   return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
+type ErrorResponse = {
+  error: string;
+  error_description?: string;
+};
+
+async function readJson<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
 function createClient(overrides: Partial<OAuthClient> = {}): OAuthClient {
   return {
     client_id: 'client-env',
@@ -102,7 +111,7 @@ async function seedAuthCode(kv: InMemoryKVNamespace, authCode: AuthorizationCode
 describe('OAuth Worker routes', () => {
   test('GET /auth/init without redirect_uri returns required parameter JSON', async () => {
     const response = await fetchWorker('/auth/init');
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('redirect_uri parameter is required');
@@ -358,7 +367,7 @@ describe('OAuth Worker routes', () => {
         grant_types: ['authorization_code', 'client_credentials'],
       }),
     });
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body).toMatchObject({ error: 'invalid_client_metadata' });
@@ -375,7 +384,7 @@ describe('OAuth Worker routes', () => {
         scope: 'raindrop:read raindrop:delete',
       }),
     });
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body).toMatchObject({ error: 'invalid_client_metadata' });
@@ -567,7 +576,7 @@ describe('OAuth Worker routes', () => {
 
   test('GET /auth/callback without code and state returns missing parameters', async () => {
     const response = await fetchWorker('/auth/callback');
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('Missing required parameters');
@@ -577,7 +586,7 @@ describe('OAuth Worker routes', () => {
     const response = await fetchWorker('/auth/callback?code=code&state=query-state', {
       headers: { Cookie: 'oauth_state=cookie-state' },
     });
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('Invalid state');
@@ -587,7 +596,7 @@ describe('OAuth Worker routes', () => {
     const response = await fetchWorker('/auth/callback?code=code&state=state-123', {
       headers: { Cookie: 'oauth_state=state-123' },
     });
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('Invalid state');

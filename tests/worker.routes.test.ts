@@ -18,6 +18,30 @@ const env: Env = {
   } as Fetcher,
 };
 
+type HealthResponse = {
+  status: string;
+  service: string;
+};
+
+type AuthorizationServerMetadata = {
+  issuer: string;
+  authorization_endpoint: string;
+  token_endpoint: string;
+};
+
+type ProtectedResourceMetadata = {
+  resource: string;
+  authorization_servers: string[];
+};
+
+type ErrorResponse = {
+  error: string;
+};
+
+async function readJson<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
 async function fetchWorker(
   path: string,
   init?: RequestInit,
@@ -32,7 +56,7 @@ async function fetchWorker(
 describe('worker routes', () => {
   test('/health returns service health JSON', async () => {
     const response = await fetchWorker('/health');
-    const body = await response.json();
+    const body = await readJson<HealthResponse>(response);
 
     expect(response.status).toBe(200);
     expect(body.status).toBe('ok');
@@ -41,7 +65,7 @@ describe('worker routes', () => {
 
   test('/.well-known/oauth-authorization-server returns default issuer endpoints', async () => {
     const response = await fetchWorker('/.well-known/oauth-authorization-server');
-    const body = await response.json();
+    const body = await readJson<AuthorizationServerMetadata>(response);
 
     expect(response.status).toBe(200);
     expect(body.authorization_endpoint).toBe('https://raindrop-mcp.anuragd.me/authorize');
@@ -50,7 +74,7 @@ describe('worker routes', () => {
 
   test('/.well-known/oauth-protected-resource returns default resource', async () => {
     const response = await fetchWorker('/.well-known/oauth-protected-resource');
-    const body = await response.json();
+    const body = await readJson<ProtectedResourceMetadata>(response);
 
     expect(response.status).toBe(200);
     expect(body.resource).toBe('https://example.com/mcp');
@@ -59,7 +83,7 @@ describe('worker routes', () => {
 
   test('/.well-known/oauth-protected-resource normalizes custom resource path', async () => {
     const response = await fetchWorker('/.well-known/oauth-protected-resource?path=/custom');
-    const body = await response.json();
+    const body = await readJson<ProtectedResourceMetadata>(response);
 
     expect(response.status).toBe(200);
     expect(body.resource).toBe('https://example.com/custom');
@@ -77,8 +101,8 @@ describe('worker routes', () => {
       undefined,
       override
     );
-    const authBody = await authResponse.json();
-    const protectedBody = await protectedResponse.json();
+    const authBody = await readJson<AuthorizationServerMetadata>(authResponse);
+    const protectedBody = await readJson<ProtectedResourceMetadata>(protectedResponse);
 
     expect(authBody.issuer).toBe('https://auth.example.test');
     expect(authBody.authorization_endpoint).toBe('https://auth.example.test/authorize');
@@ -89,7 +113,7 @@ describe('worker routes', () => {
     const response = await fetchWorker('/.well-known/oauth-authorization-server', undefined, {
       JWT_ISSUER: '   ',
     });
-    const body = await response.json();
+    const body = await readJson<AuthorizationServerMetadata>(response);
 
     expect(body.issuer).toBe('https://raindrop-mcp.anuragd.me');
   });
@@ -135,7 +159,7 @@ describe('worker routes', () => {
 
   test('POST /health returns method_not_allowed', async () => {
     const response = await fetchWorker('/health', { method: 'POST' });
-    const body = await response.json();
+    const body = await readJson<ErrorResponse>(response);
 
     expect(response.status).toBe(405);
     expect(body.error).toBe('method_not_allowed');
