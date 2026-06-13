@@ -1,5 +1,7 @@
 # OAuth 2.1 Authorization Server Implementation Summary
 
+> Historical note: this file documents the original OAuth authorization-server work before the Cloudflare Worker migration. It is not current deployment guidance. Use `README.md`, `docs/DEPLOYMENT.md`, `docs/OAUTH.md`, and `docs/DEPLOYMENT_CHECKLIST.md` for the active Cloudflare Workers setup.
+
 ## Objective Achieved ✅
 
 Successfully transformed raindrop-mcp from an OAuth client into a self-contained OAuth 2.1 Authorization Server that:
@@ -25,7 +27,9 @@ Successfully transformed raindrop-mcp from an OAuth client into a self-contained
   - JWT payload structure
   - Token response types
 
-### API Endpoints
+### Historical API Endpoints
+These endpoint files were part of the original implementation and were later consolidated into Cloudflare Worker route modules.
+
 - `api/oauth/authorize.ts` (312 lines)
   - Authorization endpoint with PKCE
   - User consent UI
@@ -70,27 +74,26 @@ Successfully transformed raindrop-mcp from an OAuth client into a self-contained
   - Re-exported OAuth server types
   - Maintained backward compatibility
 
-### MCP Endpoint
+### Historical MCP Endpoint
 - `api/raindrop.ts`
   - Added JWT token verification
   - Maintains session-based auth (backward compat)
   - Priority order: JWT → Session → Direct → Env
 
-### Authentication Callback
+### Historical Authentication Callback
 - `api/auth/callback.ts`
   - Stores user → Raindrop token mapping
   - Sets raindrop_session cookie for OAuth flow
 
-### Protected Resource Metadata
+### Historical Protected Resource Metadata
 - `api/well-known/oauth-protected-resource.ts`
   - Updated authServerUrls to point to self
 
-### Configuration
-- `vercel.json`
-  - Added OAuth endpoint rewrites
-  - `/authorize` → `/api/oauth/authorize`
-  - `/token` → `/api/oauth/token`
-  - `/register` → `/api/oauth/register`
+### Current Configuration
+- `wrangler.jsonc`
+  - Defines the Cloudflare Worker entrypoint
+  - Configures the `RAINDROP_AUTH_KV` Workers KV binding
+  - Configures non-secret JWT issuer and expiry vars
 
 ### Dependencies
 - `package.json`
@@ -214,8 +217,7 @@ OAUTH_CLIENT_ID=<raindrop-oauth-app-id>
 OAUTH_CLIENT_SECRET=<raindrop-oauth-app-secret>
 OAUTH_REDIRECT_URI=https://raindrop-mcp.anuragd.me/auth/callback
 TOKEN_ENCRYPTION_KEY=<64-char-hex>
-KV_REST_API_URL=<auto>
-KV_REST_API_TOKEN=<auto>
+RAINDROP_AUTH_KV=<workers-kv-binding-configured-in-wrangler-jsonc>
 ```
 
 ## Code Statistics
@@ -246,14 +248,21 @@ openssl rand -base64 32
 # - TOKEN_ENCRYPTION_KEY (existing)
 ```
 
-### 2. Set Environment Variables
-Add to Vercel dashboard:
-- `JWT_SIGNING_KEY`
-- `JWT_ISSUER`
+### 2. Set Cloudflare Secrets
+```bash
+bunx wrangler secret put JWT_SIGNING_KEY
+bunx wrangler secret put OAUTH_CLIENT_ID
+bunx wrangler secret put OAUTH_CLIENT_SECRET
+bunx wrangler secret put OAUTH_REDIRECT_URI
+bunx wrangler secret put OAUTH_ALLOWED_REDIRECT_URIS
+bunx wrangler secret put TOKEN_ENCRYPTION_KEY
+```
+
+`JWT_ISSUER` is configured in `wrangler.jsonc`.
 
 ### 3. Deploy
 ```bash
-vercel --prod
+bun run deploy:cloudflare
 ```
 
 ### 4. Verify
@@ -326,7 +335,7 @@ curl https://raindrop-mcp.anuragd.me/.well-known/oauth-authorization-server | jq
    - Workaround: Use API endpoints
 
 4. No rate limiting
-   - Mitigation: Vercel provides basic DDoS protection
+   - Mitigation: use Cloudflare dashboard controls until app-level per-client limits are added
 
 ### Planned Fixes
 All limitations will be addressed in future versions.

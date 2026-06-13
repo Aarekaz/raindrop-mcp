@@ -17,18 +17,68 @@ import {
 } from './oauth.types.js';
 import type { TokenResponse } from '../types/oauth-server.types.js';
 
-const JWT_ISSUER = (process.env.JWT_ISSUER || 'https://raindrop-mcp.anuragd.me').trim();
-const JWT_ACCESS_TOKEN_EXPIRY = parseInt(process.env.JWT_ACCESS_TOKEN_EXPIRY || '3600', 10); // 1 hour
-const JWT_REFRESH_TOKEN_EXPIRY = parseInt(process.env.JWT_REFRESH_TOKEN_EXPIRY || '2592000', 10); // 30 days
+const DEFAULT_JWT_ISSUER = 'https://raindrop-mcp.anuragd.me';
+const DEFAULT_JWT_ACCESS_TOKEN_EXPIRY = 3600;
+const DEFAULT_JWT_REFRESH_TOKEN_EXPIRY = 2592000;
+
+export interface AuthorizationServerConfig {
+  issuer?: string;
+  signingKey?: string;
+  accessTokenExpiry?: number | string;
+  refreshTokenExpiry?: number | string;
+}
+
+function processEnvValue(name: string): string | undefined {
+  return typeof process === 'undefined' ? undefined : process.env[name];
+}
+
+function processEnvInteger(name: string, fallback: number): number {
+  return normalizePositiveInteger(processEnvValue(name), fallback);
+}
+
+function normalizeIssuer(issuer: string | undefined): string {
+  const trimmed = issuer?.trim();
+  return trimmed ? trimmed : DEFAULT_JWT_ISSUER;
+}
+
+function normalizePositiveInteger(value: number | string | undefined, fallback: number): number {
+  const parsed = typeof value === 'number' ? value : parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+export function canonicalizeResource(resource: string): string {
+  const url = new URL(resource);
+  const pathname = url.pathname.replace(/\/+$/, '') || '/';
+
+  return `${url.protocol}//${url.host.toLowerCase()}${pathname}`;
+}
+
+export function expectedMcpResource(requestUrl: string): string {
+  const url = new URL(requestUrl);
+
+  return `${url.protocol}//${url.host.toLowerCase()}/mcp`;
+}
 
 export class AuthorizationServerService {
   private storage: TokenStorage;
   private jwtSecret: Uint8Array | null;
+  private issuer: string;
+  private accessTokenExpiry: number;
+  private refreshTokenExpiry: number;
 
-  constructor(storage: TokenStorage) {
+  constructor(storage: TokenStorage, config: AuthorizationServerConfig = {}) {
     this.storage = storage;
+    this.issuer = normalizeIssuer(config.issuer ?? processEnvValue('JWT_ISSUER'));
+    this.accessTokenExpiry =
+      config.accessTokenExpiry === undefined
+        ? processEnvInteger('JWT_ACCESS_TOKEN_EXPIRY', DEFAULT_JWT_ACCESS_TOKEN_EXPIRY)
+        : normalizePositiveInteger(config.accessTokenExpiry, DEFAULT_JWT_ACCESS_TOKEN_EXPIRY);
+    this.refreshTokenExpiry =
+      config.refreshTokenExpiry === undefined
+        ? processEnvInteger('JWT_REFRESH_TOKEN_EXPIRY', DEFAULT_JWT_REFRESH_TOKEN_EXPIRY)
+        : normalizePositiveInteger(config.refreshTokenExpiry, DEFAULT_JWT_REFRESH_TOKEN_EXPIRY);
 
-    const key = process.env.JWT_SIGNING_KEY;
+    const key = config.signingKey ?? processEnvValue('JWT_SIGNING_KEY');
     if (key) {
       // Convert base64 key to Uint8Array
       this.jwtSecret = new TextEncoder().encode(key);
@@ -86,7 +136,7 @@ export class AuthorizationServerService {
       scope: client.scope,
       created_at: client.created_at,
       registration_access_token: registrationAccessToken,
-      registration_client_uri: `${JWT_ISSUER}/register/${clientId}`,
+      registration_client_uri: `${this.issuer}/register/${clientId}`,
     };
 
     if (clientSecret) {
@@ -137,7 +187,8 @@ export class AuthorizationServerService {
     userId: string,
     redirectUri: string,
     scope: string,
-    codeChallenge: string
+    codeChallenge: string,
+    resource?: string
   ): Promise<string> {
     const code = crypto.randomUUID();
     const now = Date.now();
@@ -150,6 +201,7 @@ export class AuthorizationServerService {
       scope,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
+      resource,
       expires_at: now + 5 * 60 * 1000, // 5 minutes
       created_at: now,
     };
@@ -165,8 +217,9 @@ export class AuthorizationServerService {
     code: string,
     clientId: string,
     codeVerifier: string,
-    redirectUri: string
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+    redirectUri: string,
+    options: { issueRefreshToken?: boolean } = {}
+  ): Promise<{ accessToken: string; refreshToken?: string; scope: string; expiresIn: number }> {
     // Retrieve and delete authorization code (one-time use)
     const authCode = await this.storage.getAuthCode(code);
     if (!authCode) {
@@ -201,15 +254,24 @@ export class AuthorizationServerService {
     const accessToken = await this.generateJWT(
       authCode.user_id,
       clientId,
-      authCode.scope
+      authCode.scope,
+      authCode.resource
     );
-    const refreshToken = await this.createRefreshToken(
-      authCode.user_id,
-      clientId,
-      authCode.scope
-    );
+    const refreshToken = options.issueRefreshToken === false
+      ? undefined
+      : await this.createRefreshToken(
+        authCode.user_id,
+        clientId,
+        authCode.scope,
+        authCode.resource
+      );
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      scope: authCode.scope,
+      expiresIn: this.accessTokenExpiry,
+    };
   }
 
   // ============================================================================
@@ -219,7 +281,12 @@ export class AuthorizationServerService {
   /**
    * Generate JWT access token
    */
-  async generateJWT(userId: string, clientId: string, scope: string): Promise<string> {
+  async generateJWT(
+    userId: string,
+    clientId: string,
+    scope: string,
+    audience?: string
+  ): Promise<string> {
     if (!this.jwtSecret) {
       throw new Error(
         'JWT_SIGNING_KEY environment variable not set. ' +
@@ -227,26 +294,24 @@ export class AuthorizationServerService {
       );
     }
 
-    const now = Math.floor(Date.now() / 1000);
-
-    const payload: JWTPayload = {
-      iss: JWT_ISSUER,
+    const payload = {
       sub: userId,
-      aud: 'raindrop-mcp',
-      exp: now + JWT_ACCESS_TOKEN_EXPIRY,
-      iat: now,
       client_id: clientId,
       scope,
       raindrop_user_id: userId,
     };
 
-    const jwt = await new SignJWT(payload as unknown as Record<string, unknown>)
+    const builder = new SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt(now)
-      .setExpirationTime(now + JWT_ACCESS_TOKEN_EXPIRY)
-      .sign(this.jwtSecret);
+      .setIssuer(this.issuer)
+      .setIssuedAt()
+      .setExpirationTime(`${this.accessTokenExpiry}s`);
 
-    return jwt;
+    if (audience) {
+      builder.setAudience(audience);
+    }
+
+    return await builder.sign(this.jwtSecret);
   }
 
   /**
@@ -262,8 +327,7 @@ export class AuthorizationServerService {
 
     try {
       const { payload } = await jwtVerify(token, this.jwtSecret, {
-        issuer: JWT_ISSUER,
-        audience: 'raindrop-mcp',
+        issuer: this.issuer,
       });
 
       return payload as unknown as JWTPayload;
@@ -278,7 +342,8 @@ export class AuthorizationServerService {
   async createRefreshToken(
     userId: string,
     clientId: string,
-    scope: string
+    scope: string,
+    resource?: string
   ): Promise<string> {
     const token = crypto.randomUUID();
     const now = Date.now();
@@ -288,7 +353,8 @@ export class AuthorizationServerService {
       client_id: clientId,
       user_id: userId,
       scope,
-      expires_at: now + JWT_REFRESH_TOKEN_EXPIRY * 1000,
+      resource,
+      expires_at: now + this.refreshTokenExpiry * 1000,
       created_at: now,
     };
 
@@ -318,13 +384,14 @@ export class AuthorizationServerService {
     const accessToken = await this.generateJWT(
       token.user_id,
       clientId,
-      token.scope
+      token.scope,
+      token.resource
     );
 
     return {
       access_token: accessToken,
       token_type: 'Bearer',
-      expires_in: JWT_ACCESS_TOKEN_EXPIRY,
+      expires_in: this.accessTokenExpiry,
       scope: token.scope,
     };
   }

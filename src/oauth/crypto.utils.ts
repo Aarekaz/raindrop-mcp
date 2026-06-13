@@ -8,8 +8,12 @@ import crypto from 'crypto';
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 
-function getEncryptionKey(): Buffer {
-  const key = process.env.TOKEN_ENCRYPTION_KEY;
+function processEnvValue(name: string): string | undefined {
+  return typeof process === 'undefined' ? undefined : process.env[name];
+}
+
+function getEncryptionKey(explicitKey?: string): Buffer {
+  const key = explicitKey ?? processEnvValue('TOKEN_ENCRYPTION_KEY');
   if (!key) {
     throw new Error('TOKEN_ENCRYPTION_KEY environment variable not set');
   }
@@ -22,9 +26,9 @@ function getEncryptionKey(): Buffer {
   return Buffer.from(key, 'hex');
 }
 
-export function encrypt(text: string): string {
+export function encrypt(text: string, encryptionKey?: string): string {
   const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(encryptionKey), iv);
 
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -35,7 +39,7 @@ export function encrypt(text: string): string {
   return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
-export function decrypt(encrypted: string): string {
+export function decrypt(encrypted: string, encryptionKey?: string): string {
   const parts = encrypted.split(':');
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted format');
@@ -45,7 +49,7 @@ export function decrypt(encrypted: string): string {
   const authTag = Buffer.from(parts[1], 'hex');
   const encryptedText = parts[2];
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(), iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(encryptionKey), iv);
   decipher.setAuthTag(authTag);
 
   let decrypted = decipher.update(encryptedText, 'hex', 'utf8');

@@ -1,62 +1,114 @@
 # OAuth Setup
 
-This server supports OAuth 2.0 for multi-user deployments on Vercel. Sessions are stored in Vercel KV and encrypted at rest.
+This server supports OAuth 2.1 for multi-user MCP deployments on Cloudflare Workers. Sessions, OAuth clients, authorization codes, refresh tokens, and encrypted Raindrop tokens are stored in Workers KV through the `RAINDROP_AUTH_KV` binding.
 
-## 1) Create a Raindrop OAuth App
+## 1. Create a Raindrop OAuth App
 
 Create an app in the Raindrop developer console and collect:
 
 - Client ID
 - Client Secret
-- Redirect URI: `https://your-app.vercel.app/auth/callback`
+- Redirect URI: `https://your-worker-domain.example.com/auth/callback`
 
-## 2) Configure Redirect Allowlist
+For local testing, add `http://localhost:8787/auth/callback` if your Raindrop app allows a development redirect URI.
 
-This server enforces an allowlist for post-auth redirects via `OAUTH_ALLOWED_REDIRECT_URIS`.
+## 2. Configure Cloudflare State Storage
+
+Create the Workers KV namespaces:
+
+```bash
+bun run cf:kv:create
+```
+
+Copy the printed production `id` and preview `preview_id` into `wrangler.jsonc` under the `RAINDROP_AUTH_KV` binding.
+
+## 3. Set Worker Secrets
+
+Required production secrets:
+
+```bash
+bunx wrangler secret put OAUTH_CLIENT_ID
+bunx wrangler secret put OAUTH_CLIENT_SECRET
+bunx wrangler secret put OAUTH_REDIRECT_URI
+bunx wrangler secret put OAUTH_ALLOWED_REDIRECT_URIS
+bunx wrangler secret put TOKEN_ENCRYPTION_KEY
+bunx wrangler secret put JWT_SIGNING_KEY
+```
+
+Generate `TOKEN_ENCRYPTION_KEY` with:
+
+```bash
+openssl rand -hex 32
+```
+
+Generate `JWT_SIGNING_KEY` with:
+
+```bash
+openssl rand -base64 32
+```
+
+`JWT_ISSUER`, `JWT_ACCESS_TOKEN_EXPIRY`, and `JWT_REFRESH_TOKEN_EXPIRY` are non-secret Worker vars in `wrangler.jsonc`.
+
+## 4. Configure Redirect Allowlist
+
+`OAUTH_ALLOWED_REDIRECT_URIS` is a comma-separated allowlist for post-auth redirects.
 
 Examples:
 
-- `https://your-app.com/dashboard`
-- `https://your-app.vercel.app/dashboard`
-- `/dashboard` (relative paths are allowed)
+- `https://your-worker-domain.example.com/`
+- `/`
+- `http://localhost:8080/callback`
 
-## 3) Set Vercel Environment Variables
+## 5. Run the MCP Client OAuth Flow
 
-Required:
+Start the Worker locally:
 
-- `OAUTH_CLIENT_ID`
-- `OAUTH_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI`
-- `OAUTH_ALLOWED_REDIRECT_URIS`
-- `TOKEN_ENCRYPTION_KEY` (generate: `openssl rand -hex 32`)
+```bash
+bun run dev
+```
 
-Storage (required for OAuth sessions):
+Use the Worker MCP endpoint in an OAuth-aware Streamable HTTP MCP client:
 
-- Attach Vercel KV to the project; Vercel will populate `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "url": "http://localhost:8787/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
+```
 
-## 4) Run the OAuth Flow
+The MCP client should discover `/.well-known/oauth-protected-resource`, discover
+`/.well-known/oauth-authorization-server`, register with `/register`, open
+`/authorize` with PKCE, and exchange the authorization code at `/token`. The
+Worker uses `/auth/init` and `/auth/callback` internally only when a Raindrop
+login is needed.
 
-Start:
+## 6. Calling the MCP Server
 
-- `https://your-app.vercel.app/auth/init?redirect_uri=/dashboard`
+OAuth-aware MCP clients should use Streamable HTTP with OAuth discovery enabled:
 
-After Raindrop authorization, the server sets an httpOnly `mcp_session` cookie.
+```json
+{
+  "mcpServers": {
+    "raindrop": {
+      "url": "https://your-worker-domain.example.com/mcp",
+      "transport": "streamable-http"
+    }
+  }
+}
+```
 
-## 5) Calling the MCP Server
+For development smoke tests, you can pass a Raindrop token per request:
 
-### Using an OAuth session cookie
+```bash
+curl -X POST http://localhost:8787/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "X-Raindrop-Token: $RAINDROP_TOKEN" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+```
 
-Use an MCP client configured for Streamable HTTP with cookies enabled, pointing at:
-
-- `https://your-app.vercel.app/mcp`
-
-### Using a direct user token header
-
-If you don’t want sessions, you can pass a token per request:
-
-- `X-Raindrop-Token: <token>`
-
-Recommended for production:
-
-- `X-API-Key: <your API_KEY>`
-
+The deployment-wide `RAINDROP_ACCESS_TOKEN` fallback is disabled unless `ALLOW_ENV_TOKEN_AUTH=true` is explicitly set. Prefer OAuth or per-request `X-Raindrop-Token` auth for production.

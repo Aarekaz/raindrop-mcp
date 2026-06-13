@@ -28,6 +28,7 @@ export interface AuthorizationCode {
   scope: string;
   code_challenge: string;
   code_challenge_method: 'S256';
+  resource?: string;
   expires_at: number;  // 5 minutes
   created_at: number;
 }
@@ -40,6 +41,7 @@ export interface RefreshToken {
   client_id: string;
   user_id: string;
   scope: string;
+  resource?: string;
   expires_at: number;  // 30 days
   created_at: number;
 }
@@ -51,7 +53,7 @@ export interface JWTPayload {
   // Standard claims (RFC 7519)
   iss: string;  // Issuer - https://raindrop-mcp.anuragd.me
   sub: string;  // Subject - Raindrop user_id
-  aud: string;  // Audience - 'raindrop-mcp' or resource URI
+  aud?: string | string[];  // Audience - legacy value or resource URI
   exp: number;  // Expiration time (Unix timestamp)
   iat: number;  // Issued at (Unix timestamp)
 
@@ -110,6 +112,7 @@ export interface AuthorizationRequest {
   state: string;
   code_challenge: string;
   code_challenge_method: 'S256';
+  resource?: string;
 }
 
 /**

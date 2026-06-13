@@ -141,7 +141,9 @@ export class RaindropService {
   }
 
   async emptyTrash(): Promise<void> {
-    const { error } = await this.client.DELETE('/collection/-99');
+    const { error } = await this.client.DELETE('/collection/{id}', {
+      params: { path: { id: -99 } },
+    });
     if (error) {
       throw new Error(`Failed to empty trash: ${error}`);
     }

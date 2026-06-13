@@ -1,6 +1,8 @@
 # 🎯 OAuth 2.1 Authorization Server - Implementation Review
 
-## ✅ Implementation Status: PRODUCTION READY
+> Historical note: this review summarizes the original OAuth authorization-server implementation before the Cloudflare Worker migration. It is not current deployment guidance. Use `README.md`, `docs/DEPLOYMENT.md`, `docs/OAUTH.md`, and `docs/DEPLOYMENT_CHECKLIST.md` for the active Cloudflare Workers setup.
+
+## ✅ Historical Implementation Status: Complete
 
 All components have been successfully implemented, tested, and verified.
 
@@ -111,7 +113,7 @@ $ bun test
 ### Phase 5: Configuration ✅
 - [x] Dependencies installed (jose, bcryptjs)
 - [x] Environment variables documented
-- [x] vercel.json updated with rewrites
+- [x] Original route rewrites documented; current deployment is configured through `wrangler.jsonc`
 
 ---
 
@@ -207,7 +209,7 @@ $ bun test
    - Planned: RFC 7009 revocation in v0.3.0
 
 3. **No Rate Limiting**
-   - Current: Rely on Vercel limits
+   - Current: No app-level rate limiting
    - Planned: Per-client rate limits in v0.2.0
 
 4. **No Admin UI**
@@ -295,16 +297,16 @@ OAUTH_CLIENT_ID=<raindrop-oauth-app-id>
 OAUTH_CLIENT_SECRET=<raindrop-oauth-app-secret>
 OAUTH_REDIRECT_URI=https://your-domain.com/auth/callback
 TOKEN_ENCRYPTION_KEY=<openssl rand -hex 32>
-KV_REST_API_URL=<auto-set-by-vercel>
-KV_REST_API_TOKEN=<auto-set-by-vercel>
+RAINDROP_AUTH_KV=<workers-kv-binding-configured-in-wrangler-jsonc>
 ```
 
 ### Deployment Steps:
 1. Generate JWT_SIGNING_KEY
-2. Set environment variables in Vercel
-3. Deploy: `vercel --prod`
-4. Test discovery endpoint
-5. Verify backward compatibility
+2. Create and configure the `RAINDROP_AUTH_KV` Workers KV namespace
+3. Set secrets with `bunx wrangler secret put`
+4. Deploy: `bun run deploy:cloudflare`
+5. Test discovery endpoint
+6. Verify backward compatibility
 
 **Estimated deployment time**: 15-20 minutes
 

@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "raindrop-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-06-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "kv_namespaces": [
+    {
+      "binding": "RAINDROP_AUTH_KV",
+      "id": "b19e32f4722e4d2a9235342a6ef63946",
+      "preview_id": "d6ecbe4df7724e51ab5e3fe3992babe3"
+    }
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": [
+      "/.well-known/*",
+      "/auth/*",
+      "/authorize",
+      "/health",
+      "/info",
+      "/mcp",
+      "/register",
+      "/token"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "raindrop-mcp.anuragd.me",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "JWT_ISSUER": "https://raindrop-mcp.anuragd.me",
+    "JWT_ACCESS_TOKEN_EXPIRY": "3600",
+    "JWT_REFRESH_TOKEN_EXPIRY": "2592000"
+  }
+}

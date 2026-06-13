@@ -1,21 +1,28 @@
 /**
- * Raindrop MCP Server - Vercel Deployment
+ * Raindrop MCP Server - Cloudflare Worker handler
  *
- * Main MCP endpoint using mcp-handler for Vercel Functions.
+ * Main MCP endpoint using the MCP SDK's web-standard Streamable HTTP transport
+ * with Worker env-scoped auth services.
  * Provides tools for Raindrop.io bookmark management with OAuth authentication.
  */
 
-import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
-import { RaindropService } from "../src/services/raindrop.service.js";
-import { OAuthService } from "../src/oauth/oauth.service.js";
-import { TokenStorage } from "../src/oauth/token-storage.js";
-import { OAuthConfig } from "../src/oauth/oauth.types.js";
-import { AuthorizationServerService } from "../src/oauth/authorization-server.service.js";
-import { decrypt } from "../src/oauth/crypto.utils.js";
+import { RaindropService } from "../services/raindrop.service.js";
+import { OAuthService } from "../oauth/oauth.service.js";
+import { TokenStorage } from "../oauth/token-storage.js";
+import { OAuthConfig, type JWTPayload } from "../oauth/oauth.types.js";
+import {
+  AuthorizationServerService,
+  canonicalizeResource,
+  expectedMcpResource,
+} from "../oauth/authorization-server.service.js";
+import { CloudflareKVStore } from "../oauth/cloudflare-kv-store.js";
+import { decrypt } from "../oauth/crypto.utils.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { components as RaindropComponents } from "../src/types/raindrop.schema.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import type { components as RaindropComponents } from "../types/raindrop.schema.js";
+import type { Env } from "../worker/env.js";
 import {
   BookmarkManageInputSchema,
   BookmarkSearchInputSchema,
@@ -40,7 +47,7 @@ import {
   RaindropBulkDeleteInputSchema,
   RaindropFileUploadInputSchema,
   RaindropCoverUploadInputSchema,
-} from "../src/types/raindrop-zod.schemas.js";
+} from "../types/raindrop-zod.schemas.js";
 import {
   CollectionListOutputSchema,
   BookmarkSearchOutputSchema,
@@ -51,18 +58,38 @@ import {
   StatisticsOutputSchema,
   UserStatsOutputSchema,
   OperationResultSchema,
-} from '../src/types/tool-outputs.js';
+} from '../types/tool-outputs.js';
 
 type Bookmark = RaindropComponents.schemas.Bookmark;
 type Collection = RaindropComponents.schemas.Collection;
+type ResponseBody = ConstructorParameters<typeof Response>[0];
 
 const RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
+const LOCALHOST_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:8787',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8787',
+]);
+
+function optionalOrigin(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Validate Origin header to prevent DNS rebinding attacks
  * Required by MCP Streamable HTTP specification
  */
-function validateOrigin(req: Request): void {
+function validateOrigin(req: Request, env: Env): void {
   const origin = req.headers.get('origin');
 
   // Allow requests without Origin header (non-browser clients)
@@ -70,82 +97,80 @@ function validateOrigin(req: Request): void {
     return;
   }
 
-  const allowedOrigins = [
-    'https://your-app.vercel.app', // Production domain
-    'http://localhost:3000',        // Local development
-    'http://127.0.0.1:3000',        // Local development (numeric)
-  ];
+  const requestOrigin = new URL(req.url).origin;
+  const allowedOrigins = new Set<string>([
+    requestOrigin,
+    ...LOCALHOST_ORIGINS,
+  ]);
 
-  const isAllowed = allowedOrigins.some(allowed =>
-    origin.startsWith(allowed)
-  );
+  const jwtIssuerOrigin = optionalOrigin(env.JWT_ISSUER);
+  if (jwtIssuerOrigin) {
+    allowedOrigins.add(jwtIssuerOrigin);
+  }
+
+  const redirectOrigin = optionalOrigin(env.OAUTH_REDIRECT_URI);
+  if (redirectOrigin) {
+    allowedOrigins.add(redirectOrigin);
+  }
+
+  const isAllowed = allowedOrigins.has(origin);
 
   if (!isAllowed) {
     throw new Error(`Invalid origin: ${origin}. Potential DNS rebinding attack.`);
   }
 }
 
-/**
- * Validate required environment variables
- * Throws with actionable error message if any are missing
- */
-function validateEnvVars(required: string[]): void {
-  const missing = required.filter(v => !process.env[v]);
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}.\n\n` +
-      `For OAuth deployment, you need:\n` +
-      `  - OAUTH_CLIENT_ID (from https://app.raindrop.io/settings/integrations)\n` +
-      `  - OAUTH_CLIENT_SECRET (from Raindrop OAuth app)\n` +
-      `  - OAUTH_REDIRECT_URI (e.g., https://your-app.vercel.app/auth/callback)\n` +
-      `  - TOKEN_ENCRYPTION_KEY (generate: openssl rand -hex 32)\n` +
-      `  - KV_REST_API_URL and KV_REST_API_TOKEN (auto-set when you attach Vercel KV)\n\n` +
-      `For direct token deployment (no OAuth), you need:\n` +
-      `  - RAINDROP_ACCESS_TOKEN (from Raindrop settings)\n\n` +
-      `See docs/DEPLOYMENT.md for full setup instructions.`
-    );
-  }
+function createTokenStorage(env: Env): TokenStorage {
+  return new TokenStorage(new CloudflareKVStore(env.RAINDROP_AUTH_KV), env.TOKEN_ENCRYPTION_KEY);
 }
 
-// Validate OAuth environment variables (if using OAuth)
-if (process.env.OAUTH_CLIENT_ID || process.env.OAUTH_CLIENT_SECRET) {
-  // If any OAuth vars are set, require all of them
-  validateEnvVars([
-    'OAUTH_CLIENT_ID',
-    'OAUTH_CLIENT_SECRET',
-    'OAUTH_REDIRECT_URI',
-    'TOKEN_ENCRYPTION_KEY',
-    'KV_REST_API_URL',
-    'KV_REST_API_TOKEN',
-  ]);
+function allowsEnvTokenAuth(env: Env): boolean {
+  return env.ALLOW_ENV_TOKEN_AUTH === 'true';
 }
 
-// Initialize OAuth service
-const oauthConfig: OAuthConfig = {
-  clientId: process.env.OAUTH_CLIENT_ID!,
-  clientSecret: process.env.OAUTH_CLIENT_SECRET!,
-  redirectUri: process.env.OAUTH_REDIRECT_URI!,
-  authorizationEndpoint: 'https://raindrop.io/oauth/authorize',
-  tokenEndpoint: 'https://raindrop.io/oauth/access_token',
-};
+function createOAuthService(env: Env, tokenStorage: TokenStorage): OAuthService {
+  const oauthConfig: OAuthConfig = {
+    clientId: env.OAUTH_CLIENT_ID ?? '',
+    clientSecret: env.OAUTH_CLIENT_SECRET ?? '',
+    redirectUri: env.OAUTH_REDIRECT_URI ?? '',
+    authorizationEndpoint: 'https://raindrop.io/oauth/authorize',
+    tokenEndpoint: 'https://raindrop.io/oauth/access_token',
+  };
 
-const tokenStorage = new TokenStorage();
-const oauthService = new OAuthService(oauthConfig, tokenStorage);
-const authServerService = new AuthorizationServerService(tokenStorage);
+  return new OAuthService(oauthConfig, tokenStorage);
+}
+
+function createAuthorizationServerService(
+  env: Env,
+  tokenStorage: TokenStorage
+): AuthorizationServerService {
+  return new AuthorizationServerService(tokenStorage, {
+    issuer: env.JWT_ISSUER,
+    signingKey: env.JWT_SIGNING_KEY,
+    accessTokenExpiry: env.JWT_ACCESS_TOKEN_EXPIRY,
+    refreshTokenExpiry: env.JWT_REFRESH_TOKEN_EXPIRY,
+  });
+}
 
 /**
  * Token verification for MCP authentication
  * Supports both JWT tokens (new) and session-based auth (legacy)
  */
-const verifyToken = async (
-  req: Request,
-  bearerToken?: string
-): Promise<AuthInfo | undefined> => {
+function createVerifyToken(
+  env: Env,
+  tokenStorage: TokenStorage,
+  oauthService: OAuthService,
+  authServerService: AuthorizationServerService
+): (req: Request, bearerToken?: string) => Promise<AuthInfo | undefined> {
+  return async (req: Request, bearerToken?: string): Promise<AuthInfo | undefined> => {
   try {
     // Method 1: JWT token (contains '.' separators)
     if (bearerToken && bearerToken.includes('.')) {
       try {
         const payload = await authServerService.verifyJWT(bearerToken);
+        if (!audienceMatches(payload, req.url)) {
+          return undefined;
+        }
 
         // Get user's Raindrop token for backend API calls
         const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
@@ -154,7 +179,7 @@ const verifyToken = async (
           return undefined;
         }
 
-        const raindropToken = decrypt(encryptedToken);
+        const raindropToken = decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY);
 
         return {
           token: raindropToken,
@@ -205,9 +230,9 @@ const verifyToken = async (
     }
 
     // Method 4: Environment token (development fallback)
-    const envToken = process.env.RAINDROP_ACCESS_TOKEN;
+    const envToken = allowsEnvTokenAuth(env) ? env.RAINDROP_ACCESS_TOKEN : undefined;
     if (envToken) {
-      if (process.env.NODE_ENV === 'production') {
+      if (env.NODE_ENV === 'production') {
         console.warn(
           'WARNING: Using RAINDROP_ACCESS_TOKEN in production. ' +
           'This is not recommended. Use OAuth instead for multi-user support.'
@@ -229,22 +254,168 @@ const verifyToken = async (
     console.error('Token verification error:', error);
     return undefined;
   }
-};
+  };
+}
+
+function parseBearerToken(req: Request): string | undefined {
+  const authHeader = req.headers.get('Authorization');
+  const [type, token] = authHeader?.split(' ') ?? [];
+  return type?.toLowerCase() === 'bearer' ? token : undefined;
+}
+
+function getResourceMetadataUrl(req: Request): string {
+  return new URL(RESOURCE_METADATA_PATH, req.url).toString();
+}
+
+function audienceMatches(payload: JWTPayload, requestUrl: string): boolean {
+  const audience = payload.aud;
+  if (!audience) {
+    return true;
+  }
+
+  const audienceValues = Array.isArray(audience) ? audience : [audience];
+  return audienceValues.some((value) => {
+    if (value === 'raindrop-mcp') {
+      return true;
+    }
+
+    try {
+      return canonicalizeResource(value) === expectedMcpResource(requestUrl);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function unauthorizedMcpResponse(req: Request, message: string): Response {
+  return new Response(JSON.stringify({
+    error: 'invalid_token',
+    error_description: message,
+  }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json',
+      'WWW-Authenticate': `Bearer error="invalid_token", error_description="${message}", resource_metadata="${getResourceMetadataUrl(req)}"`,
+    },
+  });
+}
+
+function forbiddenMcpResponse(req: Request, message: string): Response {
+  return new Response(JSON.stringify({
+    error: 'insufficient_scope',
+    error_description: message,
+  }), {
+    status: 403,
+    headers: {
+      'Content-Type': 'application/json',
+      'WWW-Authenticate': `Bearer error="insufficient_scope", error_description="${message}", resource_metadata="${getResourceMetadataUrl(req)}"`,
+    },
+  });
+}
+
+function mcpMethodNotAllowed(): Response {
+  return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
+    status: 405,
+    headers: {
+      'Content-Type': 'application/json',
+      Allow: 'POST, HEAD, OPTIONS',
+    },
+  });
+}
+
+async function verifyHeadAuth(
+  env: Env,
+  tokenStorage: TokenStorage,
+  authServerService: AuthorizationServerService,
+  req: Request
+): Promise<AuthInfo | undefined> {
+  const bearerToken = parseBearerToken(req);
+
+  if (bearerToken?.includes('.')) {
+    try {
+      const payload = await authServerService.verifyJWT(bearerToken);
+      if (!audienceMatches(payload, req.url)) {
+        return undefined;
+      }
+      const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
+
+      if (!encryptedToken) {
+        return undefined;
+      }
+
+      return {
+        token: decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY),
+        scopes: payload.scope.split(' '),
+        clientId: payload.client_id,
+        extra: {
+          userId: payload.sub,
+          jwtPayload: payload,
+          authMethod: 'jwt',
+        },
+      };
+    } catch (error) {
+      console.error('JWT verification failed:', error);
+    }
+  }
+
+  if (bearerToken && !bearerToken.includes('.')) {
+    const session = await tokenStorage.getSession(bearerToken);
+    if (session && session.expiresAt > Date.now()) {
+      return {
+        token: session.accessToken,
+        scopes: ['raindrop:read', 'raindrop:write'],
+        clientId: 'oauth-session',
+        extra: {
+          sessionId: bearerToken,
+          authMethod: 'session',
+        },
+      };
+    }
+  }
+
+  const directToken = req.headers.get('x-raindrop-token');
+  if (directToken) {
+    return {
+      token: directToken,
+      scopes: ['raindrop:read', 'raindrop:write'],
+      clientId: 'direct-token',
+      extra: {
+        method: 'header',
+        authMethod: 'direct',
+      },
+    };
+  }
+
+  if (allowsEnvTokenAuth(env) && env.RAINDROP_ACCESS_TOKEN) {
+    return {
+      token: env.RAINDROP_ACCESS_TOKEN,
+      scopes: ['raindrop:read', 'raindrop:write'],
+      clientId: 'env-token',
+      extra: {
+        method: 'environment',
+        authMethod: 'env',
+      },
+    };
+  }
+
+  return undefined;
+}
 
 /**
  * Create MCP handler with Raindrop tools
  * Uses request-scoped RaindropService based on auth token
  */
-const baseHandler = async (req: Request): Promise<Response> => {
+function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
+  return async (req: Request): Promise<Response> => {
   // Validate origin to prevent DNS rebinding attacks
   try {
-    validateOrigin(req);
+    validateOrigin(req, env);
   } catch (error) {
-    console.error('Origin validation failed:', error);
+    console.warn('Origin validation failed:', error instanceof Error ? error.message : String(error));
     return new Response('Forbidden', { status: 403 });
   }
 
-  // Get auth info from request (set by withMcpAuth)
+  // Get auth info from request (set by the Worker auth wrapper)
   const authInfo = (req as unknown as { auth?: AuthInfo }).auth;
 
   if (!authInfo?.token) {
@@ -260,9 +431,19 @@ const baseHandler = async (req: Request): Promise<Response> => {
   const raindropToken = authInfo.token as string;
   const raindropService = new RaindropService(raindropToken);
 
-  // Create handler with access to raindropService via closure
-  const handler = createMcpHandler(
-    (server) => {
+  const server = new McpServer(
+    {
+      name: 'raindrop-mcp',
+      version: '0.1.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+      },
+    }
+  );
+
       // Helper functions
       const textContent = (text: string) => ({ type: 'text' as const, text });
       const makeCollectionLink = (collection: Collection) => ({
@@ -1385,87 +1566,118 @@ const baseHandler = async (req: Request): Promise<Response> => {
           };
         }
       );
-    },
-    {
-      serverInfo: {
-        name: 'raindrop-mcp',
-        version: '0.1.0',
-      },
-      capabilities: {
-        tools: {},
-        resources: {},
-      },
-    },
-    {
-      streamableHttpEndpoint: '/mcp',
-      disableSse: true,
-      maxDuration: 300,
-    }
-  );
 
-  return handler(req);
-};
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
 
-// Apply OAuth authentication
-const authHandler = withMcpAuth(baseHandler, verifyToken, {
-  required: true,
-  requiredScopes: ['raindrop:read'],
-  resourceMetadataPath: RESOURCE_METADATA_PATH,
-});
+  await server.connect(transport);
 
-// Add CORS headers to all responses
-const withCors = (handler: (req: Request) => Promise<Response>) => {
-  return async (req: Request): Promise<Response> => {
-    const response = await handler(req);
+  try {
+    return await transport.handleRequest(req, { authInfo });
+  } finally {
+    await server.close();
+  }
+  };
+}
+
+function addMcpCorsHeaders(req: Request, response: Response, body: ResponseBody): Response {
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, HEAD, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Raindrop-Token');
     if (response.status === 401 && !headers.has('WWW-Authenticate')) {
       const resourceMetadataUrl = new URL(RESOURCE_METADATA_PATH, req.url).toString();
       headers.set('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${resourceMetadataUrl}"`);
     }
 
-    return new Response(response.body, {
+    return new Response(body, {
       status: response.status,
       statusText: response.statusText,
       headers,
     });
+}
+
+// Add CORS headers to all responses
+const withCors = (handler: (req: Request) => Promise<Response>) => {
+  return async (req: Request): Promise<Response> => {
+    const response = await handler(req);
+    return addMcpCorsHeaders(req, response, response.body);
   };
 };
 
 // CORS preflight handler
-const corsHandler = async (_req: Request): Promise<Response> => {
+export const raindropMcpOptionsHandler = async (_req: Request): Promise<Response> => {
   return new Response(null, {
     status: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Raindrop-Token',
       'Access-Control-Max-Age': '86400',
     },
   });
 };
 
-// HEAD handler (returns same headers as GET but no body)
-const headHandler = async (_req: Request): Promise<Response> => {
-  const response = await authHandler(_req);
-  return new Response(null, {
-    status: response.status,
-    headers: response.headers,
-  });
-};
+export function createRaindropMcpHandler(env: Env): (request: Request) => Promise<Response> {
+  const tokenStorage = createTokenStorage(env);
+  const oauthService = createOAuthService(env, tokenStorage);
+  const authServerService = createAuthorizationServerService(env, tokenStorage);
+  const verifyToken = createVerifyToken(env, tokenStorage, oauthService, authServerService);
+  const baseHandler = createBaseHandler(env);
 
-// Wrap with CORS support
-const corsAuthHandler = withCors(authHandler);
-const corsHeadHandler = withCors(headHandler);
+  const authHandler = async (request: Request): Promise<Response> => {
+    if (request.method === 'GET' || request.method === 'DELETE') {
+      return mcpMethodNotAllowed();
+    }
 
-// Streamable HTTP transport requires GET, POST, DELETE, and OPTIONS (for CORS)
-// HEAD is also supported for endpoint health checks
-export {
-  corsAuthHandler as GET,
-  corsAuthHandler as POST,
-  corsAuthHandler as DELETE,
-  corsHeadHandler as HEAD,
-  corsHandler as OPTIONS
-};
+    const authInfo = await verifyToken(request, parseBearerToken(request));
+
+    if (!authInfo) {
+      return unauthorizedMcpResponse(request, 'No authorization provided');
+    }
+
+    if (!authInfo.scopes.includes('raindrop:read')) {
+      return forbiddenMcpResponse(request, 'Insufficient scope');
+    }
+
+    if (authInfo.expiresAt && authInfo.expiresAt < Date.now() / 1000) {
+      return unauthorizedMcpResponse(request, 'Token has expired');
+    }
+
+    (request as Request & { auth?: AuthInfo }).auth = authInfo;
+    return baseHandler(request);
+  };
+
+  return withCors(authHandler);
+}
+
+export function createRaindropMcpHeadHandler(env: Env): (request: Request) => Promise<Response> {
+  const tokenStorage = createTokenStorage(env);
+  const authServerService = createAuthorizationServerService(env, tokenStorage);
+
+  return async (request: Request): Promise<Response> => {
+    try {
+      validateOrigin(request, env);
+    } catch (error) {
+      console.warn('Origin validation failed:', error instanceof Error ? error.message : String(error));
+      return addMcpCorsHeaders(request, new Response(null, { status: 403 }), null);
+    }
+
+    const authInfo = await verifyHeadAuth(env, tokenStorage, authServerService, request);
+
+    if (!authInfo?.scopes.includes('raindrop:read')) {
+      const resourceMetadataUrl = new URL(RESOURCE_METADATA_PATH, request.url).toString();
+      const unauthorized = new Response(null, {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': `Bearer realm="mcp", resource_metadata="${resourceMetadataUrl}"`,
+        },
+      });
+      return addMcpCorsHeaders(request, unauthorized, null);
+    }
+
+    return addMcpCorsHeaders(request, new Response(null, { status: 200 }), null);
+  };
+}

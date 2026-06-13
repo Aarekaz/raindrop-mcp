@@ -4,12 +4,16 @@
   "description": "MCP Server for Raindrop.io bookmark management",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "wrangler dev",
     "type-check": "tsc --noEmit",
     "test": "bun test",
+    "cf:types": "wrangler types --env-file wrangler-types.env",
+    "cf:types:check": "wrangler types --check --env-file wrangler-types.env",
     "clean": "rm -rf build dist",
-    "deploy:vercel": "vercel deploy --prod",
-    "deploy:lambda": "serverless deploy"
+    "deploy:cloudflare": "wrangler deploy",
+    "cf:kv:create": "wrangler kv namespace create RAINDROP_AUTH_KV && wrangler kv namespace create RAINDROP_AUTH_KV --preview",
+    "cf:readiness": "node scripts/check-cloudflare-readiness.mjs",
+    "cf:e2e": "node scripts/check-cloudflare-e2e.mjs"
   },
   "keywords": [
     "mcp",
@@ -35,24 +39,22 @@
   "homepage": "https://github.com/Aarekaz/raindrop-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.18.0",
-    "@vercel/kv": "^2.0.0",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "cookie": "^1.1.1",
     "jose": "^5.2.0",
-    "mcp-handler": "^1.0.7",
     "openapi-fetch": "^0.14.0",
     "pkce-challenge": "^5.0.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260612.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/bun": "^1.2.22",
     "@types/node": "^24.5.1",
-    "@vercel/node": "^3.0.21",
     "typescript": "^5.9.2",
-    "vercel": "^33.5.5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.100.0"
   },
   "engines": {
     "node": ">=18.0.0",
