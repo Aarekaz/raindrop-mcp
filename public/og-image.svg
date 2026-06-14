@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
   <title id="title">Raindrop MCP social preview</title>
-  <desc id="desc">Raindrop MCP landing preview showing a saved web library connected to an LLM.</desc>
+  <desc id="desc">Raindrop MCP landing preview showing saved bookmarks connected to an LLM through MCP.</desc>
   <defs>
     <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fbfcfd"/>
@@ -44,20 +44,20 @@
     <text x="58" y="34" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800">Raindrop MCP</text>
 
     <text x="0" y="166" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      Give your LLM a
+      Your saved web
     </text>
     <text x="0" y="248" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      memory of the
+      answers
     </text>
     <text x="0" y="330" fill="#0b63f6" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      web you saved.
+      back.
     </text>
 
     <text x="0" y="390" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600">
-      Bookmarks, collections, tags, and highlights
+      Search Raindrop.io bookmarks, collections,
     </text>
     <text x="0" y="430" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600">
-      available through an OAuth-aware MCP server.
+      tags, and highlights from your LLM.
     </text>
   </g>
 
@@ -67,14 +67,14 @@
     <rect x="0" y="51" width="360" height="1" fill="#d9e0ea"/>
     <circle cx="26" cy="26" r="6" fill="#1d9a58"/>
     <text x="45" y="31" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="800">raindrop-mcp</text>
-    <text x="176" y="31" fill="#8a95a4" font-family="Arial, Helvetica, sans-serif" font-size="15">connected</text>
+    <text x="176" y="31" fill="#8a95a4" font-family="Arial, Helvetica, sans-serif" font-size="15">OAuth ready</text>
 
-    <text x="28" y="93" fill="#8a95a4" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="800">TOOL CALL</text>
+    <text x="28" y="93" fill="#8a95a4" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="800">ASK YOUR LIBRARY</text>
     <rect x="28" y="112" width="304" height="96" rx="10" fill="#0c1320"/>
     <text x="48" y="144" fill="#d9e7ff" font-family="Menlo, Consolas, monospace" font-size="16">bookmark_search</text>
-    <text x="48" y="174" fill="#7dd3fc" font-family="Menlo, Consolas, monospace" font-size="13">"search": "MCP OAuth"</text>
+    <text x="48" y="174" fill="#7dd3fc" font-family="Menlo, Consolas, monospace" font-size="13">"collection": 0</text>
 
-    <text x="28" y="246" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="800">OAuth Protected Resource Metadata</text>
-    <text x="28" y="278" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="17">Official spec reference from your saved library</text>
+    <text x="28" y="246" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="800">Bookmarks, tags, highlights</text>
+    <text x="28" y="278" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="17">Your saved web as model context</text>
   </g>
 </svg>
