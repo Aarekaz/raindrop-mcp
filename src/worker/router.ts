@@ -11,6 +11,14 @@ export type RouteHandler = (
 
 type RouteTable = Map<string, Map<string, RouteHandler>>;
 
+function normalizePath(path: string): string {
+  if (path === '/') {
+    return path;
+  }
+
+  return path.replace(/\/+$/, '') || '/';
+}
+
 export interface RouterResult {
   matched: boolean;
   response: Response;
@@ -21,16 +29,17 @@ export class Router {
 
   on(method: string, path: string, handler: RouteHandler): void {
     const normalizedMethod = method.toUpperCase();
-    const existing = this.routes.get(path);
+    const normalizedPath = normalizePath(path);
+    const existing = this.routes.get(normalizedPath);
     const handlers = existing ?? new Map<string, RouteHandler>();
 
     handlers.set(normalizedMethod, handler);
-    this.routes.set(path, handlers);
+    this.routes.set(normalizedPath, handlers);
   }
 
   async handle(request: Request, env: Env, ctx: ExecutionContext): Promise<RouterResult> {
     const url = new URL(request.url);
-    const handlers = this.routes.get(url.pathname);
+    const handlers = this.routes.get(normalizePath(url.pathname));
 
     if (!handlers) {
       return {

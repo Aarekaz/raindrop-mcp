@@ -168,6 +168,79 @@ describe('Worker MCP handler', () => {
     expect(toolNames).toHaveLength(24);
   });
 
+  test('direct JSON-RPC POST works with JSON-only Accept header', async () => {
+    const response = await fetchWorker('/mcp', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-raindrop-token': 'test-token',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 15,
+        method: 'tools/list',
+        params: {},
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+
+    const msg = parseFirstSseDataJson(await response.text()) as {
+      result?: { tools?: Array<{ name: string }> };
+    };
+    expect(msg.result?.tools?.map((tool) => tool.name)).toContain('bookmark_search');
+  });
+
+  test('direct JSON-RPC POST works without Accept header', async () => {
+    const response = await fetchWorker('/mcp', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-raindrop-token': 'test-token',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 16,
+        method: 'tools/list',
+        params: {},
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+
+    const msg = parseFirstSseDataJson(await response.text()) as {
+      result?: { tools?: Array<{ name: string }> };
+    };
+    expect(msg.result?.tools?.map((tool) => tool.name)).toContain('bookmark_manage');
+  });
+
+  test('trailing slash MCP endpoint uses the same direct POST route', async () => {
+    const response = await fetchWorker('/mcp/', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-raindrop-token': 'test-token',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 17,
+        method: 'tools/list',
+        params: {},
+      }),
+    });
+
+    expect(response.status).toBe(200);
+
+    const msg = parseFirstSseDataJson(await response.text()) as {
+      result?: { tools?: Array<{ name: string }> };
+    };
+    expect(msg.result?.tools?.map((tool) => tool.name)).toContain('collection_list');
+  });
+
   test('production env token fallback is denied without explicit opt-in', async () => {
     const response = await fetchWorker(
       '/mcp',

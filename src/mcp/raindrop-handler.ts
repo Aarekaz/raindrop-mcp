@@ -287,6 +287,30 @@ function audienceMatches(payload: JWTPayload, requestUrl: string): boolean {
   });
 }
 
+function acceptsMcpResponseTypes(req: Request): boolean {
+  const accept = req.headers.get('accept');
+  if (!accept) {
+    return false;
+  }
+
+  return accept.includes('application/json') && accept.includes('text/event-stream');
+}
+
+function isJsonPost(req: Request): boolean {
+  const contentType = req.headers.get('content-type') ?? '';
+  return req.method === 'POST' && contentType.toLowerCase().includes('application/json');
+}
+
+function withMcpResponseAccept(req: Request): Request {
+  if (!isJsonPost(req) || acceptsMcpResponseTypes(req)) {
+    return req;
+  }
+
+  const headers = new Headers(req.headers);
+  headers.set('accept', 'application/json, text/event-stream');
+  return new Request(req, { headers });
+}
+
 function unauthorizedMcpResponse(req: Request, message: string): Response {
   return new Response(JSON.stringify({
     error: 'invalid_token',
@@ -1575,7 +1599,7 @@ function createBaseHandler(env: Env): (req: Request) => Promise<Response> {
   await server.connect(transport);
 
   try {
-    return await transport.handleRequest(req, { authInfo });
+    return await transport.handleRequest(withMcpResponseAccept(req), { authInfo });
   } finally {
     await server.close();
   }
