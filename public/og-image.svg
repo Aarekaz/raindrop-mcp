@@ -44,20 +44,20 @@
     <text x="58" y="34" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="800">Raindrop MCP</text>
 
     <text x="0" y="166" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      Your saved web
+      Prompt your
     </text>
     <text x="0" y="248" fill="#0b1f3a" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      answers
+      saved web
     </text>
     <text x="0" y="330" fill="#0b63f6" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="800" letter-spacing="-3">
-      back.
+      with tools.
     </text>
 
     <text x="0" y="390" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600">
-      Search Raindrop.io bookmarks, collections,
+      Real prompt examples for bookmarks,
     </text>
     <text x="0" y="430" fill="#536174" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600">
-      tags, and highlights from your LLM.
+      tags, highlights, and collections.
     </text>
   </g>
 
