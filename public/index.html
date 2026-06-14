@@ -21,43 +21,40 @@
   <meta name="twitter:description" content="Connect Raindrop.io bookmarks, collections, tags, and highlights to OAuth-aware MCP clients." />
   <meta name="twitter:image" content="https://raindrop-mcp.anuragd.me/og-image.png" />
   <meta name="twitter:image:alt" content="Raindrop MCP social preview showing bookmarks connected to AI clients" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --paper: #fbfcfd;
-      --white: #ffffff;
-      --ink: #101624;
-      --muted: #536073;
-      --faint: #8590a2;
-      --rule: #d8dee8;
-      --rule-strong: #aeb8c8;
+      --bg: #fbfcfd;
+      --surface: #ffffff;
+      --ink: #111827;
+      --muted: #5a6678;
+      --soft: #f3f6fa;
+      --line: #d9e0ea;
+      --line-strong: #b8c2d0;
       --blue: #095ee8;
-      --blue-soft: #eaf2ff;
-      --green-soft: #eef7f2;
-      --green-rule: #cadfd3;
-      --warm: #fff8e7;
-      --warm-rule: #ead69b;
-      --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
-      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --serif: "Newsreader", Georgia, serif;
+      --blue-dark: #064cbf;
+      --green: #1d6b43;
+      --green-soft: #eef8f2;
+      --amber: #7a5a00;
+      --amber-soft: #fff8e7;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: Georgia, "Times New Roman", serif;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html {
-      background: var(--paper);
+      background: var(--bg);
       scroll-behavior: smooth;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
+      background: var(--bg);
       color: var(--ink);
-      background:
-        linear-gradient(180deg, rgba(251,252,253,0.96), rgba(255,255,255,0.98) 52%, #f7f9fc),
-        radial-gradient(circle at 82% 16%, rgba(9,94,232,0.06), transparent 30%);
       font-family: var(--sans);
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
@@ -79,12 +76,12 @@
     }
 
     :focus-visible {
-      outline: 2px solid rgba(9, 94, 232, 0.42);
+      outline: 2px solid rgba(9, 94, 232, 0.45);
       outline-offset: 3px;
     }
 
     .shell {
-      width: min(1180px, calc(100vw - 40px));
+      width: min(1120px, calc(100vw - 44px));
       margin: 0 auto;
     }
 
@@ -93,24 +90,25 @@
       align-items: center;
       justify-content: space-between;
       gap: 24px;
-      min-height: 66px;
-      border-bottom: 1px solid var(--rule);
+      min-height: 68px;
+      border-bottom: 1px solid var(--line);
     }
 
     .brand {
       display: inline-flex;
       align-items: center;
       gap: 11px;
+      color: var(--ink);
       font-family: var(--mono);
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 650;
       letter-spacing: 0;
       white-space: nowrap;
     }
 
     .brand-mark {
-      width: 18px;
-      height: 24px;
+      width: 16px;
+      height: 22px;
       color: var(--blue);
       flex: 0 0 auto;
     }
@@ -118,14 +116,10 @@
     .top-nav {
       display: flex;
       align-items: center;
-      gap: 28px;
-      color: var(--ink);
+      gap: 24px;
+      color: var(--muted);
       font-family: var(--mono);
       font-size: 13px;
-    }
-
-    .top-nav a {
-      color: var(--ink);
     }
 
     .top-nav a:hover {
@@ -138,14 +132,14 @@
       justify-content: center;
       gap: 8px;
       min-height: 42px;
-      padding: 0 18px;
-      border: 1px solid var(--rule-strong);
+      padding: 0 16px;
+      border: 1px solid var(--line-strong);
       border-radius: 6px;
-      background: var(--white);
+      background: var(--surface);
       color: var(--ink);
       font-family: var(--mono);
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 550;
       line-height: 1;
       transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
       white-space: nowrap;
@@ -153,6 +147,7 @@
 
     .button:hover {
       border-color: var(--blue);
+      color: var(--blue);
     }
 
     .button-primary {
@@ -162,13 +157,14 @@
     }
 
     .button-primary:hover {
-      background: #064cbf;
-      border-color: #064cbf;
+      background: var(--blue-dark);
+      border-color: var(--blue-dark);
+      color: #ffffff;
     }
 
-    .button-quiet {
+    .button-small {
       min-height: 34px;
-      padding: 0 13px;
+      padding: 0 12px;
       font-size: 12px;
     }
 
@@ -185,31 +181,33 @@
 
     .hero {
       display: grid;
-      grid-template-columns: minmax(0, 0.85fr) minmax(520px, 1.15fr);
-      gap: 64px;
+      grid-template-columns: minmax(0, 0.95fr) minmax(420px, 0.86fr);
+      gap: 70px;
       align-items: center;
-      min-height: min(660px, calc(100vh - 66px - 82px));
-      padding: 58px 0 48px;
+      min-height: min(680px, calc(100vh - 68px - 50px));
+      padding: 68px 0 48px;
     }
 
     .hero-copy {
-      max-width: 560px;
+      max-width: 650px;
     }
 
     .hero h1 {
       margin: 0;
+      max-width: 660px;
+      color: var(--ink);
       font-family: var(--serif);
-      font-size: clamp(52px, 6.1vw, 84px);
+      font-size: clamp(52px, 6.2vw, 88px);
       font-weight: 500;
+      letter-spacing: -0.01em;
       line-height: 0.98;
-      letter-spacing: 0;
     }
 
     .hero p {
-      margin: 24px 0 0;
-      max-width: 520px;
+      margin: 26px 0 0;
+      max-width: 560px;
       color: var(--muted);
-      font-size: clamp(16px, 1.45vw, 19px);
+      font-size: clamp(17px, 1.45vw, 20px);
       line-height: 1.7;
     }
 
@@ -218,287 +216,213 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 28px;
+      margin-top: 30px;
     }
 
-    .endpoint-line {
-      display: flex;
+    .endpoint {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: 10px;
-      width: min(100%, 450px);
-      margin-top: 14px;
-      padding: 12px 13px;
-      border: 1px solid var(--rule);
+      gap: 12px;
+      width: min(100%, 520px);
+      margin-top: 18px;
+      padding: 11px 12px 11px 14px;
+      border: 1px solid var(--line);
       border-radius: 6px;
-      background: rgba(255,255,255,0.72);
-      color: var(--muted);
+      background: var(--surface);
     }
 
-    .endpoint-line code {
-      min-width: 0;
+    .endpoint code {
       overflow: hidden;
-      text-overflow: ellipsis;
       color: var(--ink);
       font-family: var(--mono);
       font-size: 13px;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .instrument {
-      display: grid;
-      grid-template-columns: minmax(270px, 1fr) 36px minmax(245px, 0.92fr);
-      align-items: center;
-      gap: 12px;
-    }
-
-    .instrument-label {
-      margin: 0 0 8px;
-      color: var(--ink);
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    .ledger,
-    .exchange-panel {
-      border: 1px solid var(--rule-strong);
-      border-radius: 6px;
-      background: rgba(255,255,255,0.82);
-    }
-
-    .ledger {
+    .protocol-sheet {
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 22px 58px rgba(17, 24, 39, 0.08);
       overflow: hidden;
     }
 
-    .bookmark-row {
-      display: grid;
-      grid-template-columns: 42px 1fr 18px;
-      gap: 14px;
-      align-items: start;
-      min-height: 86px;
-      padding: 14px;
-      border-bottom: 1px solid var(--rule);
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 12px;
     }
 
-    .bookmark-row:last-child {
-      border-bottom: 0;
-    }
-
-    .mark {
+    .sheet-url {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 6px;
-      background: #111827;
-      color: #ffffff;
-      font-family: Georgia, serif;
-      font-size: 21px;
-      font-weight: 700;
+      min-width: 0;
+      color: var(--muted);
     }
 
-    .mark.blue { background: var(--blue); font-family: var(--sans); }
-    .mark.orange { background: #ff6b35; font-family: var(--sans); }
+    .sheet-url::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-right: 10px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 4px var(--green-soft);
+      flex: 0 0 auto;
+    }
 
-    .bookmark-title {
+    .sheet-url span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status-ok {
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .flow {
+      display: grid;
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 22px;
+      padding: 20px 18px;
+      background: var(--surface);
+    }
+
+    .step-method {
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .step-title {
       margin: 0;
       font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.42;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.4;
     }
 
-    .bookmark-source {
-      margin-top: 2px;
+    .step-copy {
+      margin: 7px 0 0;
       color: var(--muted);
-      font-size: 12px;
-    }
-
-    .tag-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 9px;
-    }
-
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      min-height: 22px;
-      padding: 0 7px;
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      color: var(--muted);
-      background: #f7f9fc;
-      font-size: 11px;
-    }
-
-    .bookmark-glyph {
-      color: var(--muted);
-    }
-
-    .quote-note {
-      display: grid;
-      grid-template-columns: 4px 1fr;
-      gap: 12px;
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
+      font-size: 14px;
       line-height: 1.55;
     }
 
-    .quote-note::before {
-      content: "";
-      width: 3px;
-      border-radius: 2px;
-      background: var(--blue);
-    }
-
-    .connector {
-      color: var(--blue);
-    }
-
-    .exchange {
-      display: grid;
-      gap: 10px;
-    }
-
-    .exchange-panel {
-      padding: 14px;
-    }
-
-    .exchange-panel.response {
-      background: var(--green-soft);
-      border-color: var(--green-rule);
-    }
-
-    .exchange-panel pre {
-      margin: 0;
+    .code-line {
+      display: block;
+      margin-top: 12px;
       overflow: auto;
       color: var(--ink);
       font-family: var(--mono);
       font-size: 12px;
-      line-height: 1.7;
-      white-space: pre-wrap;
+      line-height: 1.6;
+      white-space: nowrap;
     }
 
-    .token-muted { color: var(--muted); }
-    .token-blue { color: var(--blue); }
-
-    .section {
-      border-top: 1px solid var(--rule);
-    }
-
-    .reach {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
-      gap: 48px;
-      padding: 34px 0 30px;
-    }
-
-    .section h2 {
-      margin: 0 0 14px;
-      font-family: var(--mono);
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 0;
-    }
-
-    .reach-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      border-top: 1px solid var(--rule-strong);
-    }
-
-    .reach-item {
-      min-height: 150px;
-      padding: 18px 20px 8px 0;
-      border-right: 1px solid var(--rule);
+    .sheet-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 15px 18px;
+      border-top: 1px solid var(--line);
+      background: var(--soft);
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-
-    .reach-item + .reach-item {
-      padding-left: 18px;
-    }
-
-    .reach-item:last-child {
-      border-right: 0;
-    }
-
-    .reach-icon {
-      width: 30px;
-      height: 30px;
-      margin-bottom: 18px;
-      color: var(--ink);
-    }
-
-    .reach-item strong {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .tool-table {
-      width: 100%;
-      border-collapse: collapse;
-      border-top: 1px solid var(--rule-strong);
       font-family: var(--mono);
       font-size: 12px;
     }
 
-    .tool-table th,
-    .tool-table td {
-      padding: 10px 0;
-      border-bottom: 1px solid var(--rule);
-      text-align: left;
-      vertical-align: top;
+    .section {
+      border-top: 1px solid var(--line);
     }
 
-    .tool-table th {
-      color: var(--muted);
-      font-weight: 500;
-    }
-
-    .tool-table td:first-child {
-      width: 156px;
-      color: var(--ink);
-      font-weight: 500;
-    }
-
-    .security-strip {
+    .section-grid {
       display: grid;
-      grid-template-columns: 58px minmax(0, 1fr) auto;
-      gap: 22px;
-      align-items: center;
-      padding: 25px 0;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 66px;
+      padding: 50px 0;
     }
 
-    .shield {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border: 1px solid var(--rule-strong);
-      border-radius: 8px;
-      background: var(--white);
+    .section h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .section-intro {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .capability-list {
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .capability-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) 150px;
+      gap: 24px;
+      align-items: start;
+      padding: 19px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .capability-row strong {
       color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
     }
 
-    .security-strip h2 {
-      margin-bottom: 4px;
+    .capability-row p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
     }
 
-    .security-strip p {
+    .capability-row code {
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .security-panel {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr) auto;
+      gap: 30px;
+      align-items: center;
+      padding: 32px 0;
+    }
+
+    .security-panel p {
       margin: 0;
       color: var(--muted);
       font-family: var(--mono);
       font-size: 13px;
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
     .inline-link {
@@ -512,60 +436,32 @@
     }
 
     .install {
-      padding: 28px 0 26px;
+      padding: 46px 0 50px;
     }
 
     .install-panel {
       display: grid;
-      grid-template-columns: 410px 1fr;
-      gap: 28px;
-      padding: 18px;
-      border: 1px solid var(--rule-strong);
-      border-radius: 6px;
-      background: rgba(255,255,255,0.72);
-    }
-
-    .install-heading {
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      gap: 18px;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 44px;
       align-items: start;
-    }
-
-    .terminal-mark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      border: 1px solid var(--rule-strong);
-      border-radius: 6px;
-      background: #eef2f7;
-      color: var(--ink);
-    }
-
-    .install h2 {
-      margin: 0 0 12px;
-      font-family: var(--mono);
-      font-size: 19px;
     }
 
     .install-tabs {
       display: inline-flex;
-      align-items: center;
-      border: 1px solid var(--rule);
+      margin-top: 24px;
+      border: 1px solid var(--line);
       border-radius: 6px;
+      background: var(--surface);
       overflow: hidden;
-      background: var(--white);
     }
 
     .install-tabs button {
-      min-width: 72px;
-      min-height: 34px;
-      padding: 0 13px;
+      min-width: 74px;
+      min-height: 36px;
+      padding: 0 12px;
       border: 0;
-      border-right: 1px solid var(--rule);
-      background: var(--white);
+      border-right: 1px solid var(--line);
+      background: var(--surface);
       color: var(--muted);
       font-family: var(--mono);
       font-size: 12px;
@@ -583,26 +479,37 @@
     .snippet {
       position: relative;
       min-width: 0;
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .snippet::before {
+      content: "config";
+      display: block;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
     }
 
     .snippet pre {
       margin: 0;
-      padding: 18px;
+      padding: 18px 16px 20px;
       overflow: auto;
       color: var(--ink);
       font-family: var(--mono);
       font-size: 12px;
       line-height: 1.75;
-      white-space: pre-wrap;
+      white-space: pre;
     }
 
     .snippet .copy-snippet {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 8px;
+      right: 8px;
     }
 
     .site-footer {
@@ -610,9 +517,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 20px;
-      min-height: 64px;
-      border-top: 1px solid var(--rule);
-      color: var(--ink);
+      min-height: 68px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
       font-family: var(--mono);
       font-size: 12px;
     }
@@ -631,23 +538,23 @@
       width: min(760px, calc(100vw - 32px));
       max-height: min(760px, calc(100vh - 32px));
       overflow: auto;
-      border: 1px solid var(--rule-strong);
-      border-radius: 6px;
-      background: var(--paper);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--bg);
       color: var(--ink);
       padding: 24px;
-      box-shadow: 0 28px 80px rgba(16, 22, 36, 0.22);
+      box-shadow: 0 28px 80px rgba(17, 24, 39, 0.22);
     }
 
     .install-dialog::backdrop {
-      background: rgba(16, 22, 36, 0.44);
+      background: rgba(17, 24, 39, 0.44);
     }
 
     .dialog-header {
       display: flex;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 18px;
-      align-items: flex-start;
     }
 
     .dialog-header h2 {
@@ -673,9 +580,9 @@
     .tab-list [role="tab"] {
       min-height: 34px;
       padding: 0 12px;
-      border: 1px solid var(--rule);
+      border: 1px solid var(--line);
       border-radius: 6px;
-      background: var(--white);
+      background: var(--surface);
       color: var(--muted);
       font-family: var(--mono);
       font-size: 12px;
@@ -688,11 +595,11 @@
 
     .tab-panels pre {
       margin: 12px 0;
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      background: var(--white);
-      overflow: auto;
       padding: 16px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
       color: var(--ink);
       font-family: var(--mono);
       font-size: 12px;
@@ -701,12 +608,12 @@
 
     .dialog-close,
     .copy-snippet {
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      background: var(--white);
-      color: var(--ink);
       min-height: 32px;
       padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
       font-family: var(--mono);
       font-size: 12px;
     }
@@ -722,16 +629,16 @@
       right: 20px;
       bottom: 20px;
       z-index: 20;
-      border: 1px solid var(--rule-strong);
+      padding: 10px 12px;
+      border: 1px solid var(--line-strong);
       border-radius: 6px;
       background: var(--ink);
       color: #ffffff;
-      padding: 10px 12px;
       font-family: var(--mono);
       font-size: 12px;
       opacity: 0;
-      transform: translateY(8px);
       pointer-events: none;
+      transform: translateY(8px);
       transition: opacity 150ms ease, transform 150ms ease;
     }
 
@@ -741,39 +648,49 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
+      html {
+        scroll-behavior: auto;
+      }
+
       *,
       *::before,
       *::after {
-        transition-duration: 1ms !important;
         animation-duration: 1ms !important;
         scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
       }
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 980px) {
       .hero,
-      .reach,
+      .section-grid,
+      .security-panel,
       .install-panel {
         grid-template-columns: 1fr;
       }
 
-      .instrument {
-        grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
+      .hero {
+        gap: 38px;
+        min-height: 0;
+        padding: 54px 0 42px;
       }
 
       .hero-copy {
-        max-width: 740px;
+        max-width: 760px;
+      }
+
+      .security-panel {
+        gap: 16px;
       }
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 720px) {
       .shell {
-        width: min(100% - 28px, 1180px);
+        width: min(100% - 28px, 1120px);
       }
 
       .site-header {
-        min-height: 58px;
+        min-height: 60px;
       }
 
       .brand {
@@ -789,19 +706,12 @@
         display: none;
       }
 
-      .hero {
-        display: block;
-        padding: 34px 0 28px;
-        min-height: 0;
-      }
-
       .hero h1 {
-        font-size: clamp(42px, 13vw, 62px);
+        font-size: clamp(43px, 13vw, 62px);
       }
 
       .hero p {
-        font-size: 15px;
-        line-height: 1.65;
+        font-size: 16px;
       }
 
       .hero-actions {
@@ -813,100 +723,49 @@
         width: 100%;
       }
 
-      .endpoint-line {
+      .endpoint {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .endpoint .button {
         width: 100%;
       }
 
-      .instrument {
+      .flow-step,
+      .capability-row {
         grid-template-columns: 1fr;
-        gap: 18px;
-        margin-top: 34px;
+        gap: 8px;
       }
 
-      .connector {
-        display: none;
+      .capability-row code {
+        white-space: normal;
       }
 
-      .reach {
-        gap: 34px;
-        padding: 30px 0;
+      .section-grid,
+      .install-panel {
+        gap: 30px;
+        padding: 38px 0;
       }
 
-      .reach-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .reach-item:nth-child(2) {
-        border-right: 0;
-      }
-
-      .reach-item {
-        min-height: 132px;
-      }
-
-      .security-strip {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .security-strip .inline-link {
-        justify-self: start;
-      }
-
-      .install-heading {
-        grid-template-columns: 1fr;
-      }
-
+      .sheet-footer,
       .site-footer {
         align-items: flex-start;
         flex-direction: column;
-        padding: 20px 0;
-      }
-    }
-
-    @media (max-width: 460px) {
-      .bookmark-row {
-        grid-template-columns: 36px 1fr 16px;
-        gap: 10px;
-        padding: 12px;
-      }
-
-      .mark {
-        width: 34px;
-        height: 34px;
-        font-size: 18px;
-      }
-
-      .reach-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .reach-item,
-      .reach-item:nth-child(2) {
-        border-right: 0;
-        border-bottom: 1px solid var(--rule);
-        padding-left: 0;
-      }
-
-      .reach-item:last-child {
-        border-bottom: 0;
-      }
-
-      .tool-table {
-        font-size: 11px;
-      }
-
-      .tool-table td:first-child {
-        width: 132px;
       }
 
       .install-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
       }
 
       .install-tabs button {
-        border-bottom: 1px solid var(--rule);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .snippet pre {
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
       }
     }
   </style>
@@ -923,7 +782,7 @@
       <a href="#tools">Tools</a>
       <a href="#security">Security</a>
       <a class="nav-docs" href="/docs/">Docs</a>
-      <button class="button button-primary button-quiet" type="button" data-open-install>Connect</button>
+      <button class="button button-primary button-small" type="button" data-open-install>Connect</button>
     </nav>
   </header>
 
@@ -931,161 +790,110 @@
     <section class="hero shell">
       <div class="hero-copy">
         <h1>Your saved web, available to your AI.</h1>
-        <p>Raindrop MCP connects OAuth-aware MCP clients to your bookmarks, collections, tags, and highlights without exports or re-indexing.</p>
+        <p>Raindrop MCP gives OAuth-aware clients a direct route into your bookmarks, collections, tags, and highlights. No export. No second index. Just the library you already keep.</p>
         <div class="hero-actions">
           <button class="button button-primary" type="button" data-open-install>
             Connect MCP Client
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
           </button>
-          <button class="button" id="copy-endpoint" type="button">
-            Copy Endpoint
+          <a class="button" href="/docs/">Read Docs</a>
+        </div>
+        <div class="endpoint" aria-label="MCP endpoint">
+          <code>https://raindrop-mcp.anuragd.me/mcp</code>
+          <button class="button button-small" id="copy-endpoint" type="button">
+            Copy
             <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>
           </button>
         </div>
-        <div class="endpoint-line" aria-label="MCP endpoint">
-          <code>https://raindrop-mcp.anuragd.me/mcp</code>
-        </div>
       </div>
 
-      <div class="instrument" aria-label="Raindrop library to MCP request and response">
-        <div>
-          <p class="instrument-label">Your Raindrop.io library</p>
-          <div class="ledger">
-            <article class="bookmark-row">
-              <span class="mark">T</span>
-              <div>
-                <h2 class="bookmark-title">The secret to great product design</h2>
-                <div class="bookmark-source">nytimes.com</div>
-                <div class="tag-row"><span class="tag">design</span><span class="tag">product</span></div>
-              </div>
-              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
-            </article>
-            <article class="bookmark-row">
-              <span class="mark blue">B</span>
-              <div>
-                <h2 class="bookmark-title">Building with Durable Objects</h2>
-                <div class="bookmark-source">blog.cloudflare.com</div>
-                <div class="tag-row"><span class="tag">cloudflare</span><span class="tag">durable-objects</span></div>
-              </div>
-              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
-            </article>
-            <article class="bookmark-row">
-              <span class="mark orange">Y</span>
-              <div>
-                <h2 class="bookmark-title">Why reading is a superpower</h2>
-                <div class="bookmark-source">paulgraham.com</div>
-                <div class="tag-row"><span class="tag">essays</span></div>
-                <div class="quote-note">Reading lets you borrow knowledge without paying tuition.</div>
-              </div>
-              <svg class="icon bookmark-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" /></svg>
-            </article>
-          </div>
+      <div class="protocol-sheet" aria-label="MCP protocol proof">
+        <div class="sheet-header">
+          <div class="sheet-url"><span>/mcp</span></div>
+          <div class="status-ok">OAuth required</div>
         </div>
-
-        <svg class="connector" viewBox="0 0 36 80" aria-hidden="true">
-          <path d="M2 40h28" stroke="currentColor" stroke-width="1.6" />
-          <path d="m24 33 7 7-7 7" stroke="currentColor" stroke-width="1.6" fill="none" />
-          <circle cx="2" cy="40" r="2.5" fill="currentColor" />
-        </svg>
-
-        <div class="exchange">
-          <div>
-            <p class="instrument-label">MCP request / response</p>
-            <div class="exchange-panel">
-              <pre><span class="token-muted">client -> mcp</span>
-{
-  "method": "tools/call",
-  "params": {
-    "name": "bookmark_search",
-    "arguments": { "search": "design" }
-  }
-}</pre>
+        <div class="flow">
+          <article class="flow-step">
+            <div class="step-method">initialize</div>
+            <div>
+              <h2 class="step-title">Client discovers the server contract</h2>
+              <p class="step-copy">The endpoint advertises tools, resources, and authorization metadata through Streamable HTTP.</p>
+              <code class="code-line">POST /mcp {"method":"initialize"}</code>
             </div>
-          </div>
-          <div class="exchange-panel response">
-            <pre><span class="token-muted">mcp -> client</span>
-{
-  "content": [
-    { "type": "text", "text": "3 results" },
-    { "type": "resource", "uri": "raindrop://item/123" }
-  ]
-}</pre>
-          </div>
+          </article>
+          <article class="flow-step">
+            <div class="step-method">tools/list</div>
+            <div>
+              <h2 class="step-title">Raindrop actions become callable tools</h2>
+              <p class="step-copy">Search bookmarks, list collections, inspect tags, and work with highlights from the client.</p>
+              <code class="code-line">bookmark_search . collection_list . tag_list</code>
+            </div>
+          </article>
+          <article class="flow-step">
+            <div class="step-method">tools/call</div>
+            <div>
+              <h2 class="step-title">Results come back as MCP content</h2>
+              <p class="step-copy">The client receives text and resource links without scraping your public pages or duplicating your library.</p>
+              <code class="code-line">raindrop://bookmark/123</code>
+            </div>
+          </article>
+        </div>
+        <div class="sheet-footer">
+          <span>Cloudflare Worker</span>
+          <span>OAuth 2.1 + PKCE</span>
         </div>
       </div>
     </section>
 
     <section class="section" id="tools">
-      <div class="shell reach">
+      <div class="shell section-grid">
         <div>
-          <h2>What it can reach</h2>
-          <div class="reach-grid">
-            <div class="reach-item">
-              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
-              <strong>Bookmarks</strong>
-              Search, fetch, and reference any saved link.
-            </div>
-            <div class="reach-item">
-              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" /></svg>
-              <strong>Collections</strong>
-              Navigate nested collections and their items.
-            </div>
-            <div class="reach-item">
-              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M7.5 7.5h.01" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" /></svg>
-              <strong>Tags</strong>
-              Filter and explore by tags you already use.
-            </div>
-            <div class="reach-item">
-              <svg class="reach-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11-6 6v3h3l6-6" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0L7.4 9.4a2 2 0 0 1 0-2.8L12 2" fill="none" stroke="currentColor" stroke-width="1.8" /></svg>
-              <strong>Highlights</strong>
-              Access highlights and notes in context.
-            </div>
-          </div>
+          <h2>What it reaches</h2>
+          <p class="section-intro">The public API surface uses the same names your MCP client sees.</p>
         </div>
-        <div>
-          <h2>How the client sees it</h2>
-          <table class="tool-table">
-            <thead>
-              <tr><th>Tool</th><th>What it does</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>bookmark_search</td><td>Search across saved links, titles, excerpts, tags, and collections</td></tr>
-              <tr><td>bookmark_manage</td><td>Create, update, move, or fetch bookmark details</td></tr>
-              <tr><td>collection_list</td><td>List top-level and nested Raindrop collections</td></tr>
-              <tr><td>highlight_manage</td><td>Read or write highlights attached to a bookmark</td></tr>
-            </tbody>
-          </table>
+        <div class="capability-list">
+          <article class="capability-row">
+            <strong>Bookmarks</strong>
+            <p>Search saved links, create new entries, move items, and fetch bookmark detail when the client needs context.</p>
+            <code>bookmark_search</code>
+          </article>
+          <article class="capability-row">
+            <strong>Collections</strong>
+            <p>List top-level and nested collections so your client can work with the structure you already maintain.</p>
+            <code>collection_list</code>
+          </article>
+          <article class="capability-row">
+            <strong>Tags</strong>
+            <p>Explore and manage the tags that make your library useful across projects, research, and reading queues.</p>
+            <code>tag_list</code>
+          </article>
+          <article class="capability-row">
+            <strong>Highlights</strong>
+            <p>Read or write highlighted passages and notes in context, attached to the original saved item.</p>
+            <code>highlight_manage</code>
+          </article>
         </div>
       </div>
     </section>
 
     <section class="section" id="security">
-      <div class="shell security-strip">
-        <span class="shield" aria-hidden="true">
-          <svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1.3 1.3 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1v7Z" /><path d="M12 8v5" /><path d="M12 17h.01" /></svg>
-        </span>
-        <div>
-          <h2>Authorization stays explicit</h2>
-          <p>OAuth 2.1 with PKCE. Bookmark content remains in Raindrop and is fetched live when a tool runs.</p>
-        </div>
+      <div class="shell security-panel">
+        <h2>Authorization stays explicit</h2>
+        <p>Clients discover the protected resource metadata, start OAuth, and receive scoped tokens. Bookmark content stays in Raindrop and is fetched live when a tool runs.</p>
         <a class="inline-link" href="/.well-known/oauth-protected-resource">Security details <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg></a>
       </div>
     </section>
 
     <section class="section install" id="start">
       <div class="shell install-panel">
-        <div class="install-heading">
-          <span class="terminal-mark" aria-hidden="true">
-            <svg class="icon" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6" /><path d="M12 19h8" /></svg>
-          </span>
-          <div>
-            <h2>Install in your MCP client</h2>
-            <div class="install-tabs" role="tablist" aria-label="Install snippet selector">
-              <button role="tab" aria-selected="true" data-install-tab="claude">Claude</button>
-              <button role="tab" aria-selected="false" data-install-tab="cursor">Cursor</button>
-              <button role="tab" aria-selected="false" data-install-tab="codex">Codex</button>
-              <button role="tab" aria-selected="false" data-install-tab="generic">Other</button>
-            </div>
+        <div>
+          <h2>Install in your MCP client</h2>
+          <p class="section-intro">Use the hosted endpoint. The client handles discovery, authorization, and token storage.</p>
+          <div class="install-tabs" role="tablist" aria-label="Install snippet selector">
+            <button role="tab" aria-selected="true" data-install-tab="claude">Claude</button>
+            <button role="tab" aria-selected="false" data-install-tab="cursor">Cursor</button>
+            <button role="tab" aria-selected="false" data-install-tab="codex">Codex</button>
+            <button role="tab" aria-selected="false" data-install-tab="generic">Other</button>
           </div>
         </div>
         <div class="snippet">
