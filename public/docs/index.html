@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Raindrop MCP Docs</title>
-  <meta name="description" content="Connect MCP clients to Raindrop MCP and understand the OAuth, MCP, and Cloudflare routes.">
+  <meta name="description" content="Connect MCP clients to Raindrop MCP and understand the tools, resources, OAuth flow, and Cloudflare routes.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Raindrop MCP">
   <meta property="og:url" content="https://raindrop-mcp.anuragd.me/docs/">
   <meta property="og:title" content="Raindrop MCP Docs">
-  <meta property="og:description" content="Connect MCP clients to Raindrop MCP and understand the OAuth, MCP, and Cloudflare routes.">
+  <meta property="og:description" content="Connect MCP clients to Raindrop MCP and understand the tools, resources, OAuth flow, and Cloudflare routes.">
   <meta property="og:image" content="https://raindrop-mcp.anuragd.me/og-image.png">
   <meta property="og:image:secure_url" content="https://raindrop-mcp.anuragd.me/og-image.png">
   <meta property="og:image:type" content="image/png">
@@ -18,72 +18,708 @@
   <meta property="og:image:alt" content="Raindrop MCP social preview showing bookmarks connected to AI clients">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Raindrop MCP Docs">
-  <meta name="twitter:description" content="Connect MCP clients to Raindrop MCP and understand the OAuth, MCP, and Cloudflare routes.">
+  <meta name="twitter:description" content="Connect MCP clients to Raindrop MCP and understand the tools, resources, OAuth flow, and Cloudflare routes.">
   <meta name="twitter:image" content="https://raindrop-mcp.anuragd.me/og-image.png">
   <meta name="twitter:image:alt" content="Raindrop MCP social preview showing bookmarks connected to AI clients">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0b1117;
-      color: #f6f8fb;
-      line-height: 1.6;
+    :root {
+      --bg: #fbfcfd;
+      --ink: #0b1f3a;
+      --ink-2: #536174;
+      --ink-3: #8a95a4;
+      --border: #dde4ee;
+      --blue: #0b63f6;
+      --blue-dark: #074bbb;
+      --surface: #ffffff;
+      --soft: #f4f7fb;
+      --good: #16a34a;
+      --radius-pill: 999px;
+      --radius-card: 10px;
+      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
     }
 
-    main {
-      width: min(960px, calc(100vw - 32px));
-      margin: 0 auto;
-      padding: 56px 0;
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 6% 17%, rgba(11, 99, 246, 0.08), transparent 28%),
+        radial-gradient(circle at 92% 6%, rgba(11, 99, 246, 0.07), transparent 26%),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     a {
-      color: #3dff9f;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
     }
 
     code,
     pre {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-family: var(--font-mono);
     }
 
-    pre {
-      overflow: auto;
-      background: #101923;
-      border: 1px solid #243140;
-      border-radius: 8px;
-      padding: 16px;
+    :focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: 18px 48px;
+      border-bottom: 1px solid rgba(11, 31, 58, 0.08);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .brand,
+    .nav-links {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .brand {
+      gap: 10px;
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .brand svg {
+      width: 19px;
+      height: 23px;
+      color: var(--blue);
+    }
+
+    .nav-links {
+      gap: 22px;
+      color: var(--ink-2);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+    }
+
+    .nav-pill {
+      min-height: 32px;
+      padding: 0 13px;
+      border: 1px solid rgba(11, 31, 58, 0.12);
+      border-radius: var(--radius-pill);
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 2px 7px rgba(11, 31, 58, 0.08);
+    }
+
+    main {
+      width: min(1120px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 58px 0 84px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 42px;
+      align-items: end;
+      padding-bottom: 44px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      max-width: 790px;
+      font-size: 68px;
+      font-weight: 720;
+      letter-spacing: 0;
+      line-height: 0.98;
+    }
+
+    .accent {
+      color: var(--blue);
+    }
+
+    .lede {
+      max-width: 690px;
+      margin-top: 22px;
+      color: var(--ink-2);
+      font-size: 18px;
+      line-height: 1.62;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .primary-action,
+    .secondary-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: var(--radius-pill);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .primary-action {
+      background: var(--blue);
+      color: #ffffff;
+    }
+
+    .primary-action:hover {
+      background: var(--blue-dark);
+    }
+
+    .secondary-action {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    .status-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 40px rgba(11, 31, 58, 0.07);
+      padding: 18px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .status-row:first-child {
+      padding-top: 0;
+    }
+
+    .status-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .status-row strong {
+      color: var(--ink);
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 38px;
+      align-items: start;
+      margin-top: 40px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 88px;
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 7px 0;
+      font-weight: 600;
+    }
+
+    .toc a:hover,
+    .toc a[aria-current="true"] {
+      color: var(--ink);
+    }
+
+    .toc a[aria-current="true"] {
+      font-weight: 800;
+    }
+
+    .docs {
+      display: grid;
+      gap: 48px;
+      min-width: 0;
     }
 
     section {
-      border-top: 1px solid #243140;
-      padding-top: 28px;
-      margin-top: 28px;
+      min-width: 0;
+      scroll-margin-top: 92px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      color: var(--ink);
+      font-size: 34px;
+      font-weight: 720;
+      letter-spacing: 0;
+      line-height: 1.12;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .section-copy {
+      max-width: 760px;
+      margin-bottom: 18px;
+      color: var(--ink-2);
+    }
+
+    .code-block {
+      overflow: hidden;
+      border: 1px solid #14243a;
+      border-radius: var(--radius-card);
+      background: #0c1320;
+      box-shadow: 0 16px 36px rgba(11, 31, 58, 0.08);
+    }
+
+    .code-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #17263a;
+      color: #9fb0c3;
+      font-size: 12px;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      color: #d9e7ff;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .copy-button {
+      padding: 4px 8px;
+      border: 1px solid #27384e;
+      border-radius: 7px;
+      color: #d9e7ff;
+      font-size: 12px;
+    }
+
+    .copy-button:hover {
+      background: #101d2d;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
       gap: 14px;
+      min-width: 0;
     }
 
-    .card {
-      border: 1px solid #243140;
-      border-radius: 8px;
+    .info-card,
+    .tool-card {
+      min-width: 0;
       padding: 16px;
-      background: #0f1822;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--surface);
     }
 
-    .card p {
-      color: #aab7c4;
-      margin-bottom: 0;
+    .info-card p,
+    .tool-card p {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      max-width: 100%;
+      padding: 4px 9px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--soft);
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .chip code,
+    .info-card code,
+    .tool-card code {
+      overflow-wrap: anywhere;
+    }
+
+    .endpoint-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .endpoint {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 12px;
+      align-items: baseline;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      font-size: 13px;
+    }
+
+    .method {
+      width: max-content;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--ink);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .endpoint code {
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .endpoint p {
+      grid-column: 2;
+      color: var(--ink-2);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--soft);
+      color: var(--ink);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    td code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: var(--soft);
+      color: var(--ink);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .prompt-list {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--surface);
+    }
+
+    .prompt-row {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(300px, 1fr);
+      gap: 18px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .prompt-row:last-child {
+      border-bottom: 0;
+    }
+
+    .prompt-row p {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .tool-name {
+      display: inline-flex;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .mini-code {
+      overflow-x: auto;
+      padding: 12px;
+      border-radius: 8px;
+      background: #0c1320;
+      color: #d9e7ff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 10px;
+      counter-reset: flow;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--ink-2);
+    }
+
+    .flow-step::before {
+      counter-increment: flow;
+      content: counter(flow, decimal-leading-zero);
+      color: var(--blue);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      color: var(--ink-3);
+      padding: 18px 24px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      border-radius: var(--radius-pill);
+      background: var(--ink);
+      color: #ffffff;
+      padding: 8px 14px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+    }
+
+    .toast[data-show="true"] {
+      opacity: 1;
+    }
+
+    @media (max-width: 980px) {
+      nav {
+        padding: 16px 22px;
+      }
+
+      main {
+        width: min(100% - 32px, 1120px);
+      }
+
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        display: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      nav {
+        min-height: 58px;
+        padding: 12px 16px;
+      }
+
+      .nav-links {
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .nav-links a:not(.nav-docs),
+      .nav-pill {
+        display: none;
+      }
+
+      main {
+        padding: 42px 0 64px;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      h2 {
+        font-size: 29px;
+      }
+
+      .hero-actions,
+      .primary-action,
+      .secondary-action {
+        width: 100%;
+      }
+
+      .endpoint,
+      .prompt-row {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .endpoint p {
+        grid-column: 1;
+      }
+
+      table {
+        min-width: 620px;
+      }
     }
   </style>
 </head>
 <body>
+  <nav aria-label="Primary">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 56 68" aria-hidden="true">
+        <path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z"></path>
+      </svg>
+      <span>Raindrop MCP</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" >Home</a>
+      <a class="nav-docs" href="/docs/" aria-current="page">Docs</a>
+      <a href="/info">Info</a>
+      <a class="nav-pill" href="#connect">Add to LLM</a>
+    </div>
+  </nav>
+
   <main>
-    <p><a href="/">Raindrop MCP</a></p>
-    <h1>Connect Raindrop MCP</h1>
-    <p>Use the hosted MCP endpoint with any OAuth-aware Streamable HTTP client.</p>
-    <pre><code>{
+    <header class="hero">
+      <div>
+        <h1>Docs for your <span class="accent">saved web MCP</span>.</h1>
+        <p class="lede">Raindrop MCP exposes bookmarks, collections, tags, highlights, and saved-page resources through OAuth-aware MCP clients. This page covers client setup, public endpoints, available tools, and the browser authorization flow.</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#connect">Connect your client</a>
+          <a class="secondary-action" href="#tools">Browse tools</a>
+        </div>
+      </div>
+      <aside class="status-panel" aria-label="Server summary">
+        <div class="status-row"><span><span class="live-dot"></span>Production</span><strong>raindrop-mcp.anuragd.me</strong></div>
+        <div class="status-row"><span>Transport</span><strong>Streamable HTTP</strong></div>
+        <div class="status-row"><span>Auth</span><strong>OAuth 2.1 + PKCE</strong></div>
+        <div class="status-row"><span>Tools</span><strong>24 MCP tools</strong></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <aside class="toc" aria-label="Page sections">
+        <a href="#connect" aria-current="true">Connect</a>
+        <a href="#endpoints">HTTP endpoints</a>
+        <a href="#tools">Tools</a>
+        <a href="#examples">Prompt examples</a>
+        <a href="#resources">Resources</a>
+        <a href="#oauth">OAuth flow</a>
+        <a href="#operations">Operations</a>
+      </aside>
+
+      <div class="docs">
+        <section id="connect">
+          <h2>Connect an MCP client</h2>
+          <p class="section-copy">Use the hosted MCP endpoint with an OAuth-aware Streamable HTTP client. The client discovers protected-resource metadata, opens browser authorization, and stores the issued access token.</p>
+          <div class="code-block">
+            <div class="code-title">
+              <span>Claude Desktop / Cursor config</span>
+              <button class="copy-button" type="button">Copy</button>
+            </div>
+            <pre><code>{
   "mcpServers": {
     "raindrop": {
       "url": "https://raindrop-mcp.anuragd.me/mcp",
@@ -91,40 +727,240 @@
     }
   }
 }</code></pre>
-    <section>
-      <h2>HTTP endpoints</h2>
-      <div class="grid">
-        <div class="card"><strong>GET /</strong><p>Landing page.</p></div>
-        <div class="card"><strong>GET /docs/</strong><p>This setup page.</p></div>
-        <div class="card"><strong>GET /info</strong><p>JSON server summary.</p></div>
-        <div class="card"><strong>POST /mcp</strong><p>Primary MCP Streamable HTTP endpoint.</p></div>
-        <div class="card"><strong>GET /.well-known/oauth-protected-resource</strong><p>MCP protected-resource metadata.</p></div>
-        <div class="card"><strong>GET /.well-known/oauth-authorization-server</strong><p>OAuth authorization server metadata.</p></div>
-        <div class="card"><strong>GET/POST /authorize</strong><p>MCP OAuth authorization and consent.</p></div>
-        <div class="card"><strong>POST /token</strong><p>Authorization code and refresh token exchange.</p></div>
-        <div class="card"><strong>POST /register</strong><p>Dynamic client registration.</p></div>
-        <div class="card"><strong>GET /auth/init</strong><p>Internal Raindrop login step used by /authorize.</p></div>
+          </div>
+          <div class="grid" style="margin-top: 14px;">
+            <div class="info-card">
+              <h3>Codex CLI</h3>
+              <p>Register the same hosted MCP endpoint from a terminal.</p>
+              <div class="chip-row">
+                <span class="chip"><code>codex mcp add raindrop https://raindrop-mcp.anuragd.me/mcp</code></span>
+              </div>
+            </div>
+            <div class="info-card">
+              <h3>Generic client</h3>
+              <p>Use name <code>raindrop</code>, URL <code>https://raindrop-mcp.anuragd.me/mcp</code>, and transport <code>streamable-http</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="endpoints">
+          <h2>HTTP endpoints</h2>
+          <p class="section-copy">The Worker serves the public website, docs, OAuth authorization server, and MCP endpoint. Static pages are public; MCP calls require authorization unless a server operator explicitly enables a development token path.</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><span class="method">GET</span><code>/</code><p>Landing page with the copyable MCP endpoint and prompt examples.</p></div>
+            <div class="endpoint"><span class="method">GET</span><code>/docs/</code><p>This documentation page.</p></div>
+            <div class="endpoint"><span class="method">GET</span><code>/info</code><p>Public JSON server summary: links, endpoints, auth shape, tools, resources, and resource templates.</p></div>
+            <div class="endpoint"><span class="method">POST</span><code>/mcp</code><p>Primary MCP Streamable HTTP endpoint. Supports direct JSON-RPC POST compatibility for gateway clients.</p></div>
+            <div class="endpoint"><span class="method">GET</span><code>/.well-known/oauth-protected-resource</code><p>Protected-resource metadata used by MCP clients during OAuth discovery.</p></div>
+            <div class="endpoint"><span class="method">GET</span><code>/.well-known/oauth-authorization-server</code><p>Authorization server metadata with authorize, token, and registration endpoints.</p></div>
+            <div class="endpoint"><span class="method">GET/POST</span><code>/authorize</code><p>Browser authorization and consent flow for MCP clients.</p></div>
+            <div class="endpoint"><span class="method">POST</span><code>/token</code><p>Authorization code and refresh token exchange.</p></div>
+            <div class="endpoint"><span class="method">POST</span><code>/register</code><p>Dynamic client registration for OAuth-aware clients.</p></div>
+            <div class="endpoint"><span class="method">GET</span><code>/auth/init</code><p>Internal Raindrop OAuth start used when a user has no Raindrop session.</p></div>
+          </div>
+        </section>
+
+        <section id="tools">
+          <h2>MCP tools</h2>
+          <p class="section-copy">The server exposes the real Raindrop tool surface. Read tools search or inspect saved content; write tools create, update, delete, bulk edit, or upload through the Raindrop API after authorization.</p>
+          <div class="grid">
+            <div class="tool-card">
+              <h3>Collections</h3>
+              <p><code>collection_list</code>, <code>collection_children_list</code>, <code>collection_manage</code>, <code>collection_bulk_delete</code>, <code>collection_reorder</code>, <code>collection_expand</code>, <code>collection_merge</code>, <code>collection_clean</code>, <code>collection_empty_trash</code>, and <code>collection_cover_upload</code>.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Bookmarks</h3>
+              <p><code>bookmark_search</code>, <code>bookmark_manage</code>, <code>bookmark_cache</code>, <code>bookmark_suggest_existing</code>, <code>bookmark_bulk_create</code>, <code>bookmark_bulk_delete</code>, <code>bookmark_file_upload</code>, <code>bookmark_cover_upload</code>, <code>bulk_edit_bookmarks</code>, and <code>bookmark_statistics</code>.</p>
+            </div>
+            <div class="tool-card">
+              <h3>Tags and highlights</h3>
+              <p><code>tag_list</code> reads the tag vocabulary, <code>tag_manage</code> renames, merges, or deletes tags, and <code>highlight_manage</code> creates, updates, deletes, or lists highlights.</p>
+            </div>
+            <div class="tool-card">
+              <h3>User and stats</h3>
+              <p><code>user_stats</code> returns account-level totals, while <code>bookmark_statistics</code> can summarize saved content by collection, tag, type, and other Raindrop filters.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="examples">
+          <h2>Prompt examples</h2>
+          <p class="section-copy">These examples show how normal client requests map to concrete MCP tool calls. Bookmark IDs shown here stand in for values returned by earlier search calls.</p>
+          <div class="prompt-list">
+            <article class="prompt-row">
+              <div>
+                <span class="tool-name">bookmark_search</span>
+                <h3>Find a saved article by memory</h3>
+                <p>I saved something about OAuth resource metadata. Find the official spec and summarize why it matters for MCP clients.</p>
+              </div>
+              <pre class="mini-code">bookmark_search
+{
+  "search": "OAuth Protected Resource Metadata",
+  "collection": 0,
+  "perPage": 5
+}</pre>
+            </article>
+            <article class="prompt-row">
+              <div>
+                <span class="tool-name">bookmark_manage</span>
+                <h3>Save a repo while working</h3>
+                <p>Save the MCP TypeScript SDK repo, tag it mcp and sdk, and mark it important so I can find it later.</p>
+              </div>
+              <pre class="mini-code">bookmark_manage
+{
+  "operation": "create",
+  "url": "https://github.com/modelcontextprotocol/typescript-sdk",
+  "tags": ["mcp", "sdk"],
+  "important": true
+}</pre>
+            </article>
+            <article class="prompt-row">
+              <div>
+                <span class="tool-name">bookmark_search -> highlight_manage</span>
+                <h3>Use highlights as context</h3>
+                <p>Find my saved Anthropic article and pull the highlights I left on it. Use the id returned by search in the second call.</p>
+              </div>
+              <pre class="mini-code">bookmark_search
+{
+  "search": "Anthropic",
+  "collection": 0,
+  "perPage": 3
+}
+
+highlight_manage
+{
+  "operation": "list",
+  "bookmarkId": 912345678
+}</pre>
+            </article>
+          </div>
+        </section>
+
+        <section id="resources">
+          <h2>Resources and templates</h2>
+          <p class="section-copy">Clients can also read MCP resources directly when they need a stable saved object rather than another tool call.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Name</th><th>URI</th><th>What it does</th></tr></thead>
+              <tbody>
+                <tr><td>Resource</td><td><code>user_profile</code></td><td><code>raindrop://user/profile</code></td><td>Raindrop user profile for the authorized account.</td></tr>
+                <tr><td>Resource</td><td><code>collections</code></td><td><code>raindrop://collections</code></td><td>Collection list with saved counts and hierarchy metadata.</td></tr>
+                <tr><td>Template</td><td><code>collection</code></td><td><code>raindrop://collection/{id}</code></td><td>Read a specific collection by numeric Raindrop collection id.</td></tr>
+                <tr><td>Template</td><td><code>bookmark</code></td><td><code>raindrop://bookmark/{id}</code></td><td>Read a specific bookmark by numeric Raindrop bookmark id.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="oauth">
+          <h2>OAuth flow</h2>
+          <p class="section-copy">Raindrop MCP uses a self-hosted authorization server in front of Raindrop.io. The MCP client gets a token scoped to the MCP resource, while the Worker stores the user Raindrop token encrypted in Cloudflare KV.</p>
+          <div class="flow-list">
+            <div class="flow-step">The client reads protected-resource metadata and discovers the authorization server.</div>
+            <div class="flow-step">The client registers dynamically, then opens browser authorization with PKCE and a resource indicator.</div>
+            <div class="flow-step">If no Raindrop session exists, the Worker sends the user through Raindrop login and callback.</div>
+            <div class="flow-step">The Worker encrypts and stores the Raindrop token, then returns the user to MCP consent.</div>
+            <div class="flow-step">The client exchanges the authorization code and calls the MCP endpoint with the issued bearer token.</div>
+          </div>
+          <p class="note">For operator diagnostics, <code>/info</code> exposes the canonical URLs and tool/resource counts without exposing secrets.</p>
+        </section>
+
+        <section id="operations">
+          <h2>Operations</h2>
+          <p class="section-copy">The production server runs on Cloudflare Workers with static assets, Worker routes, and KV-backed OAuth storage. These public checks are safe to run without user credentials.</p>
+          <div class="grid">
+            <div class="info-card">
+              <h3>Health</h3>
+              <p><code>GET /health</code> returns service health JSON and is useful for deploy checks.</p>
+              <div class="chip-row"><span class="chip"><code>curl https://raindrop-mcp.anuragd.me/health</code></span></div>
+            </div>
+            <div class="info-card">
+              <h3>Server info</h3>
+              <p><code>GET /info</code> returns the public links, endpoints, tools, resources, and resource templates.</p>
+              <div class="chip-row"><span class="chip"><code>curl https://raindrop-mcp.anuragd.me/info</code></span></div>
+            </div>
+            <div class="info-card">
+              <h3>Source</h3>
+              <p>The public implementation is available on GitHub.</p>
+              <div class="chip-row"><span class="chip"><code>github.com/Aarekaz/raindrop-mcp</code></span></div>
+            </div>
+          </div>
+        </section>
       </div>
-    </section>
-    <section>
-      <h2>Flow</h2>
-      <ol>
-        <li>The MCP client reads protected-resource metadata from <code>/.well-known/oauth-protected-resource</code>.</li>
-        <li>The client reads authorization server metadata from <code>/.well-known/oauth-authorization-server</code>.</li>
-        <li>The client registers with <code>/register</code>.</li>
-        <li>The client opens <code>/authorize</code> with PKCE and resource metadata.</li>
-        <li>The Worker sends the user to Raindrop when no Raindrop session exists.</li>
-        <li>The Worker stores the encrypted Raindrop token in KV and redirects back to <code>/authorize</code>.</li>
-        <li>The user approves the MCP client.</li>
-        <li>The client exchanges the authorization code at <code>/token</code>.</li>
-        <li>The client calls <code>/mcp</code> with the issued bearer token.</li>
-      </ol>
-    </section>
-    <section>
-      <h2>Public metadata</h2>
-      <p><code>/info</code> returns the public server summary, available tools, resource URIs, and canonical links for clients and operators.</p>
-      <pre><code>curl https://raindrop-mcp.anuragd.me/info</code></pre>
-    </section>
+    </div>
   </main>
+
+  <footer>Raindrop MCP &middot; Cloudflare Workers &middot; OAuth-aware MCP</footer>
+  <div class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const toast = document.querySelector('.toast');
+      const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.dataset.show = 'true';
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => { toast.dataset.show = 'false'; }, 1400);
+      };
+
+      document.querySelectorAll('.copy-button').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const code = button.closest('.code-block')?.querySelector('code')?.textContent || '';
+          try {
+            await navigator.clipboard.writeText(code);
+            showToast('Copied');
+          } catch {
+            showToast('Copy failed');
+          }
+        });
+      });
+
+      const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+      const sections = tocLinks
+        .map((link) => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+
+      const setActiveSection = (id) => {
+        tocLinks.forEach((link) => {
+          const active = link.getAttribute('href') === `#${id}`;
+          if (active) {
+            link.setAttribute('aria-current', 'true');
+          } else {
+            link.removeAttribute('aria-current');
+          }
+        });
+      };
+
+      if ('IntersectionObserver' in window && sections.length > 0) {
+        const visible = new Map();
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              visible.set(entry.target.id, entry.intersectionRatio);
+            } else {
+              visible.delete(entry.target.id);
+            }
+          });
+
+          if (visible.size === 0) return;
+          const activeId = [...visible.entries()].sort((a, b) => b[1] - a[1])[0][0];
+          setActiveSection(activeId);
+        }, {
+          rootMargin: '-18% 0px -58% 0px',
+          threshold: [0, 0.2, 0.45, 0.7, 1]
+        });
+
+        sections.forEach((section) => observer.observe(section));
+      }
+
+      tocLinks.forEach((link) => {
+        link.addEventListener('click', () => {
+          const id = link.getAttribute('href')?.slice(1);
+          if (id) setActiveSection(id);
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
