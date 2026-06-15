@@ -516,7 +516,7 @@
     .examples {
       position: relative;
       z-index: 1;
-      width: min(980px, calc(100vw - 32px));
+      width: min(860px, calc(100vw - 32px));
       margin: 28px auto 0;
     }
 
@@ -542,20 +542,27 @@
     }
 
     .example-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(184, 196, 212, 0.72);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 8px 22px rgba(11, 31, 58, 0.06);
     }
 
     .example-card {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(280px, 1fr);
+      gap: 18px;
+      align-items: stretch;
       min-width: 0;
-      padding: 13px;
-      border: 1px solid rgba(184, 196, 212, 0.78);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.96);
-      box-shadow: 0 8px 22px rgba(11, 31, 58, 0.07);
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(184, 196, 212, 0.54);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .example-card:last-child {
+      border-bottom: 0;
     }
 
     .example-card-top {
@@ -566,12 +573,12 @@
       margin-bottom: 10px;
     }
 
+    .example-copy {
+      min-width: 0;
+    }
+
     .example-tool {
       overflow: hidden;
-      padding: 4px 7px;
-      border: 1px solid rgba(11, 99, 246, 0.18);
-      border-radius: 6px;
-      background: rgba(11, 99, 246, 0.06);
       color: var(--blue);
       font-family: var(--font-mono);
       font-size: 10.5px;
@@ -603,12 +610,10 @@
     }
 
     .example-call {
-      flex: 1;
-      min-height: 136px;
       max-width: 100%;
       overflow-x: auto;
       padding: 11px;
-      border-radius: 8px;
+      border-radius: 7px;
       background: #0c1320;
       color: #d9e7ff;
       font-family: var(--font-mono);
@@ -1243,12 +1248,11 @@
         margin-top: 18px;
       }
 
-      .example-grid {
-        grid-template-columns: 1fr;
-      }
-
       .example-card {
+        grid-template-columns: 1fr;
+        gap: 11px;
         min-height: 0;
+        padding: 15px;
       }
 
       .example-call {
@@ -1432,12 +1436,14 @@
           </div>
           <div class="example-grid">
             <article class="example-card">
-              <div class="example-card-top">
-                <span class="example-tool">bookmark_search</span>
-                <span class="example-number">01</span>
+              <div class="example-copy">
+                <div class="example-card-top">
+                  <span class="example-tool">bookmark_search</span>
+                  <span class="example-number">01</span>
+                </div>
+                <h3>Find a saved article by memory</h3>
+                <p>I saved something about OAuth resource metadata. Find the official spec and summarize why it matters for MCP clients.</p>
               </div>
-              <h3>Find a saved article by memory</h3>
-              <p>I saved something about OAuth resource metadata. Find the official spec and summarize why it matters for MCP clients.</p>
               <pre class="example-call">bookmark_search
 {
   "search": "OAuth Protected Resource Metadata",
@@ -1446,12 +1452,14 @@
 }</pre>
             </article>
             <article class="example-card">
-              <div class="example-card-top">
-                <span class="example-tool">bookmark_manage</span>
-                <span class="example-number">02</span>
+              <div class="example-copy">
+                <div class="example-card-top">
+                  <span class="example-tool">bookmark_manage</span>
+                  <span class="example-number">02</span>
+                </div>
+                <h3>Save a repo while working</h3>
+                <p>Save the MCP TypeScript SDK repo, tag it mcp and sdk, and mark it important so I can find it later.</p>
               </div>
-              <h3>Save a repo while working</h3>
-              <p>Save the MCP TypeScript SDK repo, tag it mcp and sdk, and mark it important so I can find it later.</p>
               <pre class="example-call">bookmark_manage
 {
   "operation": "create",
@@ -1461,12 +1469,14 @@
 }</pre>
             </article>
             <article class="example-card">
-              <div class="example-card-top">
-                <span class="example-tool">bookmark_search -> highlight_manage</span>
-                <span class="example-number">03</span>
+              <div class="example-copy">
+                <div class="example-card-top">
+                  <span class="example-tool">bookmark_search -> highlight_manage</span>
+                  <span class="example-number">03</span>
+                </div>
+                <h3>Use highlights as context</h3>
+                <p>Find my saved Anthropic article and pull the highlights I left on it. Use the id returned by search in the second call.</p>
               </div>
-              <h3>Use highlights as context</h3>
-              <p>Find my saved Anthropic article and pull the highlights I left on it. Use the id returned by search in the second call.</p>
               <pre class="example-call">bookmark_search
 {
   "search": "Anthropic",
