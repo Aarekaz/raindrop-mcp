@@ -1320,29 +1320,18 @@
           <h1 class="hero-title" id="hero-title">Your saved web answers <span class="accent">back</span>.</h1>
           <p class="hero-copy">Connect Raindrop.io bookmarks, collections, tags, and highlights to your LLM through OAuth-aware MCP. Search the library you already built, without exporting or re-indexing it.</p>
 
-          <p class="hero-command-label">Ask your library</p>
-          <div class="command-box" aria-label="Raindrop MCP command examples">
-            <div class="command-tabs" role="tablist" aria-label="Example commands">
-              <button type="button" class="command-tab" role="tab" aria-selected="true" data-command-tab="search">Search</button>
-              <button type="button" class="command-tab" role="tab" aria-selected="false" data-command-tab="save">Save</button>
-              <button type="button" class="command-tab" role="tab" aria-selected="false" data-command-tab="organize">Organize</button>
-            </div>
-            <div class="command-line">
-              <span class="prompt-mark">$</span>
-              <code class="command-code" id="hero-command">bookmark_search {"search":"OAuth Protected Resource Metadata","collection":0}</code>
-              <button type="button" class="copy-mini" data-copy-command aria-label="Copy example command">
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                  <path d="M8 8h10v10H8z" fill="none" stroke="currentColor" stroke-width="1.7" />
-                  <path d="M6 16H4V4h12v2" fill="none" stroke="currentColor" stroke-width="1.7" />
-                </svg>
-              </button>
-            </div>
+          <p class="hero-command-label">Connection point</p>
+          <div class="cta-row" aria-label="Raindrop MCP connection point">
+            <button type="button" class="url-pill" id="copy-endpoint" data-copy-url="https://raindrop-mcp.anuragd.me/mcp" aria-label="Copy MCP server URL">
+              <span class="url-text">raindrop-mcp.anuragd.me/mcp</span>
+              <span class="url-status" aria-hidden="true">Copy</span>
+            </button>
+            <button type="button" class="connect-button" data-open-install>Connect</button>
           </div>
 
           <p class="compat-line">Works with <strong>Claude</strong> &middot; <strong>Cursor</strong> &middot; <strong>Codex</strong> &middot; <strong>Poke</strong></p>
           <div class="hero-actions">
             <a class="learn-button" href="#how-it-works">See how it works</a>
-            <button type="button" class="endpoint-button" data-open-install>Connect Raindrop</button>
           </div>
         </div>
       </section>
@@ -1607,35 +1596,6 @@ highlight_manage
       });
     });
 
-    const commandExamples = {
-      search: 'bookmark_search {"search":"OAuth Protected Resource Metadata","collection":0}',
-      save: 'bookmark_manage {"operation":"create","url":"https://github.com/modelcontextprotocol/typescript-sdk","tags":["mcp","sdk"],"important":true}',
-      organize: 'tag_list {"collectionId":0}'
-    };
-
-    const commandOutput = document.getElementById('hero-command');
-
-    document.querySelectorAll('[data-command-tab]').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        const key = tab.dataset.commandTab || 'search';
-        document.querySelectorAll('[data-command-tab]').forEach((candidate) => {
-          candidate.setAttribute('aria-selected', String(candidate === tab));
-        });
-        if (commandOutput) {
-          commandOutput.textContent = commandExamples[key] || commandExamples.search;
-        }
-      });
-    });
-
-    document.querySelector('[data-copy-command]')?.addEventListener('click', async () => {
-      const code = commandOutput?.textContent?.trim() || commandExamples.search;
-      try {
-        await navigator.clipboard.writeText(code);
-        showToast('Command copied');
-      } catch {
-        showToast('Copy failed');
-      }
-    });
   </script>
 </body>
 </html>
