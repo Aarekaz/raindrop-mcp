@@ -1343,7 +1343,7 @@
 <body>
   <div class="site-frame">
     <nav aria-label="Primary">
-      <a class="brand" href="/" aria-label="Raindrop MCP home">
+      <a class="brand" href="/" data-file-href="./index.html" aria-label="Raindrop MCP home">
         <svg viewBox="0 0 56 68" aria-hidden="true">
           <path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z" />
         </svg>
@@ -1352,7 +1352,7 @@
       <div class="nav-links">
         <a href="#how-it-works">How it works</a>
         <a href="#examples">Examples</a>
-        <a class="nav-docs" href="/docs/">Docs</a>
+        <a class="nav-docs" href="/docs/" data-file-href="./docs/index.html">Docs</a>
         <a href="#trust">Trust</a>
         <button type="button" class="nav-pill" data-open-install>Add to LLM</button>
       </div>
@@ -1513,8 +1513,8 @@ highlight_manage
     <footer class="site-footer">
       <span>Raindrop MCP</span>
       <span>&middot;</span>
-      <a href="/docs/">Docs</a>
-      <a href="/info">Server info</a>
+      <a href="/docs/" data-file-href="./docs/index.html">Docs</a>
+      <a href="/info" data-file-href="https://raindrop-mcp.anuragd.me/info">Server info</a>
       <a href="https://github.com/Aarekaz/raindrop-mcp">Source</a>
     </footer>
   </div>
@@ -1576,6 +1576,12 @@ highlight_manage
 
   <script>
     const endpoint = 'https://raindrop-mcp.anuragd.me/mcp';
+    if (window.location.protocol === 'file:') {
+      document.querySelectorAll('[data-file-href]').forEach((link) => {
+        link.setAttribute('href', link.dataset.fileHref);
+      });
+    }
+
     const snippets = {
       claude: `{
   "mcpServers": {

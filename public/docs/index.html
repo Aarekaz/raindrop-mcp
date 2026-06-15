@@ -667,16 +667,16 @@
 </head>
 <body>
   <nav aria-label="Primary">
-    <a class="brand" href="/">
+    <a class="brand" href="/" data-file-href="../index.html">
       <svg viewBox="0 0 56 68" aria-hidden="true">
         <path fill="currentColor" d="M28 2C18.4 14.9 7 29.6 7 43.1C7 57 16.4 66 28 66s21-9 21-22.9C49 29.6 37.6 14.9 28 2Z"></path>
       </svg>
       <span>Raindrop MCP</span>
     </a>
     <div class="nav-links">
-      <a href="/" >Home</a>
-      <a class="nav-docs" href="/docs/" aria-current="page">Docs</a>
-      <a href="/info">Info</a>
+      <a href="/" data-file-href="../index.html">Home</a>
+      <a class="nav-docs" href="/docs/" data-file-href="./index.html" aria-current="page">Docs</a>
+      <a href="/info" data-file-href="https://raindrop-mcp.anuragd.me/info">Info</a>
       <a class="nav-pill" href="#connect">Add to LLM</a>
     </div>
   </nav>
@@ -895,6 +895,12 @@ highlight_manage
 
   <script>
     (() => {
+      if (window.location.protocol === 'file:') {
+        document.querySelectorAll('[data-file-href]').forEach((link) => {
+          link.setAttribute('href', link.dataset.fileHref);
+        });
+      }
+
       const toast = document.querySelector('.toast');
       const showToast = (message) => {
         if (!toast) return;
