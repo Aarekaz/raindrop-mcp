@@ -10,6 +10,8 @@ tsconfig.tsbuildinfo
 *.js.map
 *.d.ts
 *.d.ts.map
+!public/scripts/
+!public/scripts/**
 
 .claude/
 
