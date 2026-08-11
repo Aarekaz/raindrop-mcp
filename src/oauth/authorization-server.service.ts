@@ -388,11 +388,29 @@ export class AuthorizationServerService {
       token.resource
     );
 
+    const client = await this.getClient(clientId);
+    const shouldRotateRefreshToken = client?.token_endpoint_auth_method === 'none';
+    let nextRefreshToken: string | undefined;
+
+    // OAuth 2.1 requires refresh-token rotation for public clients. Create the
+    // replacement before invalidating the current token so storage failures do
+    // not destroy the user's active grant.
+    if (shouldRotateRefreshToken) {
+      nextRefreshToken = await this.createRefreshToken(
+        token.user_id,
+        clientId,
+        token.scope,
+        token.resource
+      );
+      await this.storage.deleteRefreshToken(refreshToken);
+    }
+
     return {
       access_token: accessToken,
       token_type: 'Bearer',
       expires_in: this.accessTokenExpiry,
       scope: token.scope,
+      ...(nextRefreshToken ? { refresh_token: nextRefreshToken } : {}),
     };
   }
 

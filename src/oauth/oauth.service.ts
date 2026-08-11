@@ -67,6 +67,10 @@ export class OAuthService {
     // Exchange authorization code for tokens
     const tokens = await this.exchangeCodeForTokens(code, storedState.codeVerifier);
 
+    if (!tokens.refresh_token) {
+      throw new Error('Raindrop token exchange did not return a refresh token');
+    }
+
     // Get user information from Raindrop
     const userInfo = await this.getUserInfo(tokens.access_token);
 
@@ -157,7 +161,9 @@ export class OAuthService {
     const updatedSession: StoredSession = {
       ...session,
       accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
+      // RFC 6749 allows the provider to omit this when the existing refresh
+      // token remains valid.
+      refreshToken: tokens.refresh_token ?? session.refreshToken,
       expiresAt: Date.now() + (tokens.expires_in * 1000),
       lastUsedAt: Date.now(),
     };

@@ -345,7 +345,7 @@ describe('OAuth Worker routes', () => {
         kv
       )
     );
-    const refreshed = await readJson<{ access_token: string }>(refreshResponse);
+    const refreshed = await readJson<{ access_token: string; refresh_token: string }>(refreshResponse);
     const { payload: refreshPayload } = await jwtVerify(
       refreshed.access_token,
       new TextEncoder().encode(signingKey),
@@ -356,7 +356,26 @@ describe('OAuth Worker routes', () => {
     );
 
     expect(refreshResponse.status).toBe(200);
+    expect(refreshed.refresh_token).toBeString();
+    expect(refreshed.refresh_token).not.toBe(body.refresh_token);
     expect(refreshPayload.aud).toBe(resource);
+
+    const reusedResponse = await fetchWorker(
+      '/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          client_id: client.client_id,
+          refresh_token: body.refresh_token,
+        }),
+      },
+      createEnv({ JWT_SIGNING_KEY: signingKey, JWT_ISSUER: 'https://example.com' }, kv)
+    );
+
+    expect(reusedResponse.status).toBe(400);
+    expect(await reusedResponse.json()).toMatchObject({ error: 'invalid_grant' });
   });
 
   test('POST /token omits refresh_token for authorization-code-only clients', async () => {
