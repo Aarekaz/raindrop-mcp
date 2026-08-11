@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ExecutionContext, KVNamespace } from '@cloudflare/workers-types';
 import { SignJWT } from 'jose';
 
-import { encrypt } from '../src/oauth/crypto.utils.js';
+import { decrypt, encrypt } from '../src/oauth/crypto.utils.js';
 import type { Env, Fetcher } from '../src/worker/env.js';
 import worker from '../src/worker.js';
 
@@ -41,9 +41,12 @@ class InMemoryKVNamespace {
   }
 }
 
-function createEnv(overrides: Partial<Env> = {}): Env {
+function createEnv(
+  overrides: Partial<Env> = {},
+  kv = new InMemoryKVNamespace()
+): Env {
   return {
-    RAINDROP_AUTH_KV: new InMemoryKVNamespace() as unknown as KVNamespace,
+    RAINDROP_AUTH_KV: kv as unknown as KVNamespace,
     RAINDROP_ACCESS_TOKEN: 'env-test-token',
     ASSETS: {
       fetch: () => new Response('asset'),
@@ -305,6 +308,97 @@ describe('Worker MCP handler', () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get('WWW-Authenticate')).toContain('invalid_token');
+  });
+
+  test('JWT auth refreshes an expired upstream Raindrop session', async () => {
+    const kv = new InMemoryKVNamespace();
+    const signingKey = 'upstream-refresh-test-secret';
+    const encryptionKey = 'a'.repeat(64);
+    const userId = 'user-upstream-refresh';
+    const sessionId = 'session-upstream-refresh';
+    const jwt = await createJwt({
+      signingKey,
+      issuer: 'https://example.com',
+      userId,
+      clientId: 'client-upstream-refresh',
+      scope: 'raindrop:read raindrop:write',
+    });
+
+    await kv.seedJson(`session:${sessionId}`, {
+      sessionId,
+      userId,
+      accessToken: encrypt('expired-upstream-token', encryptionKey),
+      refreshToken: encrypt('upstream-refresh-token', encryptionKey),
+      expiresAt: Date.now() - 1,
+      createdAt: Date.now() - 15 * 24 * 60 * 60 * 1000,
+      lastUsedAt: Date.now() - 15 * 24 * 60 * 60 * 1000,
+    });
+    await kv.seedJson(`user:${userId}`, sessionId);
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url === 'https://raindrop.io/oauth/access_token') {
+        return new Response(
+          JSON.stringify({
+            access_token: 'refreshed-upstream-token',
+            expires_in: 1_209_599,
+            token_type: 'Bearer',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return originalFetch(input);
+    }) as typeof fetch;
+
+    try {
+      const response = await fetchWorker(
+        '/mcp',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+            Accept: 'application/json, text/event-stream',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 91,
+            method: 'tools/list',
+            params: {},
+          }),
+        },
+        createEnv(
+          {
+            JWT_SIGNING_KEY: signingKey,
+            JWT_ISSUER: 'https://example.com',
+            TOKEN_ENCRYPTION_KEY: encryptionKey,
+            OAUTH_CLIENT_ID: 'raindrop-client-id',
+            OAUTH_CLIENT_SECRET: 'raindrop-client-secret',
+            OAUTH_REDIRECT_URI: 'https://example.com/auth/callback',
+          },
+          kv
+        )
+      );
+
+      expect(response.status).toBe(200);
+      const storedSession = (await kv.get<{
+        accessToken: string;
+        refreshToken: string;
+        expiresAt: number;
+      }>(`session:${sessionId}`, 'json')) as {
+        accessToken: string;
+        refreshToken: string;
+        expiresAt: number;
+      } | null;
+      expect(storedSession).not.toBeNull();
+      expect(decrypt(storedSession!.accessToken, encryptionKey)).toBe('refreshed-upstream-token');
+      expect(decrypt(storedSession!.refreshToken, encryptionKey)).toBe('upstream-refresh-token');
+      expect(storedSession!.expiresAt).toBeGreaterThan(Date.now());
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   test('unset NODE_ENV env token fallback is denied without explicit opt-in', async () => {

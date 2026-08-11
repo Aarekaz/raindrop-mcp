@@ -12,10 +12,10 @@ import {
 } from './oauth.types.js';
 import { encrypt, decrypt } from './crypto.utils.js';
 
-const SESSION_TTL = 14 * 24 * 60 * 60; // 14 days in seconds
+const SESSION_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 const STATE_TTL = 5 * 60; // 5 minutes in seconds
 const AUTH_CODE_TTL = 5 * 60; // 5 minutes in seconds
-const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
+const USER_RAINDROP_TOKEN_TTL = 14 * 24 * 60 * 60; // Raindrop access tokens expire after 14 days
 
 export interface KeyValueStore {
   get<T>(key: string): Promise<T | null>;
@@ -55,6 +55,13 @@ export class TokenStorage {
       accessToken: decrypt(data.accessToken, this.encryptionKey),
       refreshToken: decrypt(data.refreshToken, this.encryptionKey),
     };
+  }
+
+  /**
+   * Resolve the refreshable Raindrop session associated with a user.
+   */
+  async getSessionIdForUser(userId: string): Promise<string | null> {
+    return await this.store.get<string>(`user:${userId}`);
   }
 
   /**
@@ -129,10 +136,11 @@ export class TokenStorage {
   }
 
   /**
-   * Save refresh token (long-lived, 30 days)
+   * Save refresh token for its configured lifetime.
    */
   async saveRefreshToken(token: RefreshToken): Promise<void> {
-    await this.store.set(`refresh:${token.token}`, token, { ex: REFRESH_TOKEN_TTL });
+    const remainingLifetime = Math.max(1, Math.ceil((token.expires_at - Date.now()) / 1000));
+    await this.store.set(`refresh:${token.token}`, token, { ex: remainingLifetime });
   }
 
   /**
@@ -154,7 +162,9 @@ export class TokenStorage {
    * Used to make backend API calls on behalf of the user
    */
   async saveUserRaindropToken(userId: string, encryptedToken: string): Promise<void> {
-    await this.store.set(`user_raindrop:${userId}`, encryptedToken, { ex: SESSION_TTL });
+    await this.store.set(`user_raindrop:${userId}`, encryptedToken, {
+      ex: USER_RAINDROP_TOKEN_TTL,
+    });
   }
 
   /**

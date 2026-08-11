@@ -172,19 +172,37 @@ function createVerifyToken(
           return undefined;
         }
 
-        // Get user's Raindrop token for backend API calls
-        const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
-        if (!encryptedToken) {
+        // Prefer the refreshable upstream session. Raindrop access tokens
+        // expire after two weeks, independently of this server's MCP JWTs.
+        const sessionId = await tokenStorage.getSessionIdForUser(payload.sub);
+        let raindropToken: string | undefined;
+
+        if (sessionId) {
+          try {
+            raindropToken = await oauthService.ensureValidToken(sessionId);
+          } catch (error) {
+            console.error('Raindrop session refresh failed for user:', payload.sub, error);
+            return undefined;
+          }
+        } else {
+          // Compatibility fallback for deployments where only the cached
+          // upstream access token remains.
+          const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
+          if (encryptedToken) {
+            raindropToken = decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY);
+          }
+        }
+
+        if (!raindropToken) {
           console.error('No Raindrop token found for user:', payload.sub);
           return undefined;
         }
-
-        const raindropToken = decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY);
 
         return {
           token: raindropToken,
           scopes: payload.scope.split(' '),
           clientId: payload.client_id,
+          expiresAt: payload.exp,
           extra: {
             userId: payload.sub,
             jwtPayload: payload,
@@ -345,84 +363,6 @@ function mcpMethodNotAllowed(): Response {
       Allow: 'POST, HEAD, OPTIONS',
     },
   });
-}
-
-async function verifyHeadAuth(
-  env: Env,
-  tokenStorage: TokenStorage,
-  authServerService: AuthorizationServerService,
-  req: Request
-): Promise<AuthInfo | undefined> {
-  const bearerToken = parseBearerToken(req);
-
-  if (bearerToken?.includes('.')) {
-    try {
-      const payload = await authServerService.verifyJWT(bearerToken);
-      if (!audienceMatches(payload, req.url)) {
-        return undefined;
-      }
-      const encryptedToken = await tokenStorage.getUserRaindropToken(payload.sub);
-
-      if (!encryptedToken) {
-        return undefined;
-      }
-
-      return {
-        token: decrypt(encryptedToken, env.TOKEN_ENCRYPTION_KEY),
-        scopes: payload.scope.split(' '),
-        clientId: payload.client_id,
-        extra: {
-          userId: payload.sub,
-          jwtPayload: payload,
-          authMethod: 'jwt',
-        },
-      };
-    } catch (error) {
-      console.error('JWT verification failed:', error);
-    }
-  }
-
-  if (bearerToken && !bearerToken.includes('.')) {
-    const session = await tokenStorage.getSession(bearerToken);
-    if (session && session.expiresAt > Date.now()) {
-      return {
-        token: session.accessToken,
-        scopes: ['raindrop:read', 'raindrop:write'],
-        clientId: 'oauth-session',
-        extra: {
-          sessionId: bearerToken,
-          authMethod: 'session',
-        },
-      };
-    }
-  }
-
-  const directToken = req.headers.get('x-raindrop-token');
-  if (directToken) {
-    return {
-      token: directToken,
-      scopes: ['raindrop:read', 'raindrop:write'],
-      clientId: 'direct-token',
-      extra: {
-        method: 'header',
-        authMethod: 'direct',
-      },
-    };
-  }
-
-  if (allowsEnvTokenAuth(env) && env.RAINDROP_ACCESS_TOKEN) {
-    return {
-      token: env.RAINDROP_ACCESS_TOKEN,
-      scopes: ['raindrop:read', 'raindrop:write'],
-      clientId: 'env-token',
-      extra: {
-        method: 'environment',
-        authMethod: 'env',
-      },
-    };
-  }
-
-  return undefined;
 }
 
 /**
@@ -1679,7 +1619,9 @@ export function createRaindropMcpHandler(env: Env): (request: Request) => Promis
 
 export function createRaindropMcpHeadHandler(env: Env): (request: Request) => Promise<Response> {
   const tokenStorage = createTokenStorage(env);
+  const oauthService = createOAuthService(env, tokenStorage);
   const authServerService = createAuthorizationServerService(env, tokenStorage);
+  const verifyToken = createVerifyToken(env, tokenStorage, oauthService, authServerService);
 
   return async (request: Request): Promise<Response> => {
     try {
@@ -1689,7 +1631,7 @@ export function createRaindropMcpHeadHandler(env: Env): (request: Request) => Pr
       return addMcpCorsHeaders(request, new Response(null, { status: 403 }), null);
     }
 
-    const authInfo = await verifyHeadAuth(env, tokenStorage, authServerService, request);
+    const authInfo = await verifyToken(request, parseBearerToken(request));
 
     if (!authInfo?.scopes.includes('raindrop:read')) {
       const resourceMetadataUrl = new URL(RESOURCE_METADATA_PATH, request.url).toString();
